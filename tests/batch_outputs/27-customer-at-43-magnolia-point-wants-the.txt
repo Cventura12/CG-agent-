@@ -1,0 +1,27 @@
+RAW INPUT: customer at 43 Magnolia Point wants the hail quote split between house and pool house, main roof twenty five square and pool house four square
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 43 Magnolia Point
+
+Scope of Work:
+Provide hail damage roof replacement at 43 Magnolia Point. Estimated size is 25 roof square(s). Observed conditions: customer at 43 Magnolia Point wants the hail quote split between house and pool house, main roof twenty five square and pool house four square. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 25 square | $1,625.00
+  - Laminated shingles: 28 square | $4,060.00
+  - Synthetic underlayment: 28 square | $504.00
+  - Ice and water shield: 7 square | $294.00
+  - Ridge cap: 3 square | $84.00
+  - Starter strip: 3 square | $48.00
+
+Total Price: $7,607.25
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

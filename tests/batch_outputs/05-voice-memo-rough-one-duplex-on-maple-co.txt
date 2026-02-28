@@ -1,0 +1,27 @@
+RAW INPUT: voice memo rough one, duplex on Maple Court, wind damage on both sides, maybe thirty two square total, one side definitely needs new plywood, customer already asking if we can start Friday
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: Maple Court
+
+Scope of Work:
+Provide roof replacement at Maple Court. Estimated size is 32 roof square(s). Observed conditions: voice memo rough one, duplex on Maple Court, wind damage on both sides, maybe thirty two square total, one side definitely needs new plywood, customer already asking if we can start Friday. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 32 square | $2,080.00
+  - Laminated shingles: 36 square | $5,220.00
+  - Synthetic underlayment: 36 square | $648.00
+  - Ice and water shield: 8 square | $336.00
+  - Ridge cap: 4 square | $112.00
+  - Starter strip: 4 square | $64.00
+
+Total Price: $9,729.00
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

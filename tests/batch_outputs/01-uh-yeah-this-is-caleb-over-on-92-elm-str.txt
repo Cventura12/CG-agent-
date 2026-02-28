@@ -1,0 +1,27 @@
+RAW INPUT: uh yeah this is Caleb over on 92 Elm Street, two squares blew off the back slope after last night's hail and the ridge cap is peeled up, probably a 6/12, customer is Mrs Dalton
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Mrs Dalton
+Address: 92 Elm Street
+
+Scope of Work:
+Provide hail damage roof replacement at 92 Elm Street. Estimated size is 2 roof square(s). Roof pitch noted at 6/12. Observed conditions: uh yeah this is Caleb over on 92 Elm Street, two squares blew off the back slope after last night's hail and the ridge cap is peeled up, probably a 6/12, customer is Mrs Dalton. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 2 square | $130.00
+  - Laminated shingles: 3 square | $435.00
+  - Synthetic underlayment: 3 square | $54.00
+  - Ice and water shield: 1 square | $42.00
+  - Ridge cap: 1 square | $28.00
+  - Starter strip: 1 square | $16.00
+
+Total Price: $810.75
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

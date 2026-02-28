@@ -7,14 +7,19 @@ import inspect
 import logging
 import os
 import re
-from typing import Any
+from typing import Any, Optional
 
 import httpx
-from deepgram import DeepgramClient
+from anthropic import AsyncAnthropic, RateLimitError
+from dotenv import load_dotenv
 
+from gc_agent import prompts
 from gc_agent.state import AgentState
 
+load_dotenv()
+
 LOGGER = logging.getLogger(__name__)
+MODEL_NAME = "claude-sonnet-4-20250514"
 THREAD_LINE_PATTERN = re.compile(r"^\[[^\]]+\]:\s+.+")
 QUERY_PATTERNS = (
     re.compile(r"\bwhat'?s\s+open\s+on\b", re.IGNORECASE),
@@ -22,6 +27,109 @@ QUERY_PATTERNS = (
     re.compile(r"\bwhat\s+is\s+the\s+status\s+of\b", re.IGNORECASE),
     re.compile(r"\bwhere\s+are\s+we\s+on\b", re.IGNORECASE),
 )
+
+_ANTHROPIC_CLIENT: Optional[AsyncAnthropic] = None
+
+
+def _get_anthropic_client() -> AsyncAnthropic:
+    """Return a shared AsyncAnthropic client for estimate-mode normalization."""
+    global _ANTHROPIC_CLIENT
+
+    if _ANTHROPIC_CLIENT is None:
+        api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        if not api_key:
+            raise RuntimeError("ANTHROPIC_API_KEY is required for ingest normalization")
+        _ANTHROPIC_CLIENT = AsyncAnthropic(api_key=api_key)
+
+    return _ANTHROPIC_CLIENT
+
+
+def _extract_message_text(response: Any) -> str:
+    """Flatten Anthropic content blocks into plain text."""
+    parts: list[str] = []
+
+    for block in getattr(response, "content", []) or []:
+        text = getattr(block, "text", None)
+        if isinstance(text, str) and text.strip():
+            parts.append(text)
+
+    result = "\n".join(parts).strip()
+    if not result:
+        raise ValueError("Claude returned empty ingest output")
+
+    return result
+
+
+async def _call_claude(system: str, user: str, max_tokens: int = 600) -> str:
+    """Call Claude with retry support and return normalized text."""
+    client = _get_anthropic_client()
+
+    for attempt in range(1, 4):
+        try:
+            response = await client.messages.create(
+                model=MODEL_NAME,
+                max_tokens=max_tokens,
+                temperature=0,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            )
+            return _extract_message_text(response)
+        except RateLimitError:
+            LOGGER.warning("ingest rate limited on attempt %s/3", attempt)
+            if attempt >= 3:
+                raise
+            await asyncio.sleep(2)
+
+
+def _normalize_cleaned_text(raw: str, fallback: str) -> str:
+    """Collapse excess whitespace and prefer a non-empty cleaned result."""
+    candidate = " ".join(raw.split())
+    if candidate:
+        return candidate
+    return " ".join(fallback.split())
+
+
+async def _run_estimate_ingest(raw_input: str, errors: list[str]) -> dict[str, object]:
+    """Normalize estimating input into cleaned_input using the v5 ingest prompt."""
+    source_text = raw_input.strip()
+    if not source_text:
+        return {
+            "mode": "estimate",
+            "raw_input": "",
+            "cleaned_input": "",
+            "thread_style": False,
+            "errors": errors,
+        }
+
+    if not os.getenv("ANTHROPIC_API_KEY", "").strip():
+        normalized = _normalize_cleaned_text(source_text, source_text)
+        return {
+            "mode": "estimate",
+            "raw_input": source_text,
+            "cleaned_input": normalized,
+            "thread_style": False,
+            "errors": errors,
+        }
+
+    try:
+        cleaned = await _call_claude(
+            system=prompts.INGEST_SYSTEM,
+            user=source_text,
+            max_tokens=600,
+        )
+        normalized = _normalize_cleaned_text(cleaned, source_text)
+    except Exception as exc:
+        LOGGER.exception("Estimate ingest normalization failed")
+        errors.append(f"estimate ingest failed: {exc}")
+        normalized = _normalize_cleaned_text(source_text, source_text)
+
+    return {
+        "mode": "estimate",
+        "raw_input": source_text,
+        "cleaned_input": normalized,
+        "thread_style": False,
+        "errors": errors,
+    }
 
 
 def _looks_like_thread_style(text: str) -> bool:
@@ -93,7 +201,7 @@ def _extract_transcript(response: Any) -> str:
 
 
 async def _call_deepgram_transcribe(
-    deepgram: DeepgramClient,
+    deepgram: Any,
     audio_bytes: bytes,
 ) -> Any:
     """Invoke Deepgram transcription and support sync/async SDK variants."""
@@ -128,6 +236,8 @@ async def _transcribe_audio(audio_url: str) -> str:
     if not deepgram_api_key:
         raise RuntimeError("DEEPGRAM_API_KEY is required for voice transcription")
 
+    from deepgram import DeepgramClient
+
     audio_bytes = await _download_audio(normalized_url)
     deepgram = DeepgramClient(api_key=deepgram_api_key)
     response = await _call_deepgram_transcribe(deepgram, audio_bytes)
@@ -159,6 +269,9 @@ async def ingest(state: AgentState) -> dict[str, object]:
             raw_input = f"Voice note could not be transcribed\n{audio_url}"
             errors.append(f"voice transcription failed: {exc}")
 
+    if state.mode in {None, "estimate"}:
+        return await _run_estimate_ingest(raw_input, errors)
+
     cleaned_input = raw_input.strip()
     thread_style = _looks_like_thread_style(cleaned_input)
     detected_mode = "query" if _is_query_message(cleaned_input) else "update"
@@ -181,4 +294,4 @@ async def ingest(state: AgentState) -> dict[str, object]:
     }
 
 
-__all__ = ["ingest", "_transcribe_audio"]
+__all__ = ["ingest", "_call_claude", "_transcribe_audio"]

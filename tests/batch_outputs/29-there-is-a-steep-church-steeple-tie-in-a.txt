@@ -1,0 +1,27 @@
+RAW INPUT: there is a steep church steeple tie-in at 410 Grace Avenue, main roof thirty three square but the trouble is around the steeple base flashing
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 410 Grace Avenue
+
+Scope of Work:
+Provide roof replacement at 410 Grace Avenue. Estimated size is 33 roof square(s). Observed conditions: there is a steep church steeple tie-in at 410 Grace Avenue, main roof thirty three square but the trouble is around the steeple base flashing. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 33 square | $2,145.00
+  - Laminated shingles: 37 square | $5,365.00
+  - Synthetic underlayment: 37 square | $666.00
+  - Ice and water shield: 9 square | $378.00
+  - Ridge cap: 4 square | $112.00
+  - Starter strip: 4 square | $64.00
+
+Total Price: $10,039.50
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

@@ -1,0 +1,27 @@
+RAW INPUT: can you price a full tear-off on 512 Bluebonnet Court, thirty one square, one layer, chimney flashing and pipe boots all need replacement
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 512 Bluebonnet Court
+
+Scope of Work:
+Provide full tear-off replacement at 512 Bluebonnet Court. Estimated size is 31 roof square(s). Observed conditions: can you price a full tear-off on 512 Bluebonnet Court, thirty one square, one layer, chimney flashing and pipe boots all need replacement. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 31 square | $2,015.00
+  - Laminated shingles: 35 square | $5,075.00
+  - Synthetic underlayment: 35 square | $630.00
+  - Ice and water shield: 8 square | $336.00
+  - Ridge cap: 4 square | $112.00
+  - Starter strip: 4 square | $64.00
+
+Total Price: $9,466.80
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

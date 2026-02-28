@@ -94,8 +94,19 @@ class AgentState(BaseModel):
     input_type: Literal["whatsapp", "sms", "chat", "cron", "voice"] = "chat"
     raw_input: str = ""
     from_number: str = ""
-    mode: Optional[Literal["update", "briefing", "query"]] = None
+    mode: Optional[Literal["update", "briefing", "query", "estimate"]] = None
     thread_style: bool = False
+
+    # Phase 1 / v5 estimating loop fields
+    cleaned_input: str = ""
+    job_scope: dict[str, object] = Field(default_factory=dict)
+    materials: dict[str, object] = Field(default_factory=dict)
+    quote_draft: dict[str, object] = Field(default_factory=dict)
+    memory_context: dict[str, object] = Field(default_factory=dict)
+    clarification_needed: bool = False
+    clarification_questions: list[str] = Field(default_factory=list)
+    approval_status: Literal["pending", "approved", "edited", "rejected"] = "pending"
+    followup_count: int = 0
 
     # Context
     gc_id: str = ""
@@ -105,6 +116,7 @@ class AgentState(BaseModel):
     parsed_intent: Optional[ParsedIntent] = None
     risk_flags: list[str] = Field(default_factory=list)
     drafts_created: list[Draft] = Field(default_factory=list)
+    rendered_quote: str = ""
     briefing_output: str = ""
     errors: list[str] = Field(default_factory=list)
     thread_id: str = ""

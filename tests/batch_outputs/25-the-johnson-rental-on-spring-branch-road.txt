@@ -1,0 +1,24 @@
+RAW INPUT: the Johnson rental on Spring Branch Road needs a fast turn repair, around three square of wind damage and maybe one ridge vent section
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: Spring Branch Road
+
+Scope of Work:
+Provide roof repair at Spring Branch Road. Estimated size is 3 roof square(s). Observed conditions: the Johnson rental on Spring Branch Road needs a fast turn repair, around three square of wind damage and maybe one ridge vent section. Perform targeted tear-out and patch repairs at the affected section, including flashing and sealant work needed to stop the leak.
+
+Line Items:
+  - Repair labor and tear-out: 3 square | $195.00
+  - Replacement shingle / patch material: 3 square | $435.00
+  - Flashing and sealant allowance: 1 allowance | $42.00
+
+Total Price: $772.80
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

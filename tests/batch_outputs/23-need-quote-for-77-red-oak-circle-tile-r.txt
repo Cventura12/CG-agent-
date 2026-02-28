@@ -1,0 +1,24 @@
+RAW INPUT: need quote for 77 Red Oak Circle, tile roof repair around a vent stack and one broken field tile, maybe service call only
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 77 Red Oak Circle
+
+Scope of Work:
+Provide service call repair at 77 Red Oak Circle. Observed conditions: need quote for 77 Red Oak Circle, tile roof repair around a vent stack and one broken field tile, maybe service call only. Perform targeted tear-out and patch repairs at the affected section, including flashing and sealant work needed to stop the leak.
+
+Line Items:
+  - Roof access and safety setup: 1 allowance | $65.00
+  - Replacement field tiles: 1 square | $145.00
+  - Tile flashing repair: 1 allowance | $42.00
+
+Total Price: $289.80
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

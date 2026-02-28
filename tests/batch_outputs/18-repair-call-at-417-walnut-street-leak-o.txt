@@ -1,0 +1,24 @@
+RAW INPUT: repair call at 417 Walnut Street, leak over kitchen after branch impact, two square patch plus replace one sheet of decking
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 417 Walnut Street
+
+Scope of Work:
+Provide roof repair at 417 Walnut Street. Estimated size is 2 roof square(s). Observed conditions: repair call at 417 Walnut Street, leak over kitchen after branch impact, two square patch plus replace one sheet of decking. Perform targeted tear-out and patch repairs at the affected section, including flashing and sealant work needed to stop the leak.
+
+Line Items:
+  - Repair labor and tear-out: 2 square | $130.00
+  - Replacement shingle / patch material: 2 square | $290.00
+  - Flashing and sealant allowance: 1 allowance | $42.00
+
+Total Price: $531.30
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

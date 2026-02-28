@@ -1,0 +1,27 @@
+RAW INPUT: small office at 72 Commerce Way, TPO low slope, seam separation near HVAC curb, maybe twelve square total, likely repair not full replacement
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 72 Commerce Way
+
+Scope of Work:
+Provide tpo roof repair at 72 Commerce Way. Estimated size is 12 roof square(s). Observed conditions: small office at 72 Commerce Way, TPO low slope, seam separation near HVAC curb, maybe twelve square total, likely repair not full replacement. Remove compromised membrane areas and install replacement membrane, base materials, and flashing needed to restore a watertight low-slope assembly.
+
+Line Items:
+  - Tear-off and disposal: 12 square | $780.00
+  - Laminated shingles: 14 square | $2,030.00
+  - Synthetic underlayment: 14 square | $252.00
+  - Ice and water shield: 3 square | $126.00
+  - Ridge cap: 2 square | $56.00
+  - Starter strip: 2 square | $32.00
+
+Total Price: $3,767.40
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

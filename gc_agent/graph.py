@@ -10,22 +10,13 @@ from typing import Any, Awaitable, Callable, Optional, cast
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 
 try:
     from langgraph.checkpoint.postgres import PostgresSaver
 except Exception:  # pragma: no cover - dependency may be unavailable before install
     PostgresSaver = None  # type: ignore[assignment]
 
-from gc_agent.db import queries
-from gc_agent.db.client import get_postgres_url
-from gc_agent.nodes import (
-    draft_actions,
-    flag_risks,
-    generate_briefing,
-    ingest,
-    parse_update,
-    update_state,
-)
 from gc_agent.state import AgentState
 
 CompiledGraph = Any
@@ -34,6 +25,151 @@ NodeCallable = Callable[[AgentState], Awaitable[NodeResult]]
 
 LOGGER = logging.getLogger(__name__)
 _GRAPH_SINGLETON: Optional[CompiledGraph] = None
+
+
+def _state_snapshot(state: AgentState | dict[str, Any]) -> dict[str, Any]:
+    """Return a full-state mapping for shell nodes that leave state unchanged."""
+    if isinstance(state, AgentState):
+        return state.model_dump()
+    return dict(state)
+
+
+def _shell_stub(name: str, *, human_review: bool = False) -> NodeCallable:
+    """Create a v5 graph shell stub that prints its name and preserves state."""
+
+    async def _stub(state: AgentState) -> NodeResult:
+        print(f"v5 shell stub: {name}")
+        if human_review:
+            interrupt({"stage": "quote_review", "node": name})
+        return _state_snapshot(state)
+
+    return _stub
+
+
+async def _phase1_ingest_node(state: AgentState) -> NodeResult:
+    """Run the real Day 3 ingest node in estimate mode inside the v5 shell."""
+    from gc_agent.nodes.ingest import ingest as ingest_node
+
+    seeded_state = state.model_copy(update={"mode": "estimate"})
+    result = await ingest_node(seeded_state)
+    result.setdefault("mode", "estimate")
+    return result
+
+
+async def _phase1_extract_job_scope_node(state: AgentState) -> NodeResult:
+    """Run the real Day 3 extract_job_scope node inside the v5 shell."""
+    from gc_agent.nodes.extract_job_scope import extract_job_scope
+
+    return await extract_job_scope(state)
+
+
+async def _phase1_clarify_missing_node(state: AgentState) -> NodeResult:
+    """Run the Day 4 clarify node and pause for human input before continuing."""
+    from gc_agent.nodes.clarify_missing import clarify_missing
+
+    result = await clarify_missing(state)
+    questions = [
+        question
+        for question in result.get("clarification_questions", [])
+        if isinstance(question, str) and question.strip()
+    ]
+    if not questions:
+        return result
+
+    resume_value = interrupt(
+        {
+            "stage": "clarification",
+            "questions": questions,
+        }
+    )
+    if isinstance(resume_value, str) and resume_value.strip():
+        cleaned_input = state.cleaned_input.strip()
+        clarification_append = f"CLARIFICATION RESPONSE:\n{resume_value.strip()}"
+        result["cleaned_input"] = (
+            f"{cleaned_input}\n\n{clarification_append}".strip()
+            if cleaned_input
+            else clarification_append
+        )
+        result["clarification_needed"] = False
+
+    return result
+
+
+async def _phase1_calculate_materials_node(state: AgentState) -> NodeResult:
+    """Run the real Day 4 calculate_materials node inside the v5 shell."""
+    from gc_agent.nodes.calculate_materials import calculate_materials
+
+    return await calculate_materials(state)
+
+
+async def _phase1_generate_quote_node(state: AgentState) -> NodeResult:
+    """Run the real Day 5 quote node and pause for quote review."""
+    from gc_agent.nodes.generate_quote import generate_quote
+
+    result = await generate_quote(state)
+    quote_draft = result.get("quote_draft")
+    rendered_quote = result.get("rendered_quote")
+    review_payload: dict[str, object] = {"stage": "quote_review"}
+    if isinstance(quote_draft, dict):
+        review_payload["quote_draft"] = quote_draft
+    if isinstance(rendered_quote, str) and rendered_quote.strip():
+        review_payload["rendered_quote"] = rendered_quote
+
+    resume_value = interrupt(review_payload)
+    if isinstance(resume_value, dict):
+        approval_status = resume_value.get("approval_status")
+        if isinstance(approval_status, str) and approval_status.strip():
+            result["approval_status"] = approval_status.strip()
+
+    return result
+
+
+def route_after_extract_job_scope(state: AgentState) -> str:
+    """Route to clarification only when the shell state requests it."""
+    if isinstance(state, AgentState):
+        needs_clarification = state.clarification_needed
+    elif isinstance(state, dict):
+        needs_clarification = bool(state.get("clarification_needed"))
+    else:
+        needs_clarification = False
+
+    return "clarify_missing" if needs_clarification else "calculate_materials"
+
+
+def build_phase1_graph_shell() -> CompiledGraph:
+    """Build the v5 graph with real nodes where implemented."""
+    workflow = StateGraph(AgentState)
+
+    workflow.add_node("ingest", _phase1_ingest_node)
+    workflow.add_node("recall_context", _shell_stub("recall_context"))
+    workflow.add_node("extract_job_scope", _phase1_extract_job_scope_node)
+    workflow.add_node("clarify_missing", _phase1_clarify_missing_node)
+    workflow.add_node("calculate_materials", _phase1_calculate_materials_node)
+    workflow.add_node("generate_quote", _phase1_generate_quote_node)
+    workflow.add_node("update_memory", _shell_stub("update_memory"))
+    workflow.add_node("followup_trigger", _shell_stub("followup_trigger"))
+
+    workflow.add_edge(START, "ingest")
+    workflow.add_edge("ingest", "recall_context")
+    workflow.add_edge("recall_context", "extract_job_scope")
+    workflow.add_conditional_edges(
+        "extract_job_scope",
+        route_after_extract_job_scope,
+        {
+            "clarify_missing": "clarify_missing",
+            "calculate_materials": "calculate_materials",
+        },
+    )
+    workflow.add_edge("clarify_missing", "calculate_materials")
+    workflow.add_edge("calculate_materials", "generate_quote")
+    workflow.add_edge("generate_quote", "update_memory")
+    workflow.add_edge("update_memory", "followup_trigger")
+    workflow.add_edge("followup_trigger", END)
+
+    return workflow.compile(checkpointer=MemorySaver())
+
+
+graph = build_phase1_graph_shell()
 
 
 def route_by_mode(state: AgentState) -> str:
@@ -66,6 +202,8 @@ def _with_debug_logging(name: str, node_fn: NodeCallable) -> NodeCallable:
 
 def _build_default_checkpointer() -> Any:
     """Build default checkpointer: PostgresSaver when configured, else MemorySaver."""
+    from gc_agent.db.client import get_postgres_url
+
     postgres_url = get_postgres_url()
 
     if not postgres_url:
@@ -104,6 +242,15 @@ def _build_default_checkpointer() -> Any:
 
 def build_graph(checkpointer: Any = None) -> CompiledGraph:
     """Build and compile the GC Agent LangGraph with interrupt support."""
+    from gc_agent.nodes import (
+        draft_actions,
+        flag_risks,
+        generate_briefing,
+        ingest,
+        parse_update,
+        update_state,
+    )
+
     workflow = StateGraph(AgentState)
 
     workflow.add_node("ingest", _with_debug_logging("ingest", ingest))
@@ -156,6 +303,8 @@ def get_graph() -> CompiledGraph:
 
 async def _resolve_jobs(gc_id: str) -> list[Any]:
     """Load active jobs, supporting sync or async DB query implementations."""
+    from gc_agent.db import queries
+
     result = queries.get_active_jobs(gc_id)
     if inspect.isawaitable(result):
         return cast(list[Any], await cast(Awaitable[Any], result))
@@ -275,6 +424,9 @@ async def get_thread_state(gc_id: str) -> Optional[AgentState]:
 
 __all__ = [
     "CompiledGraph",
+    "build_phase1_graph_shell",
+    "graph",
+    "route_after_extract_job_scope",
     "route_by_mode",
     "build_graph",
     "get_graph",

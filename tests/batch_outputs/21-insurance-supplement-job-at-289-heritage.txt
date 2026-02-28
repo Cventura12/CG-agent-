@@ -1,0 +1,27 @@
+RAW INPUT: insurance supplement job at 289 Heritage Lane, carrier missed the ridge and starter, roof is twenty seven square, garage is separate three square
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 289 Heritage Lane
+
+Scope of Work:
+Provide hail damage roof replacement at 289 Heritage Lane. Estimated size is 27 roof square(s). Observed conditions: insurance supplement job at 289 Heritage Lane, carrier missed the ridge and starter, roof is twenty seven square, garage is separate three square. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 27 square | $1,755.00
+  - Laminated shingles: 30 square | $4,350.00
+  - Synthetic underlayment: 30 square | $540.00
+  - Ice and water shield: 7 square | $294.00
+  - Ridge cap: 3 square | $84.00
+  - Starter strip: 3 square | $48.00
+
+Total Price: $8,131.65
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

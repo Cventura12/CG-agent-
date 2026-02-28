@@ -1,0 +1,27 @@
+RAW INPUT: quote for 201 Southridge Lane, steep 12/12 cut-up roof, two layers to remove, maybe forty one square, chimney cricket needs to be rebuilt
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 201 Southridge Lane
+
+Scope of Work:
+Provide roof replacement at 201 Southridge Lane. Estimated size is 41 roof square(s). Roof pitch noted at 12/12. Observed conditions: quote for 201 Southridge Lane, steep 12/12 cut-up roof, two layers to remove, maybe forty one square, chimney cricket needs to be rebuilt. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 41 square | $2,665.00
+  - Laminated shingles: 46 square | $6,670.00
+  - Synthetic underlayment: 46 square | $828.00
+  - Ice and water shield: 11 square | $462.00
+  - Ridge cap: 5 square | $140.00
+  - Starter strip: 5 square | $80.00
+
+Total Price: $12,471.75
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

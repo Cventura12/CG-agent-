@@ -1,0 +1,27 @@
+RAW INPUT: big custom home on Falcon Crest Drive, very steep multi-level cut-up, maybe fifty two square, copper valleys, customer wants premium system quote
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: Falcon Crest Drive
+
+Scope of Work:
+Provide roof replacement at Falcon Crest Drive. Estimated size is 52 roof square(s). Observed conditions: big custom home on Falcon Crest Drive, very steep multi-level cut-up, maybe fifty two square, copper valleys, customer wants premium system quote. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 52 square | $3,380.00
+  - Laminated shingles: 58 square | $8,410.00
+  - Synthetic underlayment: 58 square | $1,044.00
+  - Ice and water shield: 13 square | $546.00
+  - Ridge cap: 6 square | $168.00
+  - Starter strip: 6 square | $96.00
+
+Total Price: $15,690.60
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

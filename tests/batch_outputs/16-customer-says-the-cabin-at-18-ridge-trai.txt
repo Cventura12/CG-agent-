@@ -1,0 +1,25 @@
+RAW INPUT: customer says the cabin at 18 Ridge Trail only needs the front porch roof redone, standing seam, maybe four square, wants upgraded color metal
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 18 Ridge Trail only
+
+Scope of Work:
+Provide metal roof repair at 18 Ridge Trail only. Estimated size is 4 roof square(s). Observed conditions: customer says the cabin at 18 Ridge Trail only needs the front porch roof redone, standing seam, maybe four square, wants upgraded color metal. Replace damaged metal panels, trim, and fastening components required to restore a watertight metal roofing system.
+
+Line Items:
+  - Tear-off and disposal: 4 square | $260.00
+  - Metal roofing panels: 5 square | $725.00
+  - Panel trim and closures: 1 square | $28.00
+  - Fasteners and sealant: 1 allowance | $16.00
+
+Total Price: $1,183.35
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.

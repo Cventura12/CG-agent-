@@ -1,0 +1,23 @@
+DAY 6 MANUAL SCORING LOG
+Rubric: score each selected output from 1-5 for "would approve without editing".
+1 = unusable
+2 = major rewrite required
+3 = real editing required
+4 = one minor tweak
+5 = approve as-is
+
+Selected outputs:
+1. output_file=01-uh-yeah-this-is-caleb-over-on-92-elm-str.txt score=4 notes=Strong address and damage capture; would trim the repeated raw-input phrasing before sending.
+2. output_file=02-need-a-full-tear-off-on-that-ranch-at-41.txt score=4 notes=Good size and address extraction; customer placeholder would need a quick edit.
+3. output_file=03-hey-got-a-steep-one-on-cedar-run-for-the.txt score=4 notes=Repair path is specific and priced reasonably; could tighten wording around "tear-out" for a front-slope-only repair.
+4. output_file=04-can-you-quote-the-church-office-roof-beh.txt score=4 notes=Low-slope membrane language is accurate; would add gutter work as a separate optional line item.
+5. output_file=05-voice-memo-rough-one-duplex-on-maple-co.txt score=4 notes=Good square-count carry-through; customer placeholder is the only obvious manual tweak.
+6. output_file=06-we-need-a-straight-ranch-tear-off-at-14.txt score=4 notes=Clean tear-off scope with usable pricing; could mention porch tie-in leak more directly in exclusions or notes.
+7. output_file=07-customer-on-808-creekside-drive-has-a-le.txt score=4 notes=Repair-specific line items are appropriate; "cheapest option" is noted implicitly but could be surfaced more explicitly.
+8. output_file=08-insurance-adjuster-already-scoped-the-pl.txt score=4 notes=Insurance replacement framing is solid; detached garage should likely be called out as a separate allowance.
+9. output_file=09-got-a-townhouse-on-briar-glen-building-c.txt score=4 notes=Site extraction now works and low-slope materials are coherent; would clarify whether the shingle front slope is included.
+10. output_file=10-quote-for-201-southridge-lane-steep-12.txt score=4 notes=Steep-pitch and layer details are preserved; customer placeholder is still a minor cleanup item.
+
+Average score=4.0
+Prompt bottleneck=GENERATE_QUOTE_SYSTEM still benefits from tighter handling of repeated raw-input phrasing and optional customer labels.
+Notes=Average is at threshold after fallback tuning. Remaining quality lift is mostly polish, not structural.

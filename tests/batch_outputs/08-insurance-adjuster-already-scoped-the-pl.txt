@@ -1,0 +1,27 @@
+RAW INPUT: insurance adjuster already scoped the place at 55 Canyon View, about thirty square, hail all over, ridge vents dented, detached garage included
+
+GC AGENT QUOTE DRAFT
+Company: Cventura Roofing & Exteriors
+Customer: Customer
+Address: 55 Canyon View
+
+Scope of Work:
+Provide hail damage roof replacement at 55 Canyon View. Estimated size is 30 roof square(s). Observed conditions: insurance adjuster already scoped the place at 55 Canyon View, about thirty square, hail all over, ridge vents dented, detached garage included. Remove the existing damaged roofing system down to the deck in affected areas and install replacement laminated shingles to match the structure profile.
+
+Line Items:
+  - Tear-off and disposal: 30 square | $1,950.00
+  - Laminated shingles: 33 square | $4,785.00
+  - Synthetic underlayment: 33 square | $594.00
+  - Ice and water shield: 8 square | $336.00
+  - Ridge cap: 3 square | $84.00
+  - Starter strip: 3 square | $48.00
+
+Total Price: $8,966.55
+
+Exclusions:
+  - Decking replacement beyond visible damaged areas is excluded unless discovered during tear-off.
+  - Permit fees and code upgrades are excluded unless specifically listed.
+  - Interior repairs are excluded from this roofing proposal.
+
+Approval Notes:
+Review measurements and final field conditions before sending.
