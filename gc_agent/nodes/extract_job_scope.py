@@ -55,9 +55,9 @@ def _get_anthropic_client() -> AsyncAnthropic:
     global _ANTHROPIC_CLIENT
 
     if _ANTHROPIC_CLIENT is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        api_key = os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY is required for extract_job_scope")
+            raise RuntimeError("OPENAI_API_KEY is required for extract_job_scope")
         _ANTHROPIC_CLIENT = AsyncAnthropic(api_key=api_key)
 
     return _ANTHROPIC_CLIENT
@@ -403,7 +403,7 @@ async def extract_job_scope(state: AgentState) -> dict[str, object]:
             "clarification_needed": bool(fallback_scope["missing_fields"]),
         }
 
-    if not os.getenv("ANTHROPIC_API_KEY", "").strip():
+    if not (os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()):
         job_scope = _normalize_job_scope(_heuristic_job_scope_payload(cleaned_input), cleaned_input)
         return {
             "job_scope": job_scope,

@@ -14,6 +14,8 @@ class OpenItem(BaseModel):
     id: str
     job_id: str
     type: Literal[
+        "quote",
+        "action",
         "RFI",
         "CO",
         "sub-confirm",
@@ -21,6 +23,7 @@ class OpenItem(BaseModel):
         "decision",
         "approval",
         "follow-up",
+        "followup",
     ]
     description: str
     owner: str
@@ -41,6 +44,7 @@ class Job(BaseModel):
     contract_type: str
     est_completion: str
     notes: str = ""
+    last_updated: str = ""
     open_items: list[OpenItem] = Field(default_factory=list)
 
     def status_summary(self) -> str:
@@ -69,9 +73,13 @@ class Draft(BaseModel):
         "material-order",
     ]
     title: str
+    original_content: Optional[str] = None
     content: str
     why: str
-    status: Literal["queued", "approved", "edited", "discarded", "needs-review"] = "queued"
+    status: Literal["queued", "pending", "approved", "edited", "discarded", "needs-review"] = "queued"
+    was_edited: bool = False
+    approval_status: Literal["approved_without_edit", "approved_with_edit", "discarded"] | None = None
+    approval_recorded_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -102,11 +110,14 @@ class AgentState(BaseModel):
     job_scope: dict[str, object] = Field(default_factory=dict)
     materials: dict[str, object] = Field(default_factory=dict)
     quote_draft: dict[str, object] = Field(default_factory=dict)
+    final_quote_draft: dict[str, object] = Field(default_factory=dict)
     memory_context: dict[str, object] = Field(default_factory=dict)
     clarification_needed: bool = False
     clarification_questions: list[str] = Field(default_factory=list)
-    approval_status: Literal["pending", "approved", "edited", "rejected"] = "pending"
+    approval_status: Literal["pending", "approved", "edited", "rejected", "discarded"] = "pending"
     followup_count: int = 0
+    active_job_id: str = ""
+    stop_following_up: bool = False
 
     # Context
     gc_id: str = ""

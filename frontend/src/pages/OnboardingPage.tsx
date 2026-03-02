@@ -9,6 +9,25 @@ function normalizePhone(value: string): string {
   return value.replace(/\s+/g, "").trim();
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error !== null && "errors" in error) {
+    const maybeErrors = (error as { errors?: Array<{ longMessage?: string; message?: string }> }).errors;
+    const first = maybeErrors?.[0];
+    if (first?.longMessage) {
+      return first.longMessage;
+    }
+    if (first?.message) {
+      return first.message;
+    }
+  }
+
+  return "Authentication failed";
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useUser();
@@ -31,8 +50,7 @@ export function OnboardingPage() {
       navigate("/", { replace: true });
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Registration failed";
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(error));
     },
   });
 
@@ -56,8 +74,10 @@ export function OnboardingPage() {
 
         <SignedOut>
           <p className="mt-3 text-sm text-muted">
-            Sign in with your phone number and OTP to continue.
+            Continue with Clerk sign-in. If Google is the only enabled provider in Clerk, this screen will show Google
+            only.
           </p>
+
           <div className="mt-4">
             <SignIn
               routing="path"

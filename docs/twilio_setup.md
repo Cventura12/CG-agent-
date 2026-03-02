@@ -49,7 +49,7 @@ Set these before production rollout.
 
 ### Backend
 
-- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
   - Source: Anthropic console API keys.
 - `SUPABASE_URL`
   - Source: Supabase project settings -> API URL.

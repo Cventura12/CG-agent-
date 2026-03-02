@@ -232,8 +232,8 @@ export function JobDetailPage() {
   return (
     <main className="min-h-screen bg-bg px-3 py-4 text-text sm:px-4">
       <div className="mx-auto max-w-4xl space-y-4">
-        <Link to="/" className="inline-flex font-mono text-xs uppercase tracking-wider text-orange">
-          Back to Queue
+        <Link to="/jobs" className="inline-flex font-mono text-xs uppercase tracking-wider text-orange">
+          Back to Jobs
         </Link>
 
         {detailQuery.isLoading ? <p className="text-sm text-muted">Loading job...</p> : null}

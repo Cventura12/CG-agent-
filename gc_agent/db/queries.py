@@ -96,6 +96,7 @@ def _build_job(row: dict[str, Any]) -> Job:
         "contract_type": str(row.get("contract_type", "")).strip(),
         "est_completion": str(row.get("est_completion") or ""),
         "notes": str(row.get("notes", "")),
+        "last_updated": str(row.get("last_updated") or ""),
         "open_items": open_items,
     }
     return Job.model_validate(payload)
@@ -110,12 +111,34 @@ def _build_draft(row: dict[str, Any]) -> Draft:
         "job_name": job_name,
         "type": row.get("type", "follow-up"),
         "title": str(row.get("title", "")),
+        "original_content": str(row.get("original_content", "")).strip() or None,
         "content": str(row.get("content", "")),
         "why": str(row.get("why", "")),
         "status": row.get("status", "queued"),
+        "was_edited": bool(row.get("was_edited", False)),
+        "approval_status": row.get("approval_status"),
+        "approval_recorded_at": row.get("approval_recorded_at"),
         "created_at": row.get("created_at") or _utcnow_iso(),
     }
     return Draft.model_validate(payload)
+
+
+def _approval_tracking_fields(existing_row: dict[str, Any] | None, status: str) -> dict[str, Any]:
+    """Return approval-tracking fields for final queue actions."""
+    normalized_status = str(status).strip().lower()
+    if normalized_status not in {"approved", "discarded"}:
+        return {}
+
+    if normalized_status == "approved":
+        was_edited = bool((existing_row or {}).get("was_edited", False))
+        approval_status = "approved_with_edit" if was_edited else "approved_without_edit"
+    else:
+        approval_status = "discarded"
+
+    return {
+        "approval_status": approval_status,
+        "approval_recorded_at": _utcnow_iso(),
+    }
 
 
 async def _run_db(operation: str, fn: Callable[[], Any]) -> Any:
@@ -135,7 +158,7 @@ async def get_active_jobs(gc_id: str) -> list[Job]:
             client.table("jobs")
             .select(
                 "id,name,type,status,address,contract_value,contract_type,"
-                "est_completion,notes,open_items(id,job_id,type,description,owner,status,"
+                "est_completion,notes,last_updated,open_items(id,job_id,type,description,owner,status,"
                 "days_silent,due_date,created_at)"
             )
             .eq("gc_id", gc_id)
@@ -250,7 +273,10 @@ async def get_queued_drafts(gc_id: str) -> list[Draft]:
     def _query() -> list[dict[str, Any]]:
         response = (
             client.table("draft_queue")
-            .select("id,job_id,type,title,content,why,status,created_at,jobs(name)")
+            .select(
+                "id,job_id,type,title,content,why,status,was_edited,approval_status,"
+                "approval_recorded_at,original_content,created_at,jobs(name)"
+            )
             .eq("gc_id", gc_id)
             .eq("status", "queued")
             .order("created_at", desc=True)
@@ -265,6 +291,31 @@ async def get_queued_drafts(gc_id: str) -> list[Draft]:
         raise DatabaseError(f"get_queued_drafts mapping failed: {exc}") from exc
 
 
+async def get_pending_drafts(gc_id: str) -> list[Draft]:
+    """Return queued or pending drafts for a GC account ordered by most recent first."""
+    client = get_client()
+
+    def _query() -> list[dict[str, Any]]:
+        response = (
+            client.table("draft_queue")
+            .select(
+                "id,job_id,type,title,content,why,status,was_edited,approval_status,"
+                "approval_recorded_at,original_content,created_at,jobs(name)"
+            )
+            .eq("gc_id", gc_id)
+            .in_("status", ["queued", "pending"])
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return list(response.data or [])
+
+    rows = await _run_db("get_pending_drafts", _query)
+    try:
+        return [_build_draft(row) for row in rows]
+    except Exception as exc:
+        raise DatabaseError(f"get_pending_drafts mapping failed: {exc}") from exc
+
+
 async def update_draft_status(
     draft_id: str,
     status: str,
@@ -272,10 +323,12 @@ async def update_draft_status(
 ) -> None:
     """Update draft status/actioned timestamp and optional edited content."""
     client = get_client()
+    existing_row = await get_draft_record(draft_id) if status in {"approved", "discarded"} else None
     payload: dict[str, Any] = {
         "status": status,
         "actioned_at": _utcnow_iso(),
     }
+    payload.update(_approval_tracking_fields(existing_row, status))
     if edited_content is not None:
         payload["content"] = edited_content
 
@@ -285,6 +338,31 @@ async def update_draft_status(
     await _run_db("update_draft_status", _query)
 
 
+async def edit_draft_content(draft_id: str, content: str) -> None:
+    """Persist edited draft content while keeping the item in the active queue."""
+    client = get_client()
+    existing_row = await get_draft_record(draft_id)
+    original_content = ""
+    if existing_row:
+        original_content = (
+            str(existing_row.get("original_content", "")).strip()
+            or str(existing_row.get("content", "")).strip()
+        )
+
+    payload: dict[str, Any] = {
+        "content": content,
+        "status": "queued",
+        "was_edited": True,
+    }
+    if original_content:
+        payload["original_content"] = original_content
+
+    def _query() -> None:
+        client.table("draft_queue").update(payload).eq("id", draft_id).execute()
+
+    await _run_db("edit_draft_content", _query)
+
+
 async def get_draft_record(draft_id: str) -> Optional[dict[str, Any]]:
     """Fetch a raw draft row including gc_id for authorization checks."""
     client = get_client()
@@ -292,7 +370,10 @@ async def get_draft_record(draft_id: str) -> Optional[dict[str, Any]]:
     def _query() -> list[dict[str, Any]]:
         response = (
             client.table("draft_queue")
-            .select("id,job_id,gc_id,type,title,content,why,status,created_at,actioned_at,jobs(name)")
+            .select(
+                "id,job_id,gc_id,type,title,content,why,status,was_edited,approval_status,"
+                "approval_recorded_at,original_content,created_at,actioned_at,jobs(name)"
+            )
             .eq("id", draft_id)
             .limit(1)
             .execute()
@@ -320,34 +401,33 @@ async def approve_all_queued_drafts(gc_id: str) -> int:
     """Approve all queued drafts for a GC account in one operation."""
     client = get_client()
 
-    def _query_ids() -> list[dict[str, Any]]:
+    def _query_rows() -> list[dict[str, Any]]:
         response = (
             client.table("draft_queue")
-            .select("id")
+            .select("id,was_edited")
             .eq("gc_id", gc_id)
             .eq("status", "queued")
             .execute()
         )
         return list(response.data or [])
 
-    queued_rows = await _run_db("approve_all_queued_drafts.select", _query_ids)
-    queued_ids = [str(row.get("id", "")).strip() for row in queued_rows if str(row.get("id", "")).strip()]
-    if not queued_ids:
+    queued_rows = await _run_db("approve_all_queued_drafts.select", _query_rows)
+    normalized_rows = [row for row in queued_rows if str(row.get("id", "")).strip()]
+    if not normalized_rows:
         return 0
 
-    payload = {"status": "approved", "actioned_at": _utcnow_iso()}
-
     def _update_all() -> None:
-        (
-            client.table("draft_queue")
-            .update(payload)
-            .eq("gc_id", gc_id)
-            .eq("status", "queued")
-            .execute()
-        )
+        for row in normalized_rows:
+            draft_id = str(row.get("id", "")).strip()
+            payload = {
+                "status": "approved",
+                "actioned_at": _utcnow_iso(),
+                **_approval_tracking_fields(row, "approved"),
+            }
+            client.table("draft_queue").update(payload).eq("id", draft_id).execute()
 
     await _run_db("approve_all_queued_drafts.update", _update_all)
-    return len(queued_ids)
+    return len(normalized_rows)
 
 
 async def get_actioned_drafts(gc_id: str, limit: int = 50) -> list[Draft]:
@@ -357,7 +437,10 @@ async def get_actioned_drafts(gc_id: str, limit: int = 50) -> list[Draft]:
     def _query() -> list[dict[str, Any]]:
         response = (
             client.table("draft_queue")
-            .select("id,job_id,type,title,content,why,status,created_at,actioned_at,jobs(name)")
+            .select(
+                "id,job_id,type,title,content,why,status,was_edited,approval_status,"
+                "approval_recorded_at,original_content,created_at,actioned_at,jobs(name)"
+            )
             .eq("gc_id", gc_id)
             .in_("status", ["approved", "edited", "discarded"])
             .order("actioned_at", desc=True)
@@ -371,6 +454,32 @@ async def get_actioned_drafts(gc_id: str, limit: int = 50) -> list[Draft]:
         return [_build_draft(row) for row in rows]
     except Exception as exc:
         raise DatabaseError(f"get_actioned_drafts mapping failed: {exc}") from exc
+
+
+async def get_approved_with_edit_drafts(gc_id: str, limit: int = 50) -> list[Draft]:
+    """Fetch approved drafts that required an edit first, newest first."""
+    client = get_client()
+
+    def _query() -> list[dict[str, Any]]:
+        response = (
+            client.table("draft_queue")
+            .select(
+                "id,job_id,type,title,original_content,content,why,status,was_edited,approval_status,"
+                "approval_recorded_at,created_at,actioned_at,jobs(name)"
+            )
+            .eq("gc_id", gc_id)
+            .eq("approval_status", "approved_with_edit")
+            .order("approval_recorded_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return list(response.data or [])
+
+    rows = await _run_db("get_approved_with_edit_drafts", _query)
+    try:
+        return [_build_draft(row) for row in rows]
+    except Exception as exc:
+        raise DatabaseError(f"get_approved_with_edit_drafts mapping failed: {exc}") from exc
 
 
 async def get_recent_update_logs(gc_id: str, job_id: str, limit: int = 10) -> list[dict[str, Any]]:
@@ -597,11 +706,14 @@ __all__ = [
     "resolve_open_item",
     "insert_drafts",
     "get_queued_drafts",
+    "get_pending_drafts",
     "get_draft_record",
     "get_draft_by_id",
     "update_draft_status",
+    "edit_draft_content",
     "approve_all_queued_drafts",
     "get_actioned_drafts",
+    "get_approved_with_edit_drafts",
     "get_recent_update_logs",
     "write_update_log",
     "get_gc_by_clerk_user_id",

@@ -1,6 +1,4 @@
-﻿langgraph>=0.2
-langchain-anthropic>=0.1
-anthropic>=0.30
+langgraph>=0.2
 fastapi
 fastapi-cache2
 uvicorn
@@ -8,6 +6,7 @@ httpx
 supabase>=2.4
 twilio
 deepgram-sdk>=3
+landingai-ade
 clerk-backend-api
 python-jose[cryptography]
 python-dotenv
@@ -17,3 +16,4 @@ rich
 apscheduler
 langgraph-checkpoint-postgres
 psycopg[binary]
+reportlab

@@ -29,9 +29,9 @@ def _get_anthropic_client() -> AsyncAnthropic:
     global _ANTHROPIC_CLIENT
 
     if _ANTHROPIC_CLIENT is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        api_key = os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY is required for generate_quote")
+            raise RuntimeError("OPENAI_API_KEY is required for generate_quote")
         _ANTHROPIC_CLIENT = AsyncAnthropic(api_key=api_key)
 
     return _ANTHROPIC_CLIENT
@@ -373,7 +373,7 @@ async def generate_quote(state: AgentState) -> dict[str, object]:
         scope_language_examples=scope_language_examples,
     )
 
-    if not os.getenv("ANTHROPIC_API_KEY", "").strip():
+    if not (os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()):
         rendered_quote = render_quote_text(fallback)
         return {
             "quote_draft": fallback,

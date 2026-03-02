@@ -19,6 +19,21 @@ Never commit real credentials. Only commit `.env.example` templates.
 6. Confirm health endpoint:
    - `GET https://<railway-backend-domain>/health`
 
+## 1b. Beta public API deployment
+
+The contractor beta flow (`/quote`, `/briefing`, `/jobs`, `/queue`) is served by `gc_agent.api.main:app`, not the Clerk-protected `gc_agent.main:app`.
+
+1. Create a second Railway/Render/Fly service for the public beta API.
+2. Set the start command to:
+   - `uvicorn gc_agent.api.main:app --host 0.0.0.0 --port $PORT`
+3. Set `GC_AGENT_API_KEYS` with the three seeded contractor IDs and unique keys.
+4. Confirm these endpoints resolve on a real public URL:
+   - `GET https://<beta-api-domain>/health`
+   - `POST https://<beta-api-domain>/quote`
+   - `GET https://<beta-api-domain>/quote/<quote_id>/pdf`
+5. Point the frontend beta env at that root domain with:
+   - `VITE_PUBLIC_API_URL=https://<beta-api-domain>`
+
 ## 2. Vercel frontend deployment
 
 1. In Vercel, import the same GitHub repo.
@@ -32,7 +47,7 @@ Never commit real credentials. Only commit `.env.example` templates.
 
 Set these in Railway project settings:
 
-- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_ANON_KEY` (optional fallback)
@@ -49,12 +64,14 @@ Set these in Railway project settings:
 - `BRIEFING_HOUR` (UTC hour for scheduled briefing job)
 - `FRONTEND_URL` (deployed Vercel URL)
 - `WEB_APP_URL` (same as deployed Vercel URL; used in onboarding response text)
+- `GC_AGENT_API_KEYS` (required for the public beta API service)
 
 ## 4. Required Vercel environment variables
 
 Set these in Vercel project settings:
 
 - `VITE_API_URL=https://<railway-backend-domain>/api/v1`
+- `VITE_PUBLIC_API_URL=https://<beta-api-domain>` (or same host if both APIs are served together)
 - `VITE_CLERK_KEY=<clerk_publishable_key>`
 
 ## 5. GitHub Actions deployment setup
@@ -87,6 +104,10 @@ Run these checks after every production deploy:
    - Pending drafts load and approve/edit/discard actions succeed.
 5. Briefing endpoint:
    - `/api/v1/jobs/briefing` returns expected sectioned text.
+6. Beta quote flow:
+   - `POST /quote` returns a `quote_id`
+   - `GET /quote/{quote_id}/pdf` returns a readable PDF
+   - a real phone can open the share sheet from `Send PDF`
 
 ## 7. Twilio production webhook verification
 

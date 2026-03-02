@@ -30,9 +30,9 @@ def _get_anthropic_client() -> AsyncAnthropic:
     global _ANTHROPIC_CLIENT
 
     if _ANTHROPIC_CLIENT is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        api_key = os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY is required for parse_update")
+            raise RuntimeError("OPENAI_API_KEY is required for parse_update")
         _ANTHROPIC_CLIENT = AsyncAnthropic(api_key=api_key)
 
     return _ANTHROPIC_CLIENT
@@ -161,8 +161,9 @@ def _build_partial_intent(parsed_payload: dict[str, Any]) -> ParsedIntent:
 
 async def parse_update(state: AgentState) -> dict[str, object]:
     """Parse raw update text into a validated ParsedIntent structure."""
-    system_prompt = prompts.PARSE_UPDATE_SYSTEM.format(
-        jobs_context=prompts.jobs_context_block(state.jobs)
+    system_prompt = prompts.PARSE_UPDATE_SYSTEM.replace(
+        "{jobs_context}",
+        prompts.jobs_context_block(state.jobs),
     )
 
     try:

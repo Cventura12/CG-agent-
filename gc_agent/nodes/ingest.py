@@ -7,6 +7,7 @@ import inspect
 import logging
 import os
 import re
+from uuid import uuid4
 from typing import Any, Optional
 
 import httpx
@@ -27,6 +28,24 @@ QUERY_PATTERNS = (
     re.compile(r"\bwhat\s+is\s+the\s+status\s+of\b", re.IGNORECASE),
     re.compile(r"\bwhere\s+are\s+we\s+on\b", re.IGNORECASE),
 )
+ESTIMATE_INTENT_PATTERNS = (
+    re.compile(r"\bquote\b", re.IGNORECASE),
+    re.compile(r"\bestimate\b", re.IGNORECASE),
+    re.compile(r"\bbid\b", re.IGNORECASE),
+    re.compile(r"\bprice\s+(?:this|it|out)\b", re.IGNORECASE),
+    re.compile(r"\bgive\s+me\s+(?:a|an)\s+(?:quote|estimate|number)\b", re.IGNORECASE),
+)
+MEASUREMENT_SIGNAL_PATTERNS = (
+    re.compile(r"\b\d+(?:\.\d+)?\s*(?:sq|squares?)\b", re.IGNORECASE),
+    re.compile(r"\b\d{1,2}/12\b", re.IGNORECASE),
+    re.compile(r"\b\d+(?:\.\d+)?\s*(?:ft|feet|foot)\b", re.IGNORECASE),
+    re.compile(r"\b\d+(?:\.\d+)?\s*x\s*\d+(?:\.\d+)?\b", re.IGNORECASE),
+)
+ROOFING_CONTEXT_PATTERN = re.compile(
+    r"\b(roof|roofing|ridge|eave|rake|valley|drip edge|flashing|shingle|shingles|"
+    r"underlayment|bundle|tear-?off|replacement)\b",
+    re.IGNORECASE,
+)
 
 _ANTHROPIC_CLIENT: Optional[AsyncAnthropic] = None
 
@@ -36,9 +55,9 @@ def _get_anthropic_client() -> AsyncAnthropic:
     global _ANTHROPIC_CLIENT
 
     if _ANTHROPIC_CLIENT is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        api_key = os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY is required for ingest normalization")
+            raise RuntimeError("OPENAI_API_KEY is required for ingest normalization")
         _ANTHROPIC_CLIENT = AsyncAnthropic(api_key=api_key)
 
     return _ANTHROPIC_CLIENT
@@ -89,27 +108,95 @@ def _normalize_cleaned_text(raw: str, fallback: str) -> str:
     return " ".join(fallback.split())
 
 
-async def _run_estimate_ingest(raw_input: str, errors: list[str]) -> dict[str, object]:
+def _build_estimate_job_name(address: str, customer_name: str) -> str:
+    """Build a stable placeholder job name for estimate-mode persistence."""
+    if customer_name:
+        return f"{customer_name} Roof Estimate"
+    if address:
+        return f"{address.split(',')[0].strip()} Roof Estimate"
+    return "New Roof Estimate"
+
+
+async def _sync_estimate_job_record(
+    state: AgentState,
+    cleaned_input: str,
+    errors: list[str],
+) -> dict[str, object]:
+    """Attach or create a jobs-table record for estimate mode when available."""
+    if state.active_job_id.strip() or not state.gc_id.strip():
+        return {}
+
+    try:
+        from gc_agent.nodes.extract_job_scope import _extract_address, _extract_customer_name
+        from gc_agent.tools import supabase
+    except Exception as exc:
+        errors.append(f"estimate job sync unavailable: {exc}")
+        return {"errors": errors}
+
+    address = _extract_address(cleaned_input)
+    customer_name = _extract_customer_name(cleaned_input)
+
+    try:
+        existing = await asyncio.to_thread(
+            supabase.find_job_by_address_or_customer,
+            state.gc_id,
+            address,
+            customer_name,
+        )
+        if existing:
+            return {"active_job_id": str(existing.get("id", "")).strip()}
+
+        created = await asyncio.to_thread(
+            supabase.upsert_job,
+            {
+                "id": f"estimate-{uuid4().hex[:12]}",
+                "gc_id": state.gc_id,
+                "name": _build_estimate_job_name(address, customer_name),
+                "type": "roof estimate",
+                "status": "active",
+                "address": address,
+                "contract_value": 0,
+                "contract_type": "TBD",
+                "est_completion": None,
+                "notes": cleaned_input[:500],
+            },
+        )
+    except Exception as exc:
+        LOGGER.warning("estimate job sync failed: %s", exc)
+        errors.append(f"estimate job sync failed: {exc}")
+        return {"errors": errors}
+
+    if not created:
+        return {}
+    return {"active_job_id": str(created.get("id", "")).strip()}
+
+
+async def _run_estimate_ingest(state: AgentState) -> dict[str, object]:
     """Normalize estimating input into cleaned_input using the v5 ingest prompt."""
-    source_text = raw_input.strip()
+    source_text = state.raw_input.strip()
+    errors = list(state.errors)
     if not source_text:
         return {
             "mode": "estimate",
             "raw_input": "",
             "cleaned_input": "",
             "thread_style": False,
+            "active_job_id": state.active_job_id,
             "errors": errors,
         }
 
-    if not os.getenv("ANTHROPIC_API_KEY", "").strip():
+    if not (os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()):
         normalized = _normalize_cleaned_text(source_text, source_text)
-        return {
+        result: dict[str, object] = {
             "mode": "estimate",
             "raw_input": source_text,
             "cleaned_input": normalized,
             "thread_style": False,
+            "active_job_id": state.active_job_id,
             "errors": errors,
         }
+        result.update(await _sync_estimate_job_record(state, normalized, errors))
+        return result
 
     try:
         cleaned = await _call_claude(
@@ -123,13 +210,27 @@ async def _run_estimate_ingest(raw_input: str, errors: list[str]) -> dict[str, o
         errors.append(f"estimate ingest failed: {exc}")
         normalized = _normalize_cleaned_text(source_text, source_text)
 
-    return {
+    result = {
         "mode": "estimate",
         "raw_input": source_text,
         "cleaned_input": normalized,
         "thread_style": False,
+        "active_job_id": state.active_job_id,
         "errors": errors,
     }
+    result.update(await _sync_estimate_job_record(state, normalized, errors))
+    return result
+
+
+async def _extract_ade_content(raw_input: str) -> str:
+    """Run a local PDF/image file through ADE and return prompt-ready text."""
+    from gc_agent.tools.ade import parse_document
+
+    parsed = await asyncio.to_thread(parse_document, raw_input)
+    prompt_text = parsed.prompt_text.strip()
+    if not prompt_text:
+        raise ValueError("ADE returned empty prompt text")
+    return prompt_text
 
 
 def _looks_like_thread_style(text: str) -> bool:
@@ -160,6 +261,22 @@ def _is_query_message(text: str) -> bool:
     single_line_question = "\n" not in cleaned and cleaned.endswith("?")
     short_question = len(cleaned.split()) <= 18
     return single_line_question and short_question
+
+
+def _looks_like_estimate_request(text: str) -> bool:
+    """Return True when a free-form input should route to the v5 estimating path."""
+    cleaned = " ".join(text.split())
+    if not cleaned:
+        return False
+
+    if any(pattern.search(cleaned) for pattern in ESTIMATE_INTENT_PATTERNS):
+        return True
+
+    has_measurement_signal = any(pattern.search(cleaned) for pattern in MEASUREMENT_SIGNAL_PATTERNS)
+    if has_measurement_signal and ROOFING_CONTEXT_PATTERN.search(cleaned):
+        return True
+
+    return False
 
 
 def _nested_get(value: Any, key: str) -> Any:
@@ -253,6 +370,8 @@ async def _transcribe_audio(audio_url: str) -> str:
 
 async def ingest(state: AgentState) -> dict[str, object]:
     """Normalize raw input and detect routing mode for downstream graph nodes."""
+    from gc_agent.tools.ade import is_supported_document
+
     if state.input_type == "cron":
         LOGGER.debug("ingest input_type=%s detected_mode=briefing", state.input_type)
         return {"mode": "briefing", "thread_style": False}
@@ -269,8 +388,26 @@ async def ingest(state: AgentState) -> dict[str, object]:
             raw_input = f"Voice note could not be transcribed\n{audio_url}"
             errors.append(f"voice transcription failed: {exc}")
 
-    if state.mode in {None, "estimate"}:
-        return await _run_estimate_ingest(raw_input, errors)
+    if state.input_type != "voice" and is_supported_document(raw_input):
+        try:
+            raw_input = await _extract_ade_content(raw_input)
+        except Exception as exc:
+            LOGGER.exception("ADE document extraction failed for input=%s", raw_input)
+            errors.append(f"ade extraction failed: {exc}")
+
+    if state.mode == "estimate":
+        estimate_state = state.model_copy(update={"raw_input": raw_input, "errors": errors})
+        return await _run_estimate_ingest(estimate_state)
+
+    if state.mode is None and _looks_like_estimate_request(raw_input):
+        estimate_state = state.model_copy(
+            update={
+                "mode": "estimate",
+                "raw_input": raw_input,
+                "errors": errors,
+            }
+        )
+        return await _run_estimate_ingest(estimate_state)
 
     cleaned_input = raw_input.strip()
     thread_style = _looks_like_thread_style(cleaned_input)

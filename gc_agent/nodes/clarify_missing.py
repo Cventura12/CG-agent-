@@ -28,9 +28,9 @@ def _get_anthropic_client() -> AsyncAnthropic:
     global _ANTHROPIC_CLIENT
 
     if _ANTHROPIC_CLIENT is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        api_key = os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY is required for clarify_missing")
+            raise RuntimeError("OPENAI_API_KEY is required for clarify_missing")
         _ANTHROPIC_CLIENT = AsyncAnthropic(api_key=api_key)
 
     return _ANTHROPIC_CLIENT
@@ -162,7 +162,7 @@ async def clarify_missing(state: AgentState) -> dict[str, object]:
         f"{json.dumps(missing_fields, ensure_ascii=True)}"
     )
 
-    if not os.getenv("ANTHROPIC_API_KEY", "").strip():
+    if not (os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()):
         return {
             "clarification_questions": _fallback_questions(missing_fields),
             "clarification_needed": True,

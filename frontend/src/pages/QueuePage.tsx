@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import clsx from "clsx";
+import { Link } from "react-router-dom";
 
 import { approveAll, approveDraft, discardDraft, editDraft } from "../api/queue";
 import { BriefingPanel } from "../components/BriefingPanel";
@@ -24,14 +25,12 @@ type EditMutationVars = {
   content: string;
 };
 
-function removeDraftFromQueue(queue: QueuePayload, draftId: string): QueuePayload {
+function updateDraftInQueue(queue: QueuePayload, updatedDraft: QueuePayload["jobs"][number]["drafts"][number]): QueuePayload {
   return {
-    jobs: queue.jobs
-      .map((group) => ({
-        ...group,
-        drafts: group.drafts.filter((draft) => draft.id !== draftId),
-      }))
-      .filter((group) => group.drafts.length > 0),
+    jobs: queue.jobs.map((group) => ({
+      ...group,
+      drafts: group.drafts.map((draft) => (draft.id === updatedDraft.id ? updatedDraft : draft)),
+    })),
   };
 }
 
@@ -48,7 +47,10 @@ function healthDotClass(health: JobHealth): string {
 export function QueuePage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [exitingDrafts, setExitingDrafts] = useState<Record<string, "approved" | "discarded">>({});
+  const [editedDrafts, setEditedDrafts] = useState<Record<string, boolean>>({});
   const autoSelectedRef = useRef(false);
+  const exitTimersRef = useRef<Record<string, number>>({});
 
   const { userId } = useAuth();
   const currentUserId = userId ?? null;
@@ -101,18 +103,52 @@ export function QueuePage() {
     autoSelectedRef.current = true;
   }, [jobs, draftCounts]);
 
+  useEffect(() => {
+    return () => {
+      Object.values(exitTimersRef.current).forEach((timerId) => {
+        window.clearTimeout(timerId);
+      });
+      exitTimersRef.current = {};
+    };
+  }, []);
+
+  const scheduleExitCleanup = (draftId: string) => {
+    const existingTimer = exitTimersRef.current[draftId];
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+
+    exitTimersRef.current[draftId] = window.setTimeout(() => {
+      setExitingDrafts((current) => {
+        const next = { ...current };
+        delete next[draftId];
+        return next;
+      });
+      setEditedDrafts((current) => {
+        if (!current[draftId]) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[draftId];
+        return next;
+      });
+      void queryClient.invalidateQueries({ queryKey: ["queue", scope] });
+      delete exitTimersRef.current[draftId];
+    }, 320);
+  };
+
   const approveMutation = useMutation({
     mutationFn: ({ draftId }: DraftMutationVars) => approveDraft(draftId),
-    onMutate: async ({ draftId }): Promise<QueueMutationContext> => {
+    onMutate: async (): Promise<QueueMutationContext> => {
       setErrorMessage(null);
       await queryClient.cancelQueries({ queryKey: ["queue", scope] });
       const previousQueue = queryClient.getQueryData<QueuePayload>(["queue", scope]);
 
-      if (previousQueue) {
-        queryClient.setQueryData<QueuePayload>(["queue", scope], removeDraftFromQueue(previousQueue, draftId));
-      }
-
       return { previousQueue };
+    },
+    onSuccess: (_draft, { draftId }) => {
+      setExitingDrafts((current) => ({ ...current, [draftId]: "approved" }));
+      scheduleExitCleanup(draftId);
     },
     onError: (_error, _vars, context) => {
       if (context?.previousQueue) {
@@ -120,23 +156,25 @@ export function QueuePage() {
       }
       setErrorMessage("Could not approve draft. Changes were reverted.");
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["queue", scope] });
-    },
   });
 
   const editMutation = useMutation({
     mutationFn: ({ draftId, content }: EditMutationVars) => editDraft(draftId, content),
-    onMutate: async ({ draftId }): Promise<QueueMutationContext> => {
+    onMutate: async (): Promise<QueueMutationContext> => {
       setErrorMessage(null);
       await queryClient.cancelQueries({ queryKey: ["queue", scope] });
       const previousQueue = queryClient.getQueryData<QueuePayload>(["queue", scope]);
 
-      if (previousQueue) {
-        queryClient.setQueryData<QueuePayload>(["queue", scope], removeDraftFromQueue(previousQueue, draftId));
-      }
-
       return { previousQueue };
+    },
+    onSuccess: (updatedDraft) => {
+      queryClient.setQueryData<QueuePayload>(["queue", scope], (currentQueue) => {
+        if (!currentQueue) {
+          return currentQueue;
+        }
+        return updateDraftInQueue(currentQueue, updatedDraft);
+      });
+      setEditedDrafts((current) => ({ ...current, [updatedDraft.id]: true }));
     },
     onError: (_error, _vars, context) => {
       if (context?.previousQueue) {
@@ -144,32 +182,26 @@ export function QueuePage() {
       }
       setErrorMessage("Could not save edit. Changes were reverted.");
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["queue", scope] });
-    },
   });
 
   const discardMutation = useMutation({
     mutationFn: ({ draftId }: DraftMutationVars) => discardDraft(draftId),
-    onMutate: async ({ draftId }): Promise<QueueMutationContext> => {
+    onMutate: async (): Promise<QueueMutationContext> => {
       setErrorMessage(null);
       await queryClient.cancelQueries({ queryKey: ["queue", scope] });
       const previousQueue = queryClient.getQueryData<QueuePayload>(["queue", scope]);
 
-      if (previousQueue) {
-        queryClient.setQueryData<QueuePayload>(["queue", scope], removeDraftFromQueue(previousQueue, draftId));
-      }
-
       return { previousQueue };
+    },
+    onSuccess: (_draft, { draftId }) => {
+      setExitingDrafts((current) => ({ ...current, [draftId]: "discarded" }));
+      scheduleExitCleanup(draftId);
     },
     onError: (_error, _vars, context) => {
       if (context?.previousQueue) {
         queryClient.setQueryData(["queue", scope], context.previousQueue);
       }
       setErrorMessage("Could not discard draft. Changes were reverted.");
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["queue", scope] });
     },
   });
 
@@ -218,6 +250,12 @@ export function QueuePage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link
+                to="/quote"
+                className="rounded-md border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
+              >
+                New Quote
+              </Link>
               <button
                 type="button"
                 onClick={() => void signOut({ redirectUrl: "/onboarding" })}
@@ -295,6 +333,9 @@ export function QueuePage() {
                         onEdit={(id, content) => editMutation.mutate({ draftId: id, content })}
                         onDiscard={(id) => discardMutation.mutate({ draftId: id })}
                         isLoading={isDraftLoading(draft.id)}
+                        statusOverride={exitingDrafts[draft.id]}
+                        isExiting={Boolean(exitingDrafts[draft.id])}
+                        wasEdited={Boolean(editedDrafts[draft.id])}
                       />
                     ))}
                   </div>

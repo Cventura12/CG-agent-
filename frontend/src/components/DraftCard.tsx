@@ -10,6 +10,9 @@ type DraftCardProps = {
   onEdit: (id: string, content: string) => void;
   onDiscard: (id: string) => void;
   isLoading?: boolean;
+  statusOverride?: Draft["status"];
+  isExiting?: boolean;
+  wasEdited?: boolean;
 };
 
 const CONTENT_PREVIEW_CHARS = 200;
@@ -32,20 +35,50 @@ function prettyType(type: DraftType): string {
   return type.replace("-", " ").toUpperCase();
 }
 
+function recipientLabel(type: DraftType): string {
+  const mapping: Record<DraftType, string> = {
+    CO: "Owner / billing",
+    RFI: "Design team",
+    "sub-message": "Subcontractor",
+    "follow-up": "Customer / stakeholder",
+    "owner-update": "Property owner",
+    "material-order": "Supplier / vendor",
+  };
+  return mapping[type];
+}
+
+function sendByLabel(createdAt: string): string {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) {
+    return "Send now";
+  }
+
+  const sendBy = new Date(created.getTime() + 2 * 60 * 60 * 1000);
+  const timeText = sendBy.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `Send by ${timeText}`;
+}
+
 export function DraftCard({
   draft,
   onApprove,
   onEdit,
   onDiscard,
   isLoading = false,
+  statusOverride,
+  isExiting = false,
+  wasEdited = false,
 }: DraftCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(draft.content);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
-  const isApproved = draft.status === "approved" || draft.status === "edited";
-  const isDiscarded = draft.status === "discarded";
+  const effectiveStatus = statusOverride ?? draft.status;
+  const isApproved = effectiveStatus === "approved" || effectiveStatus === "edited";
+  const isDiscarded = effectiveStatus === "discarded";
   const isFinalState = isApproved || isDiscarded;
 
   const hasOverflow = draft.content.length > CONTENT_PREVIEW_CHARS;
@@ -93,7 +126,8 @@ export function DraftCard({
         "w-full max-w-xl rounded-xl border border-border bg-surface p-4 shadow-sm transition-all duration-200",
         "mx-auto",
         isApproved && "opacity-60",
-        isDiscarded && "opacity-30"
+        isDiscarded && "opacity-30",
+        isExiting && "translate-y-2 scale-[0.98] opacity-0"
       )}
     >
       <header className="mb-3">
@@ -113,7 +147,11 @@ export function DraftCard({
         >
           {draft.title}
         </h3>
-        <p className="text-sm text-muted">{draft.job_name}</p>
+        <div className="mt-1 flex flex-col gap-1 text-xs text-muted sm:flex-row sm:items-center sm:gap-3">
+          <span>{draft.job_name}</span>
+          <span>Recipient: {recipientLabel(draft.type)}</span>
+          <span>{sendByLabel(draft.created_at)}</span>
+        </div>
       </header>
 
       <p className="mb-3 italic text-sm text-muted">{draft.why}</p>
@@ -130,12 +168,12 @@ export function DraftCard({
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              aria-label="Save draft edits and approve"
+              aria-label="Save draft edits"
               onClick={handleSaveEdit}
               disabled={isLoading}
               className="rounded-md bg-green px-3 py-2 text-sm font-medium text-bg transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Save & Approve
+              Save Changes
             </button>
             <button
               type="button"
@@ -153,6 +191,11 @@ export function DraftCard({
         </div>
       ) : (
         <div className="mb-4">
+          {wasEdited ? (
+            <div className="mb-3 rounded-md border border-steel/40 bg-steel/10 px-3 py-2 text-xs text-steel">
+              Edits saved. Review and approve when ready.
+            </div>
+          ) : null}
           <p className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text/90">
             {previewText}
           </p>

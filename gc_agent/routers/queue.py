@@ -139,7 +139,7 @@ async def edit_draft(
     payload: EditDraftRequest,
     current_gc: str = Depends(get_current_gc),
 ) -> dict[str, Any] | JSONResponse:
-    """Save edited draft content, approve it, and return updated draft data."""
+    """Save edited draft content and keep the item queued for final approval."""
     gc_id, gc_error = await _resolve_gc_id(current_gc)
     if gc_error is not None or gc_id is None:
         return gc_error  # type: ignore[return-value]
@@ -149,7 +149,7 @@ async def edit_draft(
         return auth_error
 
     try:
-        await queries.update_draft_status(draft_id, "approved", edited_content=payload.content)
+        await queries.edit_draft_content(draft_id, payload.content)
         updated = await queries.get_draft_by_id(draft_id)
     except DatabaseError as exc:
         return _error(500, str(exc))

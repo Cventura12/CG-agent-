@@ -46,21 +46,18 @@ def _shell_stub(name: str, *, human_review: bool = False) -> NodeCallable:
     return _stub
 
 
-async def _phase1_ingest_node(state: AgentState) -> NodeResult:
-    """Run the real Day 3 ingest node in estimate mode inside the v5 shell."""
-    from gc_agent.nodes.ingest import ingest as ingest_node
-
-    seeded_state = state.model_copy(update={"mode": "estimate"})
-    result = await ingest_node(seeded_state)
-    result.setdefault("mode", "estimate")
-    return result
-
-
 async def _phase1_extract_job_scope_node(state: AgentState) -> NodeResult:
     """Run the real Day 3 extract_job_scope node inside the v5 shell."""
     from gc_agent.nodes.extract_job_scope import extract_job_scope
 
     return await extract_job_scope(state)
+
+
+async def _phase1_recall_context_node(state: AgentState) -> NodeResult:
+    """Run the real Day 11 recall_context node inside the v5 shell."""
+    from gc_agent.nodes.recall_context import recall_context
+
+    return await recall_context(state)
 
 
 async def _phase1_clarify_missing_node(state: AgentState) -> NodeResult:
@@ -121,7 +118,34 @@ async def _phase1_generate_quote_node(state: AgentState) -> NodeResult:
         if isinstance(approval_status, str) and approval_status.strip():
             result["approval_status"] = approval_status.strip()
 
+        final_quote = resume_value.get("final_quote_draft")
+        if isinstance(final_quote, dict):
+            result["final_quote_draft"] = final_quote
+        elif isinstance(resume_value.get("quote_draft"), dict):
+            result["final_quote_draft"] = cast(dict[str, object], resume_value["quote_draft"])
+
+    if (
+        result.get("approval_status") in {"approved", "edited"}
+        and isinstance(quote_draft, dict)
+        and "final_quote_draft" not in result
+    ):
+        result["final_quote_draft"] = quote_draft
+
     return result
+
+
+async def _phase1_update_memory_node(state: AgentState) -> NodeResult:
+    """Run the real Day 12 update_memory node inside the v5 shell."""
+    from gc_agent.nodes.update_memory import update_memory
+
+    return await update_memory(state)
+
+
+async def _phase1_followup_trigger_node(state: AgentState) -> NodeResult:
+    """Run the real Day 13 followup_trigger node inside the v5 shell."""
+    from gc_agent.nodes.followup_trigger import followup_trigger
+
+    return await followup_trigger(state)
 
 
 def route_after_extract_job_scope(state: AgentState) -> str:
@@ -136,42 +160,6 @@ def route_after_extract_job_scope(state: AgentState) -> str:
     return "clarify_missing" if needs_clarification else "calculate_materials"
 
 
-def build_phase1_graph_shell() -> CompiledGraph:
-    """Build the v5 graph with real nodes where implemented."""
-    workflow = StateGraph(AgentState)
-
-    workflow.add_node("ingest", _phase1_ingest_node)
-    workflow.add_node("recall_context", _shell_stub("recall_context"))
-    workflow.add_node("extract_job_scope", _phase1_extract_job_scope_node)
-    workflow.add_node("clarify_missing", _phase1_clarify_missing_node)
-    workflow.add_node("calculate_materials", _phase1_calculate_materials_node)
-    workflow.add_node("generate_quote", _phase1_generate_quote_node)
-    workflow.add_node("update_memory", _shell_stub("update_memory"))
-    workflow.add_node("followup_trigger", _shell_stub("followup_trigger"))
-
-    workflow.add_edge(START, "ingest")
-    workflow.add_edge("ingest", "recall_context")
-    workflow.add_edge("recall_context", "extract_job_scope")
-    workflow.add_conditional_edges(
-        "extract_job_scope",
-        route_after_extract_job_scope,
-        {
-            "clarify_missing": "clarify_missing",
-            "calculate_materials": "calculate_materials",
-        },
-    )
-    workflow.add_edge("clarify_missing", "calculate_materials")
-    workflow.add_edge("calculate_materials", "generate_quote")
-    workflow.add_edge("generate_quote", "update_memory")
-    workflow.add_edge("update_memory", "followup_trigger")
-    workflow.add_edge("followup_trigger", END)
-
-    return workflow.compile(checkpointer=MemorySaver())
-
-
-graph = build_phase1_graph_shell()
-
-
 def route_by_mode(state: AgentState) -> str:
     """Return the execution route based on mode set by ingest."""
     mode: Optional[str]
@@ -182,7 +170,11 @@ def route_by_mode(state: AgentState) -> str:
     else:
         mode = None
 
-    return "briefing" if mode == "briefing" else "update"
+    if mode == "briefing":
+        return "briefing"
+    if mode == "estimate":
+        return "estimate"
+    return "update"
 
 
 def _daily_thread_id(gc_id: str) -> str:
@@ -241,7 +233,7 @@ def _build_default_checkpointer() -> Any:
 
 
 def build_graph(checkpointer: Any = None) -> CompiledGraph:
-    """Build and compile the GC Agent LangGraph with interrupt support."""
+    """Build and compile the unified GC Agent LangGraph with interrupt support."""
     from gc_agent.nodes import (
         draft_actions,
         flag_risks,
@@ -254,6 +246,31 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
     workflow = StateGraph(AgentState)
 
     workflow.add_node("ingest", _with_debug_logging("ingest", ingest))
+    workflow.add_node("recall_context", _with_debug_logging("recall_context", _phase1_recall_context_node))
+    workflow.add_node(
+        "extract_job_scope",
+        _with_debug_logging("extract_job_scope", _phase1_extract_job_scope_node),
+    )
+    workflow.add_node(
+        "clarify_missing",
+        _with_debug_logging("clarify_missing", _phase1_clarify_missing_node),
+    )
+    workflow.add_node(
+        "calculate_materials",
+        _with_debug_logging("calculate_materials", _phase1_calculate_materials_node),
+    )
+    workflow.add_node(
+        "generate_quote",
+        _with_debug_logging("generate_quote", _phase1_generate_quote_node),
+    )
+    workflow.add_node(
+        "update_memory",
+        _with_debug_logging("update_memory", _phase1_update_memory_node),
+    )
+    workflow.add_node(
+        "followup_trigger",
+        _with_debug_logging("followup_trigger", _phase1_followup_trigger_node),
+    )
     workflow.add_node("parse_update", _with_debug_logging("parse_update", parse_update))
     workflow.add_node("update_state", _with_debug_logging("update_state", update_state))
     workflow.add_node("flag_risks", _with_debug_logging("flag_risks", flag_risks))
@@ -268,10 +285,26 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
         "ingest",
         route_by_mode,
         {
+            "estimate": "recall_context",
             "update": "parse_update",
             "briefing": "generate_briefing",
         },
     )
+
+    workflow.add_edge("recall_context", "extract_job_scope")
+    workflow.add_conditional_edges(
+        "extract_job_scope",
+        route_after_extract_job_scope,
+        {
+            "clarify_missing": "clarify_missing",
+            "calculate_materials": "calculate_materials",
+        },
+    )
+    workflow.add_edge("clarify_missing", "calculate_materials")
+    workflow.add_edge("calculate_materials", "generate_quote")
+    workflow.add_edge("generate_quote", "update_memory")
+    workflow.add_edge("update_memory", "followup_trigger")
+    workflow.add_edge("followup_trigger", END)
 
     workflow.add_edge("parse_update", "update_state")
     workflow.add_edge("update_state", "flag_risks")
@@ -291,6 +324,11 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
     )
 
 
+def build_phase1_graph_shell() -> CompiledGraph:
+    """Backward-compatible alias for the unified graph builder."""
+    return build_graph()
+
+
 def get_graph() -> CompiledGraph:
     """Return a lazily-created module-level compiled graph singleton."""
     global _GRAPH_SINGLETON
@@ -299,6 +337,9 @@ def get_graph() -> CompiledGraph:
         _GRAPH_SINGLETON = build_graph()
 
     return _GRAPH_SINGLETON
+
+
+graph = get_graph()
 
 
 async def _resolve_jobs(gc_id: str) -> list[Any]:
@@ -386,15 +427,26 @@ async def run_briefing(gc_id: str) -> str:
 
 async def get_thread_state(gc_id: str) -> Optional[AgentState]:
     """Return today's checkpointed AgentState for a GC, if available."""
-    thread_id = _daily_thread_id(gc_id)
+    return await get_checkpoint_state(_daily_thread_id(gc_id))
+
+
+async def get_checkpoint_state(
+    thread_id: str,
+    graph_instance: CompiledGraph | None = None,
+) -> Optional[AgentState]:
+    """Return checkpointed AgentState for an explicit thread/session ID."""
+    thread_id = thread_id.strip()
+    if not thread_id:
+        return None
+
     config = {"configurable": {"thread_id": thread_id}}
-    graph_instance = get_graph()
+    active_graph = graph_instance or get_graph()
 
     try:
-        if hasattr(graph_instance, "aget_state"):
-            snapshot = await graph_instance.aget_state(config=config)
+        if hasattr(active_graph, "aget_state"):
+            snapshot = await active_graph.aget_state(config=config)
         else:
-            snapshot = graph_instance.get_state(config=config)
+            snapshot = active_graph.get_state(config=config)
     except Exception:
         LOGGER.exception("Failed to read checkpoint state for thread_id=%s", thread_id)
         return None
@@ -430,6 +482,7 @@ __all__ = [
     "route_by_mode",
     "build_graph",
     "get_graph",
+    "get_checkpoint_state",
     "run_update",
     "run_briefing",
     "get_thread_state",

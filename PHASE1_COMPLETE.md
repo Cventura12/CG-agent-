@@ -39,7 +39,7 @@ Phase 1 focused on validating the extraction and quote loop with messy roofing i
 
 ## What Changed During Tuning
 
-- Added deterministic fallback extraction so Phase 1 still works when `ANTHROPIC_API_KEY` is not set
+- Added deterministic fallback extraction so Phase 1 still works when `OPENAI_API_KEY` is not set
 - Improved address, customer, square-count, pitch, and layer heuristics from messy voice-style input
 - Reduced unnecessary clarification by only asking for fields that are truly missing
 - Tuned fallback material line items by roof type (`repair`, `low_slope`, `metal`, `tile`, `shingle`)
