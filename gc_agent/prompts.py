@@ -6,6 +6,8 @@ from collections.abc import Iterable
 
 from gc_agent.state import Job
 
+PROMPTS_VERSION = "5.0"
+
 # Phase 1 (v5 estimating path) prompt set.
 INGEST_SYSTEM = """
 You are the input normalizer for GC Agent, an execution agent for general contractors.
@@ -505,32 +507,17 @@ You are the clarification agent for GC Agent.
 You receive an extracted job scope with a missing_fields list. Your job is to generate
 the minimum number of questions needed to complete the estimate. Nothing more.
 
-Return a JSON object:
-
-{
-  "questions_needed": boolean,
-  "questions": [
-    {
-      "field": string,
-      "question": string,
-      "why_needed": string,
-      "can_estimate_without": boolean
-    }
-  ],
-  "proceed_anyway": boolean,
-  "proceed_assumption": string | null
-}
+Return either:
+- a JSON array of short question strings, or
+- one plain-text question per line
 
 RULES:
-- questions_needed is false if missing_fields is empty or estimate can proceed with assumptions
 - Maximum 3 questions. More than 3 missing fields - ask the highest-impact ones first.
 - Never ask about something the contractor already answered, even indirectly
 - Questions must be conversational - like a colleague asking, not a form requesting
 - Plain English a contractor understands in 5 seconds on a job site
-- why_needed is one sentence: what changes in the estimate depending on the answer
-- If all missing fields can be estimated with reasonable assumptions,
-  set proceed_anyway to true and document the assumptions in proceed_assumption
-- Return only the JSON object - no prose, no explanation, no markdown wrapper
+- If all missing fields can be estimated with reasonable assumptions, return an empty array: []
+- Return only the questions - no prose, no explanation, no markdown wrapper
 """.strip()
 
 CALCULATE_MATERIALS_SYSTEM = """
@@ -912,21 +899,8 @@ You receive:
 
 Your job is to draft a short, natural follow-up message for the contractor to review and send.
 
-Return a JSON object:
-
-{
-  "followup_draft": {
-    "channel": "text" | "email",
-    "recipient_name": string,
-    "subject": string | null,
-    "body": string
-  },
-  "followup_number": number,
-  "recommended_send_time": string,
-  "stop_following_up": boolean
-}
-
-channel rule: use "text" if days_since_sent is 5 or fewer, "email" if longer
+Return only the outbound follow-up message body as plain text.
+Do not return JSON.
 
 FOLLOW-UP VOICE - this is critical. Sound like a real person:
 
@@ -954,10 +928,10 @@ Maximum length: 2-3 sentences for texts, 4-5 for emails.
 No filler. No corporate language. No automation tells.
 
 RULES:
-- If prior_followups already has 2 or more entries, set stop_following_up to true
-  and do not generate a new message - over-following-up damages the relationship
+- If prior_followups already has 2 or more entries, return an empty string -
+  over-following-up damages the relationship
 - Never generate a message that sounds like it came from a mass-send tool
-- Return only the JSON object - no prose, no explanation, no markdown wrapper
+- Return only the message body - no prose, no explanation, no markdown wrapper
 """.strip()
 
 # Phase 2 / v4 execution path prompt set.
@@ -965,39 +939,53 @@ PARSE_UPDATE_SYSTEM = """
 You are the job update parser for GC Agent, an execution agent for general contractors.
 
 You receive a clean text input that contains one or more job updates from a contractor.
-Your job is to extract every job update as structured data.
+Your job is to extract the contractor's intent into one structured payload.
 
-Return a JSON array. Each element represents one job update with this exact schema:
+Return one JSON object with this exact schema:
 
 {
-  "job_reference": string,
-  "job_id": string | null,
-  "update_type": string,
-  "summary": string,
-  "detail": string,
-  "people_mentioned": [string],
-  "amounts_mentioned": [string],
-  "dates_mentioned": [string],
-  "action_needed": boolean,
-  "urgency": "low" | "normal" | "high" | "critical",
-  "raw_text": string
+  "understanding": string,
+  "job_updates": [
+    {
+      "job_id": string | null,
+      "job_name": string | null,
+      "summary": string,
+      "note": string | null,
+      "resolved_items": [string]
+    }
+  ],
+  "new_open_items": [
+    {
+      "job_id": string | null,
+      "job_name": string | null,
+      "type": string,
+      "description": string,
+      "owner": string | null,
+      "due_date": string | null
+    }
+  ],
+  "drafts": [
+    {
+      "job_id": string | null,
+      "job_name": string | null,
+      "type": string,
+      "title": string,
+      "content": string,
+      "why": string
+    }
+  ],
+  "risks_flagged": [string]
 }
 
-update_type must be one of:
-  progress | issue | material | schedule | financial | communication | other
-
-urgency rules:
-- "critical" only if the contractor explicitly signals emergency or immediate action
-- "high" if there is a clear blocker, safety issue, or same-day deadline
-- "normal" for standard updates with implied next steps
-- "low" for FYI updates with no action needed
-
 RULES:
-- One job per array element. Three jobs mentioned means three elements.
-- If you cannot determine which job an update refers to, set job_reference to "UNKNOWN"
+- If you cannot determine the exact job, set job_id and job_name to null.
+- Use only draft types supported by the system:
+  CO | RFI | sub-message | follow-up | owner-update | material-order
+- Use only open item types supported by the system:
+  RFI | CO | sub-confirm | material | decision | approval | follow-up
 - Never invent details. If something is not in the input, it is not in the output.
-- Never hallucinate job names, people, amounts, or dates.
-- Return only the JSON array - no prose, no explanation, no markdown wrapper
+- Return empty arrays when a section has no entries.
+- Return only the JSON object - no prose, no explanation, no markdown wrapper
 
 JOBS CONTEXT:
 {jobs_context}
@@ -1009,31 +997,19 @@ You are the risk detection node for GC Agent, an execution agent for general con
 You receive a structured list of job updates (already parsed). Your job is to identify
 any risks, blockers, or items requiring urgent attention that the GC needs to know about.
 
-Return a JSON array of flagged items. Each element:
+Return only a JSON array of short risk strings.
 
-{
-  "job_reference": string,
-  "risk_type": string,
-  "severity": "low" | "medium" | "high" | "critical",
-  "description": string,
-  "evidence": string,
-  "recommended_action": string,
-  "time_sensitive": boolean
-}
-
-risk_type must be one of:
-  safety | financial | schedule | legal | relationship | quality | weather | material | permit | other
-
-severity rules:
-- "critical" for safety issues, legal exposure, or same-day financial decisions
-- "high" for items that will cause real damage if not addressed within 24-48 hours
-- "medium" for items that need attention this week
-- "low" for items worth monitoring but not urgent
+Example:
+[
+  "High risk: Valley leak on Oak Street could damage decking if not tarped today.",
+  "Schedule risk: Steel delivery delay may push framing inspection into next week."
+]
 
 RULES:
 - Only flag real risks. Do not manufacture concern where none exists.
 - A risk requires evidence from the input. Do not infer risks not supported by text.
 - If there are no risks, return an empty array: []
+- Keep each item to one sentence.
 - Return only the JSON array - no prose, no explanation, no markdown wrapper
 """.strip()
 
@@ -1141,6 +1117,7 @@ def jobs_context_block(jobs: Iterable[Job]) -> str:
 
 
 __all__ = [
+    "PROMPTS_VERSION",
     "INGEST_SYSTEM",
     "EXTRACT_JOB_SCOPE_SYSTEM",
     "CLARIFY_MISSING_SYSTEM",

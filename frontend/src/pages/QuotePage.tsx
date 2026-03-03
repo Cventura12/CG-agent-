@@ -7,6 +7,8 @@ import { Loader2, Mic, Send, Square, TriangleAlert } from "lucide-react";
 import { fetchQuotePdf, getBetaContractorId, hasBetaApiCredentials, submitQuote } from "../api/quote";
 import type { QuoteDraft, QuoteLineItem, QuoteResponse } from "../types";
 
+const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
+
 type SpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
 
 type BrowserSpeechRecognition = EventTarget & {
@@ -324,20 +326,28 @@ export function QuotePage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link
-                to="/queue"
-                className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-              >
-                Queue
-              </Link>
-              <button
-                type="button"
-                onClick={() => void signOut({ redirectUrl: "/onboarding" })}
-                className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-              >
-                Sign Out
-              </button>
-              <UserButton afterSignOutUrl="/onboarding" />
+              {bypassAuth ? (
+                <span className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted">
+                  Demo Mode
+                </span>
+              ) : (
+                <>
+                  <Link
+                    to="/queue"
+                    className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
+                  >
+                    Queue
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void signOut({ redirectUrl: "/onboarding" })}
+                    className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
+                  >
+                    Sign Out
+                  </button>
+                  <UserButton afterSignOutUrl="/onboarding" />
+                </>
+              )}
             </div>
           </div>
         </header>

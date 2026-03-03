@@ -31,6 +31,7 @@ async def send_and_track(draft: Draft) -> dict[str, Any]:
                     status="open",
                     days_silent=0,
                     due_date=follow_up_due_date,
+                    trace_id=draft.trace_id,
                 ),
                 gc_id,
             )

@@ -30,6 +30,7 @@ class OpenItem(BaseModel):
     status: Literal["open", "in-progress", "resolved", "overdue"] = "open"
     days_silent: int = 0
     due_date: Optional[date] = None
+    trace_id: str = ""
 
 
 class Job(BaseModel):
@@ -81,6 +82,7 @@ class Draft(BaseModel):
     approval_status: Literal["approved_without_edit", "approved_with_edit", "discarded"] | None = None
     approval_recorded_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    trace_id: str = ""
 
 
 class ParsedIntent(BaseModel):
@@ -131,6 +133,7 @@ class AgentState(BaseModel):
     briefing_output: str = ""
     errors: list[str] = Field(default_factory=list)
     thread_id: str = ""
+    trace_id: str = ""
 
 
 __all__ = [

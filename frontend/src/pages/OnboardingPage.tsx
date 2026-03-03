@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 
 import { fetchCurrentGcProfile, registerGc } from "../api/auth";
 
+const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
+
 function normalizePhone(value: string): string {
   return value.replace(/\s+/g, "").trim();
 }
@@ -55,6 +57,12 @@ export function OnboardingPage() {
   });
 
   useEffect(() => {
+    if (bypassAuth) {
+      navigate("/quote", { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     const clerkPhone = user?.primaryPhoneNumber?.phoneNumber;
     if (clerkPhone && !phoneNumber) {
       setPhoneNumber(clerkPhone);
@@ -72,61 +80,76 @@ export function OnboardingPage() {
       <div className="mx-auto max-w-md rounded-lg border border-border bg-surface p-5">
         <h1 className="font-mono text-sm uppercase tracking-[0.16em] text-orange">GC Agent Onboarding</h1>
 
-        <SignedOut>
+        {bypassAuth ? (
           <p className="mt-3 text-sm text-muted">
-            Continue with Clerk sign-in. If Google is the only enabled provider in Clerk, this screen will show Google
-            only.
+            Demo mode is enabled locally. Authentication is bypassed and the app redirects straight to the quote
+            screen.
           </p>
+        ) : null}
 
-          <div className="mt-4">
-            <SignIn
-              routing="path"
-              path="/onboarding"
-              forceRedirectUrl="/onboarding"
-              fallbackRedirectUrl="/onboarding"
-            />
-          </div>
+        <SignedOut>
+          {bypassAuth ? null : (
+            <>
+              <p className="mt-3 text-sm text-muted">
+                Continue with Clerk sign-in. If Google is the only enabled provider in Clerk, this screen will show
+                Google only.
+              </p>
+
+              <div className="mt-4">
+                <SignIn
+                  routing="path"
+                  path="/onboarding"
+                  forceRedirectUrl="/onboarding"
+                  fallbackRedirectUrl="/onboarding"
+                />
+              </div>
+            </>
+          )}
         </SignedOut>
 
         <SignedIn>
-          <p className="mt-3 text-sm text-muted">
-            Confirm the phone number that should receive WhatsApp updates.
-          </p>
+          {bypassAuth ? null : (
+            <>
+              <p className="mt-3 text-sm text-muted">
+                Confirm the phone number that should receive WhatsApp updates.
+              </p>
 
-          <form
-            className="mt-4 space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const normalized = normalizePhone(phoneNumber);
-              if (!normalized) {
-                setErrorMessage("Phone number is required");
-                return;
-              }
-              registerMutation.mutate(normalized);
-            }}
-          >
-            <label className="block text-xs uppercase tracking-wider text-muted" htmlFor="phone_number">
-              Phone Number
-            </label>
-            <input
-              id="phone_number"
-              type="tel"
-              value={phoneNumber}
-              onChange={(event) => setPhoneNumber(event.target.value)}
-              placeholder="+15551234567"
-              className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-orange"
-            />
+              <form
+                className="mt-4 space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const normalized = normalizePhone(phoneNumber);
+                  if (!normalized) {
+                    setErrorMessage("Phone number is required");
+                    return;
+                  }
+                  registerMutation.mutate(normalized);
+                }}
+              >
+                <label className="block text-xs uppercase tracking-wider text-muted" htmlFor="phone_number">
+                  Phone Number
+                </label>
+                <input
+                  id="phone_number"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(event) => setPhoneNumber(event.target.value)}
+                  placeholder="+15551234567"
+                  className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-orange"
+                />
 
-            {errorMessage ? <p className="text-sm text-red-300">{errorMessage}</p> : null}
+                {errorMessage ? <p className="text-sm text-red-300">{errorMessage}</p> : null}
 
-            <button
-              type="submit"
-              disabled={registerMutation.isPending || profileQuery.isLoading}
-              className="w-full rounded-md bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {registerMutation.isPending ? "Saving..." : "Continue to Queue"}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={registerMutation.isPending || profileQuery.isLoading}
+                  className="w-full rounded-md bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {registerMutation.isPending ? "Saving..." : "Continue to Queue"}
+                </button>
+              </form>
+            </>
+          )}
         </SignedIn>
       </div>
     </main>

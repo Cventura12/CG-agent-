@@ -9,6 +9,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Awaitable, Callable, Sequence
+from uuid import uuid4
 
 from gc_agent.graph import get_checkpoint_state, graph
 from gc_agent.nodes.calculate_materials import calculate_materials
@@ -25,6 +26,7 @@ from gc_agent.nodes.recall_context import recall_context
 from gc_agent.nodes.update_state import update_state
 from gc_agent.nodes.update_memory import update_memory
 from gc_agent.state import AgentState
+from gc_agent.telemetry import log_ingress_trace, trace_node_execution
 from gc_agent.tools.phase1_fixtures import build_phase1_memory_context
 
 EstimateNode = Callable[[AgentState], Awaitable[dict[str, object]]]
@@ -80,7 +82,8 @@ async def _run_estimate_node(
     session_id: str,
 ) -> AgentState:
     """Execute one estimate node and persist the merged state."""
-    next_state = _merge_state(state, await node_fn(state))
+    traced_node = trace_node_execution(node_name, node_fn)
+    next_state = _merge_state(state, await traced_node(state))
     await _checkpoint_state(next_state, session_id, node_name)
     return next_state
 
@@ -99,6 +102,7 @@ def _bootstrap_estimate_state(
             memory_context=build_phase1_memory_context(),
             gc_id=gc_id,
             thread_id=session_id,
+            trace_id=session_id.strip() or uuid4().hex,
         )
 
     update_payload: dict[str, object] = {}
@@ -112,6 +116,8 @@ def _bootstrap_estimate_state(
         update_payload["memory_context"] = build_phase1_memory_context()
     if checkpoint_state.mode != "estimate":
         update_payload["mode"] = "estimate"
+    if not checkpoint_state.trace_id.strip():
+        update_payload["trace_id"] = session_id.strip() or uuid4().hex
 
     if not update_payload:
         return checkpoint_state
@@ -131,6 +137,7 @@ def _bootstrap_single_state(
             memory_context=build_phase1_memory_context(),
             gc_id=gc_id,
             thread_id=session_id,
+            trace_id=session_id.strip() or uuid4().hex,
         )
 
     update_payload: dict[str, object] = {}
@@ -142,6 +149,8 @@ def _bootstrap_single_state(
         update_payload["thread_id"] = session_id
     if not checkpoint_state.memory_context:
         update_payload["memory_context"] = build_phase1_memory_context()
+    if not checkpoint_state.trace_id.strip():
+        update_payload["trace_id"] = session_id.strip() or uuid4().hex
 
     if not update_payload:
         return checkpoint_state
@@ -244,6 +253,15 @@ async def run_single_input(
         else None
     )
     state = _bootstrap_single_state(raw_input, session_id, gc_id, checkpoint_state)
+    log_ingress_trace(
+        state,
+        input_surface=state.input_type if state.input_type else "typed_note",
+        payload={
+            "raw_input": raw_input,
+            "session_id": session_id,
+            "requested_mode": state.mode,
+        },
+    )
 
     if not state.mode:
         state = await _run_estimate_node(state, "ingest", ingest, session_id)
@@ -284,6 +302,15 @@ async def run_single_estimate(
         else None
     )
     state = _bootstrap_estimate_state(raw_input, session_id, gc_id, checkpoint_state)
+    log_ingress_trace(
+        state,
+        input_surface=state.input_type if state.input_type else "typed_note",
+        payload={
+            "raw_input": raw_input,
+            "session_id": session_id,
+            "requested_mode": "estimate",
+        },
+    )
 
     return await _run_estimate_path(
         state,

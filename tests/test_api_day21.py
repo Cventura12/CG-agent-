@@ -7,18 +7,19 @@ import pytest
 
 from gc_agent.state import AgentState
 
-api_module = import_module("gc_agent.api.main")
+api_app_module = import_module("gc_agent.api.main")
+api_module = import_module("gc_agent.api.router")
 
 
 def _client() -> httpx.AsyncClient:
-    transport = httpx.ASGITransport(app=api_module.app)
+    transport = httpx.ASGITransport(app=api_app_module.app)
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
 
 
 @pytest.mark.asyncio
 async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
-    api_module.QUOTE_DOCUMENT_CACHE.clear()
+    stored_quotes: dict[str, dict[str, object]] = {}
 
     async def _fake_run_single_estimate(
         raw_input: str,
@@ -51,8 +52,31 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
         assert quote_draft["project_address"] == "14 Oak Lane"
         return b"%PDF-1.4 test quote pdf"
 
+    async def _fake_upsert_quote_draft(
+        *,
+        quote_id: str,
+        gc_id: str,
+        job_id: str = "",
+        trace_id: str = "",
+        quote_draft: dict[str, object],
+        rendered_quote: str,
+    ) -> None:
+        stored_quotes[quote_id] = {
+            "id": quote_id,
+            "gc_id": gc_id,
+            "job_id": job_id,
+            "trace_id": trace_id,
+            "quote_draft": quote_draft,
+            "rendered_quote": rendered_quote,
+        }
+
+    async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
+        return stored_quotes.get(quote_id)
+
     monkeypatch.setattr(api_module, "run_single_estimate", _fake_run_single_estimate)
     monkeypatch.setattr(api_module, "render_quote_pdf", _fake_render_quote_pdf)
+    monkeypatch.setattr(api_module.queries, "upsert_quote_draft", _fake_upsert_quote_draft)
+    monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
 
     async with _client() as client:
         quote_response = await client.post(
@@ -78,11 +102,18 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
 @pytest.mark.asyncio
 async def test_quote_pdf_endpoint_rejects_wrong_contractor(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-a:key-a,gc-b:key-b")
-    api_module.QUOTE_DOCUMENT_CACHE.clear()
-    api_module.QUOTE_DOCUMENT_CACHE["quote-locked"] = {
-        "contractor_id": "gc-a",
-        "quote_draft": {"company_name": "GC A"},
-    }
+
+    async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
+        if quote_id != "quote-locked":
+            return None
+        return {
+            "id": "quote-locked",
+            "gc_id": "gc-a",
+            "quote_draft": {"company_name": "GC A"},
+            "trace_id": "trace-locked",
+        }
+
+    monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
 
     async with _client() as client:
         response = await client.get(

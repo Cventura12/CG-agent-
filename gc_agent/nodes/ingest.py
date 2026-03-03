@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 from gc_agent import prompts
 from gc_agent.state import AgentState
+from gc_agent.telemetry import record_model_usage
 
 load_dotenv()
 
@@ -91,6 +92,12 @@ async def _call_claude(system: str, user: str, max_tokens: int = 600) -> str:
                 temperature=0,
                 system=system,
                 messages=[{"role": "user", "content": user}],
+            )
+            usage = getattr(response, "usage", None)
+            record_model_usage(
+                model_name=MODEL_NAME,
+                input_tokens=getattr(usage, "input_tokens", None),
+                output_tokens=getattr(usage, "output_tokens", None),
             )
             return _extract_message_text(response)
         except RateLimitError:

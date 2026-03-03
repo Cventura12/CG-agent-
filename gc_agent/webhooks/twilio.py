@@ -283,7 +283,13 @@ async def whatsapp_webhook(request: Request) -> Response:
         return Response(content=onboarding_xml, media_type="text/xml")
 
     try:
-        final_state = await graph.run_update(raw_input, gc_id, from_number, input_type)
+        final_state = await graph.run_update(
+            raw_input,
+            gc_id,
+            from_number,
+            input_type,
+            trace_id=message_sid,
+        )
         reply_text = _compose_reply(final_state)
         response_xml = _twiml_message(reply_text)
         return Response(content=response_xml, media_type="text/xml")

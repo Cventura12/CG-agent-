@@ -22,6 +22,7 @@ import { QuotePage } from "./pages/QuotePage";
 import { QueuePage } from "./pages/QueuePage";
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_KEY as string | undefined;
+const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
 
 function AppStatusScreen({
   title,
@@ -42,6 +43,10 @@ function AppStatusScreen({
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
+  if (bypassAuth) {
+    return <ProtectedAppFrame>{children}</ProtectedAppFrame>;
+  }
+
   return (
     <>
       <SignedIn>
@@ -61,7 +66,7 @@ function ProtectedAppFrame({ children }: { children: ReactNode }) {
   return (
     <div className="pb-20">
       {children}
-      <BottomNav />
+      {!bypassAuth ? <BottomNav /> : null}
     </div>
   );
 }
@@ -76,33 +81,49 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          <ProtectedRoute>
-            <BriefingPage />
-          </ProtectedRoute>
+          bypassAuth ? (
+            <Navigate to="/quote" replace />
+          ) : (
+            <ProtectedRoute>
+              <BriefingPage />
+            </ProtectedRoute>
+          )
         }
       />
       <Route
         path="/queue"
         element={
-          <ProtectedRoute>
-            <QueuePage />
-          </ProtectedRoute>
+          bypassAuth ? (
+            <Navigate to="/quote" replace />
+          ) : (
+            <ProtectedRoute>
+              <QueuePage />
+            </ProtectedRoute>
+          )
         }
       />
       <Route
         path="/jobs"
         element={
-          <ProtectedRoute>
-            <JobsPage />
-          </ProtectedRoute>
+          bypassAuth ? (
+            <Navigate to="/quote" replace />
+          ) : (
+            <ProtectedRoute>
+              <JobsPage />
+            </ProtectedRoute>
+          )
         }
       />
       <Route
         path="/jobs/:jobId"
         element={
-          <ProtectedRoute>
-            <JobDetailPage />
-          </ProtectedRoute>
+          bypassAuth ? (
+            <Navigate to="/quote" replace />
+          ) : (
+            <ProtectedRoute>
+              <JobDetailPage />
+            </ProtectedRoute>
+          )
         }
       />
       <Route
@@ -113,7 +134,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={bypassAuth ? "/quote" : "/"} replace />} />
     </Routes>
   );
 }

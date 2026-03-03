@@ -175,19 +175,6 @@ async def update_state(state: AgentState) -> dict[str, object]:
         except DatabaseError as exc:
             errors.append(f"insert_open_item failed for {open_item.id}: {exc}")
 
-    try:
-        draft_ids = [draft.id for draft in state.drafts_created]
-        LOGGER.debug("write_update_log gc_id=%s input_type=%s", gc_id, state.input_type)
-        await queries.write_update_log(
-            gc_id=gc_id,
-            input_type=state.input_type,
-            raw_input=state.raw_input,
-            parsed=state.parsed_intent,
-            draft_ids=draft_ids,
-        )
-    except DatabaseError as exc:
-        errors.append(f"write_update_log failed: {exc}")
-
     result: dict[str, object] = {"jobs": jobs}
     if errors != state.errors:
         result["errors"] = errors

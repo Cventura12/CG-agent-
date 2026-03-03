@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
 import httpx
@@ -10,6 +11,11 @@ from fastapi import Header, HTTPException, status
 from jose import JWTError, jwt
 
 CLERK_JWKS_URL = "https://api.clerk.com/v1/jwks"
+CLERK_JWKS_TTL_SECONDS = 300
+_JWKS_CACHE: dict[str, Any] = {
+    "fetched_at": 0.0,
+    "keys": [],
+}
 
 
 def _unauthorized(detail: str = "Invalid or missing authentication token") -> HTTPException:
@@ -27,7 +33,17 @@ def _extract_bearer_token(authorization: str) -> str:
 
 
 async def _fetch_jwks(secret_key: str) -> list[dict[str, Any]]:
-    """Fetch Clerk JWKS on every protected request (no caching)."""
+    """Fetch Clerk JWKS with a short in-process cache to reduce request overhead."""
+    now = time.monotonic()
+    cached_keys = _JWKS_CACHE.get("keys")
+    cached_at = float(_JWKS_CACHE.get("fetched_at") or 0.0)
+    if (
+        isinstance(cached_keys, list)
+        and cached_keys
+        and (now - cached_at) < CLERK_JWKS_TTL_SECONDS
+    ):
+        return [key for key in cached_keys if isinstance(key, dict)]
+
     headers = {"Authorization": f"Bearer {secret_key}"}
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(CLERK_JWKS_URL, headers=headers)
@@ -37,6 +53,8 @@ async def _fetch_jwks(secret_key: str) -> list[dict[str, Any]]:
     keys = payload.get("keys")
     if not isinstance(keys, list) or not keys:
         raise _unauthorized("Clerk JWKS response contained no keys")
+    _JWKS_CACHE["fetched_at"] = now
+    _JWKS_CACHE["keys"] = [key for key in keys if isinstance(key, dict)]
     return [key for key in keys if isinstance(key, dict)]
 
 

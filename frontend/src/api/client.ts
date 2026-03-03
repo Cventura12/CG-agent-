@@ -7,7 +7,7 @@ const baseURL =
   "http://localhost:8000/api/v1";
 const publicBaseURL =
   (import.meta.env.VITE_PUBLIC_API_URL as string | undefined) ??
-  baseURL.replace(/\/api\/v1\/?$/i, "");
+  `${baseURL.replace(/\/api\/v1\/?$/i, "")}/public`;
 
 export const appApiBaseUrl = baseURL;
 export const publicApiBaseUrl = publicBaseURL;

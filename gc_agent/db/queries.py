@@ -73,6 +73,7 @@ def _build_open_item(row: dict[str, Any]) -> OpenItem:
         "status": row.get("status", "open"),
         "days_silent": _compute_days_silent(row.get("created_at"), row.get("days_silent", 0)),
         "due_date": row.get("due_date"),
+        "trace_id": str(row.get("trace_id", "")).strip(),
     }
     return OpenItem.model_validate(payload)
 
@@ -119,6 +120,7 @@ def _build_draft(row: dict[str, Any]) -> Draft:
         "approval_status": row.get("approval_status"),
         "approval_recorded_at": row.get("approval_recorded_at"),
         "created_at": row.get("created_at") or _utcnow_iso(),
+        "trace_id": str(row.get("trace_id", "")).strip(),
     }
     return Draft.model_validate(payload)
 
@@ -159,7 +161,7 @@ async def get_active_jobs(gc_id: str) -> list[Job]:
             .select(
                 "id,name,type,status,address,contract_value,contract_type,"
                 "est_completion,notes,last_updated,open_items(id,job_id,type,description,owner,status,"
-                "days_silent,due_date,created_at)"
+                "days_silent,due_date,created_at,trace_id)"
             )
             .eq("gc_id", gc_id)
             .eq("status", "active")
@@ -211,6 +213,7 @@ async def insert_open_item(item: OpenItem, gc_id: str) -> None:
         "status": item.status,
         "days_silent": item.days_silent,
         "due_date": item.due_date.isoformat() if item.due_date else None,
+        "trace_id": item.trace_id.strip() or None,
     }
 
     def _query() -> None:
@@ -256,6 +259,7 @@ async def insert_drafts(drafts: list[Draft], gc_id: str) -> None:
             "why": draft.why,
             "status": draft.status,
             "created_at": draft.created_at.isoformat(),
+            "trace_id": draft.trace_id.strip() or None,
         }
         for draft in drafts
     ]
@@ -275,7 +279,7 @@ async def get_queued_drafts(gc_id: str) -> list[Draft]:
             client.table("draft_queue")
             .select(
                 "id,job_id,type,title,content,why,status,was_edited,approval_status,"
-                "approval_recorded_at,original_content,created_at,jobs(name)"
+                "approval_recorded_at,original_content,created_at,trace_id,jobs(name)"
             )
             .eq("gc_id", gc_id)
             .eq("status", "queued")
@@ -300,7 +304,7 @@ async def get_pending_drafts(gc_id: str) -> list[Draft]:
             client.table("draft_queue")
             .select(
                 "id,job_id,type,title,content,why,status,was_edited,approval_status,"
-                "approval_recorded_at,original_content,created_at,jobs(name)"
+                "approval_recorded_at,original_content,created_at,trace_id,jobs(name)"
             )
             .eq("gc_id", gc_id)
             .in_("status", ["queued", "pending"])
@@ -372,7 +376,7 @@ async def get_draft_record(draft_id: str) -> Optional[dict[str, Any]]:
             client.table("draft_queue")
             .select(
                 "id,job_id,gc_id,type,title,content,why,status,was_edited,approval_status,"
-                "approval_recorded_at,original_content,created_at,actioned_at,jobs(name)"
+                "approval_recorded_at,original_content,created_at,actioned_at,trace_id,jobs(name)"
             )
             .eq("id", draft_id)
             .limit(1)
@@ -439,7 +443,7 @@ async def get_actioned_drafts(gc_id: str, limit: int = 50) -> list[Draft]:
             client.table("draft_queue")
             .select(
                 "id,job_id,type,title,content,why,status,was_edited,approval_status,"
-                "approval_recorded_at,original_content,created_at,actioned_at,jobs(name)"
+                "approval_recorded_at,original_content,created_at,actioned_at,trace_id,jobs(name)"
             )
             .eq("gc_id", gc_id)
             .in_("status", ["approved", "edited", "discarded"])
@@ -465,7 +469,7 @@ async def get_approved_with_edit_drafts(gc_id: str, limit: int = 50) -> list[Dra
             client.table("draft_queue")
             .select(
                 "id,job_id,type,title,original_content,content,why,status,was_edited,approval_status,"
-                "approval_recorded_at,created_at,actioned_at,jobs(name)"
+                "approval_recorded_at,created_at,actioned_at,trace_id,jobs(name)"
             )
             .eq("gc_id", gc_id)
             .eq("approval_status", "approved_with_edit")
@@ -489,7 +493,7 @@ async def get_recent_update_logs(gc_id: str, job_id: str, limit: int = 10) -> li
     def _query() -> list[dict[str, Any]]:
         response = (
             client.table("update_log")
-            .select("id,job_id,input_type,raw_input,parsed_changes,drafts_created,created_at")
+            .select("id,job_id,input_type,raw_input,parsed_changes,drafts_created,trace_id,created_at")
             .eq("gc_id", gc_id)
             .eq("job_id", job_id)
             .order("created_at", desc=True)
@@ -508,6 +512,7 @@ async def get_recent_update_logs(gc_id: str, job_id: str, limit: int = 10) -> li
                 "raw_input": str(row.get("raw_input", "")),
                 "parsed_changes": row.get("parsed_changes") if isinstance(row.get("parsed_changes"), dict) else {},
                 "drafts_created": row.get("drafts_created") if isinstance(row.get("drafts_created"), list) else [],
+                "trace_id": str(row.get("trace_id", "")).strip(),
                 "created_at": row.get("created_at"),
             }
             for row in rows
@@ -516,23 +521,99 @@ async def get_recent_update_logs(gc_id: str, job_id: str, limit: int = 10) -> li
         raise DatabaseError(f"get_recent_update_logs mapping failed: {exc}") from exc
 
 
+async def upsert_quote_draft(
+    *,
+    quote_id: str,
+    gc_id: str,
+    job_id: str = "",
+    trace_id: str = "",
+    quote_draft: dict[str, Any],
+    rendered_quote: str,
+) -> None:
+    """Persist one generated quote draft so PDF rendering survives restarts."""
+    client = get_client()
+    payload = {
+        "id": quote_id,
+        "gc_id": gc_id,
+        "job_id": job_id.strip() or None,
+        "trace_id": trace_id.strip() or None,
+        "quote_draft": quote_draft,
+        "rendered_quote": rendered_quote,
+        "updated_at": _utcnow_iso(),
+    }
+
+    def _query() -> None:
+        client.table("quote_drafts").upsert(payload, on_conflict="id").execute()
+
+    await _run_db("upsert_quote_draft", _query)
+
+
+async def get_quote_draft_record(quote_id: str) -> Optional[dict[str, Any]]:
+    """Fetch one stored quote draft by ID."""
+    client = get_client()
+
+    def _query() -> list[dict[str, Any]]:
+        response = (
+            client.table("quote_drafts")
+            .select("id,gc_id,job_id,trace_id,quote_draft,rendered_quote,created_at,updated_at")
+            .eq("id", quote_id)
+            .limit(1)
+            .execute()
+        )
+        return list(response.data or [])
+
+    rows = await _run_db("get_quote_draft_record", _query)
+    if not rows:
+        return None
+    row = rows[0]
+    return {
+        "id": str(row.get("id", "")).strip(),
+        "gc_id": str(row.get("gc_id", "")).strip(),
+        "job_id": str(row.get("job_id", "")).strip(),
+        "trace_id": str(row.get("trace_id", "")).strip(),
+        "quote_draft": row.get("quote_draft") if isinstance(row.get("quote_draft"), dict) else {},
+        "rendered_quote": str(row.get("rendered_quote", "")),
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }
+
+
 async def write_update_log(
     gc_id: str,
     input_type: str,
     raw_input: str,
-    parsed: ParsedIntent,
+    parsed: ParsedIntent | None,
     draft_ids: list[str],
+    *,
+    trace_id: str = "",
+    risk_flags: list[str] | None = None,
+    job_id: str | None = None,
+    affected_job_ids: list[str] | None = None,
+    errors: list[str] | None = None,
 ) -> None:
     """Persist update processing metadata for auditability and replay."""
     client = get_client()
+    parsed_changes = parsed.model_dump(mode="json") if parsed is not None else {}
+    if risk_flags:
+        parsed_changes["risk_flags"] = [str(flag).strip() for flag in risk_flags if str(flag).strip()]
+    if affected_job_ids:
+        parsed_changes["affected_job_ids"] = [
+            str(value).strip()
+            for value in affected_job_ids
+            if str(value).strip()
+        ]
+    if errors:
+        parsed_changes["errors"] = [str(value).strip() for value in errors if str(value).strip()]
+
     payload = {
         "id": uuid4().hex,
-        "job_id": None,
+        "job_id": str(job_id or "").strip() or None,
         "gc_id": gc_id,
         "input_type": input_type,
         "raw_input": raw_input,
-        "parsed_changes": parsed.model_dump(mode="json"),
+        "parsed_changes": parsed_changes,
         "drafts_created": draft_ids,
+        "trace_id": trace_id.strip() or None,
         "created_at": _utcnow_iso(),
     }
 
@@ -715,6 +796,8 @@ __all__ = [
     "get_actioned_drafts",
     "get_approved_with_edit_drafts",
     "get_recent_update_logs",
+    "upsert_quote_draft",
+    "get_quote_draft_record",
     "write_update_log",
     "get_gc_by_clerk_user_id",
     "get_gc_profile_by_clerk_user_id",

@@ -7,11 +7,12 @@ import pytest
 
 from gc_agent.state import AgentState, Draft, Job
 
-api_module = import_module("gc_agent.api.main")
+api_app_module = import_module("gc_agent.api.main")
+api_module = import_module("gc_agent.api.router")
 
 
 def _client() -> httpx.AsyncClient:
-    transport = httpx.ASGITransport(app=api_module.app)
+    transport = httpx.ASGITransport(app=api_app_module.app)
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
 
 

@@ -43,6 +43,7 @@ class OpenItemRow(TypedDict):
     status: str
     days_silent: int
     due_date: str | None
+    trace_id: NotRequired[str | None]
     created_at: NotRequired[str]
     resolved_at: NotRequired[str | None]
 
@@ -58,6 +59,7 @@ class DraftQueueRow(TypedDict):
     content: str
     why: str
     status: str
+    trace_id: NotRequired[str | None]
     created_at: NotRequired[str]
     actioned_at: NotRequired[str | None]
 
@@ -72,6 +74,7 @@ class UpdateLogRow(TypedDict):
     raw_input: str
     parsed_changes: dict[str, Any]
     drafts_created: list[Any]
+    trace_id: NotRequired[str | None]
     created_at: NotRequired[str]
 
 
@@ -299,7 +302,7 @@ def list_open_items(gc_id: str, job_id: str | None = None) -> list[OpenItemRow]:
         client.table("open_items")
         .select(
             "id,job_id,gc_id,type,description,owner,status,days_silent,"
-            "due_date,created_at,resolved_at"
+            "due_date,trace_id,created_at,resolved_at"
         )
         .eq("gc_id", gc_value)
         .order("created_at", desc=True)
@@ -327,6 +330,7 @@ def insert_open_item(row: OpenItemRow) -> OpenItemRow | None:
         "status": str(row.get("status", "open")).strip() or "open",
         "days_silent": int(row.get("days_silent") or 0),
         "due_date": str(row.get("due_date") or "").strip() or None,
+        "trace_id": str(row.get("trace_id") or "").strip() or None,
     }
     client.table("open_items").insert(payload).execute()
     return payload
@@ -358,7 +362,7 @@ def list_draft_queue(gc_id: str) -> list[DraftQueueRow]:
 
     response = (
         client.table("draft_queue")
-        .select("id,job_id,gc_id,type,title,content,why,status,created_at,actioned_at")
+        .select("id,job_id,gc_id,type,title,content,why,status,trace_id,created_at,actioned_at")
         .eq("gc_id", gc_value)
         .order("created_at", desc=True)
         .execute()
@@ -381,6 +385,7 @@ def upsert_draft_queue(row: DraftQueueRow) -> DraftQueueRow | None:
         "content": str(row["content"]).strip(),
         "why": str(row["why"]).strip(),
         "status": str(row.get("status", "queued")).strip() or "queued",
+        "trace_id": str(row.get("trace_id") or "").strip() or None,
     }
     client.table("draft_queue").upsert(payload, on_conflict="id").execute()
     return payload
@@ -395,7 +400,7 @@ def list_update_logs(gc_id: str) -> list[UpdateLogRow]:
 
     response = (
         client.table("update_log")
-        .select("id,gc_id,job_id,input_type,raw_input,parsed_changes,drafts_created,created_at")
+        .select("id,gc_id,job_id,input_type,raw_input,parsed_changes,drafts_created,trace_id,created_at")
         .eq("gc_id", gc_value)
         .order("created_at", desc=True)
         .execute()
@@ -417,6 +422,7 @@ def insert_update_log(row: UpdateLogRow) -> UpdateLogRow | None:
         "raw_input": str(row.get("raw_input", "")).strip(),
         "parsed_changes": dict(row.get("parsed_changes") or {}),
         "drafts_created": list(row.get("drafts_created") or []),
+        "trace_id": str(row.get("trace_id") or "").strip() or None,
         "created_at": _utcnow_iso(),
     }
     client.table("update_log").insert(payload).execute()

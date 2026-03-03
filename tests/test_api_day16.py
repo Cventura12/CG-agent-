@@ -7,12 +7,14 @@ import pytest
 
 from gc_agent.state import AgentState, Draft
 
-api_module = import_module("gc_agent.api.main")
+api_app_module = import_module("gc_agent.api.main")
+api_module = import_module("gc_agent.api.router")
 
 
 @pytest.mark.asyncio
 async def test_post_quote_returns_quote_draft(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GC_AGENT_API_KEYS", "00000000-0000-0000-0000-000000000001:test-key")
+    persisted: list[dict[str, object]] = []
 
     async def _fake_run_single_estimate(
         raw_input: str,
@@ -41,7 +43,12 @@ async def test_post_quote_returns_quote_draft(monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setattr(api_module, "run_single_estimate", _fake_run_single_estimate)
 
-    transport = httpx.ASGITransport(app=api_module.app)
+    async def _fake_upsert_quote_draft(**kwargs: object) -> None:
+        persisted.append(dict(kwargs))
+
+    monkeypatch.setattr(api_module.queries, "upsert_quote_draft", _fake_upsert_quote_draft)
+
+    transport = httpx.ASGITransport(app=api_app_module.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.post(
             "/quote",
@@ -54,6 +61,9 @@ async def test_post_quote_returns_quote_draft(monkeypatch: pytest.MonkeyPatch) -
     assert payload["quote_draft"]["project_address"] == "14 Oak Lane"
     assert payload["quote_draft"]["total_price"] == 14250.0
     assert payload["rendered_quote"] == "QUOTE READY"
+    assert len(persisted) == 1
+    assert persisted[0]["gc_id"] == "00000000-0000-0000-0000-000000000001"
+    assert persisted[0]["job_id"] == "job-api-quote-1"
 
 
 @pytest.mark.asyncio
@@ -87,7 +97,7 @@ async def test_get_queue_returns_pending_items(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(api_module.queries, "get_pending_drafts", _fake_get_pending_drafts)
 
-    transport = httpx.ASGITransport(app=api_module.app)
+    transport = httpx.ASGITransport(app=api_app_module.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.get(
             "/queue",
@@ -142,7 +152,7 @@ async def test_post_queue_approve_updates_status_and_triggers_send(monkeypatch: 
     monkeypatch.setattr(api_module.queries, "get_draft_by_id", _fake_get_draft_by_id)
     monkeypatch.setattr(api_module, "send_and_track", _fake_send_and_track)
 
-    transport = httpx.ASGITransport(app=api_module.app)
+    transport = httpx.ASGITransport(app=api_app_module.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.post(
             "/queue/draft-123/approve",

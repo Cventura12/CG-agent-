@@ -7,6 +7,7 @@ import inspect
 import logging
 from datetime import date
 from typing import Any, Awaitable, Callable, Optional, cast
+from uuid import uuid4
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
@@ -18,6 +19,7 @@ except Exception:  # pragma: no cover - dependency may be unavailable before ins
     PostgresSaver = None  # type: ignore[assignment]
 
 from gc_agent.state import AgentState
+from gc_agent.telemetry import log_ingress_trace, trace_node_execution
 
 CompiledGraph = Any
 NodeResult = dict[str, Any]
@@ -182,16 +184,6 @@ def _daily_thread_id(gc_id: str) -> str:
     return f"{gc_id}-{date.today().isoformat()}"
 
 
-def _with_debug_logging(name: str, node_fn: NodeCallable) -> NodeCallable:
-    """Wrap a node to emit DEBUG logs each time it executes."""
-
-    async def _wrapped(state: AgentState) -> NodeResult:
-        LOGGER.debug("Node fired: %s", name)
-        return await node_fn(state)
-
-    return _wrapped
-
-
 def _build_default_checkpointer() -> Any:
     """Build default checkpointer: PostgresSaver when configured, else MemorySaver."""
     from gc_agent.db.client import get_postgres_url
@@ -245,39 +237,39 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
 
     workflow = StateGraph(AgentState)
 
-    workflow.add_node("ingest", _with_debug_logging("ingest", ingest))
-    workflow.add_node("recall_context", _with_debug_logging("recall_context", _phase1_recall_context_node))
+    workflow.add_node("ingest", trace_node_execution("ingest", ingest))
+    workflow.add_node("recall_context", trace_node_execution("recall_context", _phase1_recall_context_node))
     workflow.add_node(
         "extract_job_scope",
-        _with_debug_logging("extract_job_scope", _phase1_extract_job_scope_node),
+        trace_node_execution("extract_job_scope", _phase1_extract_job_scope_node),
     )
     workflow.add_node(
         "clarify_missing",
-        _with_debug_logging("clarify_missing", _phase1_clarify_missing_node),
+        trace_node_execution("clarify_missing", _phase1_clarify_missing_node),
     )
     workflow.add_node(
         "calculate_materials",
-        _with_debug_logging("calculate_materials", _phase1_calculate_materials_node),
+        trace_node_execution("calculate_materials", _phase1_calculate_materials_node),
     )
     workflow.add_node(
         "generate_quote",
-        _with_debug_logging("generate_quote", _phase1_generate_quote_node),
+        trace_node_execution("generate_quote", _phase1_generate_quote_node),
     )
     workflow.add_node(
         "update_memory",
-        _with_debug_logging("update_memory", _phase1_update_memory_node),
+        trace_node_execution("update_memory", _phase1_update_memory_node),
     )
     workflow.add_node(
         "followup_trigger",
-        _with_debug_logging("followup_trigger", _phase1_followup_trigger_node),
+        trace_node_execution("followup_trigger", _phase1_followup_trigger_node),
     )
-    workflow.add_node("parse_update", _with_debug_logging("parse_update", parse_update))
-    workflow.add_node("update_state", _with_debug_logging("update_state", update_state))
-    workflow.add_node("flag_risks", _with_debug_logging("flag_risks", flag_risks))
-    workflow.add_node("draft_actions", _with_debug_logging("draft_actions", draft_actions))
+    workflow.add_node("parse_update", trace_node_execution("parse_update", parse_update))
+    workflow.add_node("update_state", trace_node_execution("update_state", update_state))
+    workflow.add_node("flag_risks", trace_node_execution("flag_risks", flag_risks))
+    workflow.add_node("draft_actions", trace_node_execution("draft_actions", draft_actions))
     workflow.add_node(
         "generate_briefing",
-        _with_debug_logging("generate_briefing", generate_briefing),
+        trace_node_execution("generate_briefing", generate_briefing),
     )
 
     workflow.add_edge(START, "ingest")
@@ -376,6 +368,7 @@ async def run_update(
     gc_id: str,
     from_number: str,
     input_type: str = "whatsapp",
+    trace_id: str = "",
 ) -> AgentState:
     """Run the update path for a new inbound message and return final state."""
     thread_id = _daily_thread_id(gc_id)
@@ -387,10 +380,20 @@ async def run_update(
         gc_id=gc_id,
         jobs=[],
         thread_id=thread_id,
+        trace_id=trace_id.strip() or uuid4().hex,
     )
 
     try:
         initial_state.jobs = await _resolve_jobs(gc_id)
+        log_ingress_trace(
+            initial_state,
+            input_surface=input_type,
+            payload={
+                "raw_input": raw_input,
+                "from_number": from_number,
+                "mode": "update",
+            },
+        )
         config = {"configurable": {"thread_id": thread_id}}
         result = await get_graph().ainvoke(initial_state, config=config)
         return _state_from_graph_result(result, initial_state)
@@ -400,7 +403,7 @@ async def run_update(
         return initial_state
 
 
-async def run_briefing(gc_id: str) -> str:
+async def run_briefing(gc_id: str, trace_id: str = "") -> str:
     """Run briefing mode for a GC and return the generated briefing text."""
     thread_id = f"{gc_id}-briefing-{date.today().isoformat()}"
     initial_state = AgentState(
@@ -411,10 +414,16 @@ async def run_briefing(gc_id: str) -> str:
         gc_id=gc_id,
         jobs=[],
         thread_id=thread_id,
+        trace_id=trace_id.strip() or uuid4().hex,
     )
 
     try:
         initial_state.jobs = await _resolve_jobs(gc_id)
+        log_ingress_trace(
+            initial_state,
+            input_surface="cron",
+            payload={"mode": "briefing"},
+        )
         config = {"configurable": {"thread_id": thread_id}}
         result = await get_graph().ainvoke(initial_state, config=config)
         final_state = _state_from_graph_result(result, initial_state)

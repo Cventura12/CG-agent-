@@ -13,13 +13,21 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from supabase import Client as SupabaseClient, create_client
 
+try:
+    from fastapi_cache import FastAPICache
+    from fastapi_cache.backends.inmemory import InMemoryBackend
+except ModuleNotFoundError:
+    FastAPICache = None  # type: ignore[assignment]
+    InMemoryBackend = None  # type: ignore[assignment]
+
 from gc_agent import graph
+from gc_agent.api.router import open_router as public_open_router
+from gc_agent.api.router import router as public_router
 from gc_agent.routers.auth import router as auth_router
+from gc_agent.routers.ingest import router as ingest_router
 from gc_agent.routers.jobs import router as jobs_router
 from gc_agent.routers.queue import router as queue_router
 from gc_agent.webhooks.twilio import router as twilio_router, send_whatsapp_message
@@ -141,6 +149,7 @@ async def _store_failed_briefing(
     phone_number: str,
     briefing_text: str,
     error_message: str,
+    trace_id: str = "",
 ) -> None:
     """Persist an undelivered briefing for manual retrieval."""
     supabase: Optional[SupabaseClient] = app.state.supabase_client
@@ -156,6 +165,7 @@ async def _store_failed_briefing(
         "delivery_channel": "whatsapp",
         "delivery_status": "failed",
         "error_message": error_message[:500],
+        "trace_id": trace_id.strip() or None,
     }
 
     def _insert() -> None:
@@ -166,6 +176,39 @@ async def _store_failed_briefing(
         LOGGER.info("Stored failed briefing in briefing_log gc_id=%s", gc_id)
     except Exception:
         LOGGER.exception("Failed writing briefing_log entry gc_id=%s", gc_id)
+
+
+async def _store_sent_briefing(
+    app: FastAPI,
+    gc_id: str,
+    phone_number: str,
+    briefing_text: str,
+    twilio_sid: str,
+    trace_id: str = "",
+) -> None:
+    """Persist a successfully delivered briefing."""
+    supabase: Optional[SupabaseClient] = app.state.supabase_client
+    if supabase is None:
+        return
+
+    payload = {
+        "id": uuid4().hex,
+        "gc_id": gc_id,
+        "phone_number": phone_number,
+        "briefing_text": briefing_text,
+        "delivery_channel": "whatsapp",
+        "delivery_status": "sent",
+        "twilio_sid": twilio_sid[:120],
+        "trace_id": trace_id.strip() or None,
+    }
+
+    def _insert() -> None:
+        supabase.table("briefing_log").insert(payload).execute()
+
+    try:
+        await asyncio.to_thread(_insert)
+    except Exception:
+        LOGGER.exception("Failed writing successful briefing_log entry gc_id=%s", gc_id)
 
 
 async def send_daily_briefings() -> None:
@@ -180,8 +223,9 @@ async def send_daily_briefings() -> None:
 
     for gc_id in gc_ids:
         briefing_text = "Morning briefing unavailable."
+        trace_id = uuid4().hex
         try:
-            briefing_text = await graph.run_briefing(gc_id)
+            briefing_text = await graph.run_briefing(gc_id, trace_id=trace_id)
         except Exception:
             LOGGER.exception("Briefing generation failed gc_id=%s; using fallback text", gc_id)
 
@@ -196,6 +240,14 @@ async def send_daily_briefings() -> None:
         try:
             message_sid = await send_whatsapp_message(phone_number, briefing_text)
             LOGGER.info("Briefing delivered gc_id=%s sid=%s", gc_id, message_sid)
+            await _store_sent_briefing(
+                app=app,
+                gc_id=gc_id,
+                phone_number=phone_number,
+                briefing_text=briefing_text,
+                twilio_sid=message_sid,
+                trace_id=trace_id,
+            )
         except Exception as exc:
             LOGGER.exception("Briefing delivery failed gc_id=%s", gc_id)
             await _store_failed_briefing(
@@ -204,6 +256,7 @@ async def send_daily_briefings() -> None:
                 phone_number=phone_number,
                 briefing_text=briefing_text,
                 error_message=str(exc),
+                trace_id=trace_id,
             )
 
 
@@ -215,7 +268,10 @@ async def lifespan(app: FastAPI):
 
     app.state.settings = settings
     app.state.supabase_client = _build_supabase_client()
-    FastAPICache.init(InMemoryBackend(), prefix="gc-agent-cache")
+    if FastAPICache is not None and InMemoryBackend is not None:
+        FastAPICache.init(InMemoryBackend(), prefix="gc-agent-cache")
+    else:
+        LOGGER.warning("fastapi-cache2 not installed; caching disabled")
 
     try:
         graph.get_graph()
@@ -264,8 +320,11 @@ app.add_middleware(
 
 app.include_router(twilio_router, prefix="/webhook")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(queue_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")
+app.include_router(public_open_router, prefix="/public", tags=["public"])
+app.include_router(public_router, prefix="/public", tags=["public"])
 
 
 @app.get("/health")
