@@ -181,58 +181,6 @@ export interface UsageAnalyticsPayload {
   warnings: string[];
 }
 
-export interface ReferralInvite {
-  id: string;
-  gc_id: string;
-  invite_code: string;
-  channel: string;
-  destination: string;
-  invitee_name: string;
-  note: string;
-  status: string;
-  trace_id: string;
-  created_at: string;
-  accepted_at: string | null;
-}
-
-export interface ReferralLead {
-  id: string;
-  invite_id: string;
-  gc_id: string;
-  invite_code: string;
-  referred_name: string;
-  referred_contact: string;
-  source: string;
-  status: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
-}
-
-export interface ReferralDashboardPayload {
-  summary: {
-    invites_total: number;
-    invites_pending: number;
-    invites_accepted: number;
-    leads_total: number;
-  };
-  share_base_url: string;
-  invites: ReferralInvite[];
-  leads: ReferralLead[];
-}
-
-export interface ReferralInviteCreatePayload {
-  channel: string;
-  destination?: string;
-  invitee_name?: string;
-  note?: string;
-}
-
-export interface ReferralInviteCreateResponse {
-  invite: ReferralInvite;
-  share_url: string;
-  share_message: string;
-}
-
 export interface MultiJobInsightOpportunity {
   group_key: string;
   job_type: string;

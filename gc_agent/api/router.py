@@ -104,15 +104,6 @@ class QuoteSendRequest(BaseModel):
     message_override: str = ""
 
 
-class ReferralAcceptRequest(BaseModel):
-    """Public payload for accepting a contractor referral invite code."""
-
-    invite_code: str = Field(min_length=4)
-    referred_name: str = ""
-    referred_contact: str = ""
-    source: str = "web"
-
-
 def _serialize_draft(draft: Draft) -> dict[str, Any]:
     """Serialize a Draft model into JSON-safe response data."""
     return draft.model_dump(mode="json")
@@ -275,35 +266,6 @@ async def _deliver_quote_message(channel: str, destination: str, body: str) -> s
     else:
         sender = getattr(twilio_module, "send_sms_message")
     return await sender(destination, body)
-
-
-@open_router.post("/referrals/accept")
-async def accept_referral(payload: ReferralAcceptRequest) -> dict[str, Any]:
-    """Capture an accepted referral so the contractor can see referrals that converted."""
-    try:
-        result = await queries.accept_referral_invite(
-            invite_code=payload.invite_code,
-            referred_name=payload.referred_name,
-            referred_contact=payload.referred_contact,
-            source=payload.source,
-            metadata={"source": payload.source},
-        )
-    except DatabaseError as exc:
-        message = str(exc)
-        if "invite_code not found" in message.lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="invite_code not found",
-            ) from exc
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=message,
-        ) from exc
-
-    return {
-        "status": "ok",
-        **result,
-    }
 
 
 @router.post("/quote")
