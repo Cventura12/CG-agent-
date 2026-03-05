@@ -25,6 +25,7 @@ async def _fake_quote_call(system: str, user: str, max_tokens: int = 1800) -> st
                 "quantity": 2,
                 "unit_cost": 65,
                 "total_cost": 130,
+
             },
             {
                 "item": "Laminated shingles",

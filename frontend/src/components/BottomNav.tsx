@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { FileAudio2, ListChecks, MessageSquareText, BriefcaseBusiness } from "lucide-react";
+import { FileAudio2, ListChecks, MessageSquareText, BriefcaseBusiness, ChartColumn, UserRoundPlus, Boxes } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 type NavItem = {
@@ -34,6 +34,24 @@ const navItems: NavItem[] = [
     icon: BriefcaseBusiness,
     match: (pathname) => pathname.startsWith("/jobs"),
   },
+  {
+    label: "Analytics",
+    href: "/analytics",
+    icon: ChartColumn,
+    match: (pathname) => pathname.startsWith("/analytics"),
+  },
+  {
+    label: "Referrals",
+    href: "/referrals",
+    icon: UserRoundPlus,
+    match: (pathname) => pathname.startsWith("/referrals"),
+  },
+  {
+    label: "Insights",
+    href: "/insights",
+    icon: Boxes,
+    match: (pathname) => pathname.startsWith("/insights"),
+  },
 ];
 
 export function BottomNav() {
@@ -41,7 +59,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur-md">
-      <div className="mx-auto grid max-w-4xl grid-cols-4">
+      <div className="mx-auto grid max-w-6xl grid-cols-7">
         {navItems.map((item) => {
           const isActive = item.match(location.pathname);
           const Icon = item.icon;

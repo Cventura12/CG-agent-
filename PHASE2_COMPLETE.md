@@ -10,7 +10,7 @@
   - ADE preprocessing before estimate ingest
   - memory persistence and recall across repeated approved quotes
 
-## ADE Verification
+## ADE Verification       
 
 The Day 15 integration suite verified ADE preprocessing on all three required document types:
 

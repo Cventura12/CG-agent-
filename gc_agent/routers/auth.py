@@ -21,6 +21,22 @@ class RegisterRequest(BaseModel):
     phone_number: str = Field(min_length=7)
 
 
+class OnboardingPricingRequest(BaseModel):
+    """Payload for pricing/profile onboarding before first estimate run."""
+
+    company_name: str = Field(min_length=1)
+    labor_rate_per_square: float = Field(gt=0)
+    default_markup_pct: float = Field(gt=0)
+    tear_off_per_square: float = Field(gt=0)
+    laminated_shingles_per_square: float = Field(gt=0)
+    synthetic_underlayment_per_square: float = Field(gt=0)
+    primary_trade: str = "general_construction"
+    service_area: str = ""
+    preferred_supplier: str = ""
+    preferred_shingle_brand: str = ""
+    notes: str = ""
+
+
 def _success(data: Any) -> dict[str, Any]:
     """Return a standard success envelope for auth endpoints."""
     return {
@@ -89,4 +105,96 @@ async def auth_register(
     )
 
 
-__all__ = ["router", "auth_me", "auth_register"]
+@router.get("/auth/onboarding", response_model=None)
+async def auth_onboarding(current_gc: str = Depends(get_current_gc)) -> dict[str, Any] | JSONResponse:
+    """Return pricing onboarding state for the signed-in contractor."""
+    try:
+        profile = await queries.get_gc_profile_by_clerk_user_id(current_gc)
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    if profile is None:
+        recommended_defaults = queries.get_onboarding_defaults("general_construction")
+        return _success(
+            {
+                "registered": False,
+                "onboarding_complete": False,
+                "phone_number": "",
+                "company_name": "",
+                "labor_rate_per_square": recommended_defaults["labor_rate_per_square"],
+                "default_markup_pct": recommended_defaults["default_markup_pct"],
+                "tear_off_per_square": recommended_defaults["tear_off_per_square"],
+                "laminated_shingles_per_square": recommended_defaults["laminated_shingles_per_square"],
+                "synthetic_underlayment_per_square": recommended_defaults["synthetic_underlayment_per_square"],
+                "preferred_supplier": "",
+                "preferred_shingle_brand": "",
+                "primary_trade": "general_construction",
+                "service_area": "",
+                "recommended_defaults": recommended_defaults,
+                "notes": "",
+                "missing_fields": [
+                    "phone_number",
+                    "company_name",
+                    "labor_rate_per_square",
+                    "default_markup_pct",
+                    "tear_off_per_square",
+                    "laminated_shingles_per_square",
+                    "synthetic_underlayment_per_square",
+                ],
+            }
+        )
+
+    try:
+        onboarding = await queries.get_onboarding_pricing(profile["id"])
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    return _success(
+        {
+            "registered": True,
+            "gc_id": profile["id"],
+            "phone_number": profile["phone_number"],
+            **onboarding,
+        }
+    )
+
+
+@router.post("/auth/onboarding", response_model=None)
+async def auth_onboarding_save(
+    payload: OnboardingPricingRequest,
+    current_gc: str = Depends(get_current_gc),
+) -> dict[str, Any] | JSONResponse:
+    """Persist pricing onboarding configuration for the signed-in contractor."""
+    try:
+        profile = await queries.get_gc_profile_by_clerk_user_id(current_gc)
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    if profile is None:
+        return _error(404, "Register phone number first at /api/v1/auth/register")
+
+    try:
+        onboarding = await queries.upsert_onboarding_pricing(
+            profile["id"],
+            payload.model_dump(mode="json"),
+        )
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    return _success(
+        {
+            "registered": True,
+            "gc_id": profile["id"],
+            "phone_number": profile["phone_number"],
+            **onboarding,
+        }
+    )
+
+
+__all__ = [
+    "router",
+    "auth_me",
+    "auth_register",
+    "auth_onboarding",
+    "auth_onboarding_save",
+]

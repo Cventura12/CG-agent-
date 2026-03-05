@@ -61,6 +61,9 @@ async def test_post_quote_returns_quote_draft(monkeypatch: pytest.MonkeyPatch) -
     assert payload["quote_draft"]["project_address"] == "14 Oak Lane"
     assert payload["quote_draft"]["total_price"] == 14250.0
     assert payload["rendered_quote"] == "QUOTE READY"
+    assert isinstance(payload["assumptions"], list)
+    assert isinstance(payload["clarification_questions"], list)
+    assert isinstance(payload["cold_start"], dict)
     assert len(persisted) == 1
     assert persisted[0]["gc_id"] == "00000000-0000-0000-0000-000000000001"
     assert persisted[0]["job_id"] == "job-api-quote-1"

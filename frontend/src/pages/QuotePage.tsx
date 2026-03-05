@@ -1,11 +1,20 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { UserButton, useClerk } from "@clerk/clerk-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Loader2, Mic, Send, Square, TriangleAlert } from "lucide-react";
 
-import { fetchQuotePdf, getBetaContractorId, hasBetaApiCredentials, submitQuote } from "../api/quote";
-import type { QuoteDraft, QuoteLineItem, QuoteResponse } from "../types";
+import {
+  approveQuote,
+  discardQuote,
+  editQuote,
+  fetchQuotePdf,
+  getBetaContractorId,
+  hasBetaApiCredentials,
+  sendQuoteToClient,
+  submitQuote,
+} from "../api/quote";
+import type { QuoteApprovalStatus, QuoteDraft, QuoteLineItem, QuoteResponse } from "../types";
 
 const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
 
@@ -44,6 +53,115 @@ type ShareNavigator = Navigator & {
   canShare?: (data?: { files?: File[] }) => boolean;
   share?: (data?: { files?: File[]; title?: string; text?: string }) => Promise<void>;
 };
+
+type QuoteDecisionAction = "approve" | "edit" | "discard";
+type QuoteInputSource = "manual" | "voice";
+
+type OfflineQueuedQuote = {
+  id: string;
+  input: string;
+  source: QuoteInputSource;
+  created_at: string;
+};
+
+type QuoteSubmissionRequest = {
+  input: string;
+  source: QuoteInputSource;
+};
+
+const QUOTE_NOTES_STORAGE_KEY = "gc-agent:quote:notes:v1";
+const QUOTE_OFFLINE_QUEUE_STORAGE_KEY = "gc-agent:quote:offline-queue:v1";
+
+function hasLocalStorage(): boolean {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function loadStoredNotes(): string {
+  if (!hasLocalStorage()) {
+    return "";
+  }
+
+  try {
+    return window.localStorage.getItem(QUOTE_NOTES_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function saveStoredNotes(value: string): void {
+  if (!hasLocalStorage()) {
+    return;
+  }
+
+  try {
+    if (value.trim()) {
+      window.localStorage.setItem(QUOTE_NOTES_STORAGE_KEY, value);
+    } else {
+      window.localStorage.removeItem(QUOTE_NOTES_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore localStorage errors so quote flow still works.
+  }
+}
+
+function loadOfflineQueue(): OfflineQueuedQuote[] {
+  if (!hasLocalStorage()) {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(QUOTE_OFFLINE_QUEUE_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return null;
+        }
+        const value = entry as Record<string, unknown>;
+        const source = value.source === "voice" ? "voice" : "manual";
+        if (typeof value.input !== "string" || typeof value.id !== "string") {
+          return null;
+        }
+        return {
+          id: value.id,
+          input: value.input,
+          source,
+          created_at:
+            typeof value.created_at === "string" && value.created_at
+              ? value.created_at
+              : new Date().toISOString(),
+        } satisfies OfflineQueuedQuote;
+      })
+      .filter((entry): entry is OfflineQueuedQuote => Boolean(entry));
+  } catch {
+    return [];
+  }
+}
+
+function saveOfflineQueue(queue: OfflineQueuedQuote[]): void {
+  if (!hasLocalStorage()) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(QUOTE_OFFLINE_QUEUE_STORAGE_KEY, JSON.stringify(queue));
+  } catch {
+    // Ignore localStorage errors so quote flow still works.
+  }
+}
+
+function buildOfflineQueueId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null {
   const speechWindow = window as SpeechWindow;
@@ -149,37 +267,324 @@ function QuotePreviewCard({ quote }: { quote: QuoteDraft }) {
   );
 }
 
+function ConfidenceBadge({
+  confidence,
+}: {
+  confidence: QuoteResponse["estimate_confidence"];
+}) {
+  const tone =
+    confidence.level === "high"
+      ? "border-green/40 bg-green/10 text-green"
+      : confidence.level === "medium"
+      ? "border-yellow/50 bg-yellow/10 text-yellow"
+      : "border-red-400/40 bg-red-400/10 text-red-200";
+
+  return (
+    <section className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Estimate confidence</p>
+        <span className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] ${tone}`}>
+          {confidence.level} ({confidence.score})
+        </span>
+      </div>
+      <div className="mt-3 space-y-2">
+        {confidence.reasons.map((reason) => (
+          <p key={reason} className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text/90">
+            {reason}
+          </p>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AssumptionsCard({
+  assumptions,
+  clarificationQuestions,
+  coldStart,
+}: {
+  assumptions: string[];
+  clarificationQuestions: string[];
+  coldStart: QuoteResponse["cold_start"];
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Assumptions to confirm</p>
+        {coldStart.active ? (
+          <span className="rounded-full border border-yellow/50 bg-yellow/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-yellow">
+            Cold start
+          </span>
+        ) : null}
+      </div>
+
+      {coldStart.active ? (
+        <p className="mt-2 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-sm text-yellow">
+          Limited memory signal found. This draft used template defaults for{" "}
+          {coldStart.primary_trade.replace("_", " ")}.
+        </p>
+      ) : null}
+
+      <div className="mt-3 space-y-2">
+        {assumptions.length > 0 ? (
+          assumptions.map((item) => (
+            <p key={item} className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text/90">
+              {item}
+            </p>
+          ))
+        ) : (
+          <p className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-muted">
+            No explicit assumptions were returned.
+          </p>
+        )}
+      </div>
+
+      {clarificationQuestions.length > 0 ? (
+        <div className="mt-3 rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-red-200">Open clarification items</p>
+          <ul className="mt-2 space-y-1 text-sm text-red-100">
+            {clarificationQuestions.map((question) => (
+              <li key={question}>{question}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function QuotePage() {
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const autoSubmitRef = useRef(false);
   const latestTranscriptRef = useRef("");
+  const wasOnlineRef = useRef(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
 
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(() => loadStoredNotes());
   const [isRecording, setIsRecording] = useState(false);
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+  const [offlineQueue, setOfflineQueue] = useState<OfflineQueuedQuote[]>(() =>
+    loadOfflineQueue()
+  );
+  const [queueMessage, setQueueMessage] = useState<string | null>(null);
+  const [isQueueSyncing, setIsQueueSyncing] = useState(false);
   const [voiceSupported] = useState(() => Boolean(getSpeechRecognitionConstructor()));
   const [captureError, setCaptureError] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [activeQuote, setActiveQuote] = useState<QuoteResponse | null>(null);
+  const [editedScopeOfWork, setEditedScopeOfWork] = useState("");
+  const [editedTotalPrice, setEditedTotalPrice] = useState("");
+  const [feedbackNote, setFeedbackNote] = useState("");
+  const [decisionStatus, setDecisionStatus] = useState<QuoteApprovalStatus | null>(null);
+  const [decisionMessage, setDecisionMessage] = useState<string | null>(null);
+  const [deliveryChannel, setDeliveryChannel] = useState<"whatsapp" | "sms">("whatsapp");
+  const [deliveryDestination, setDeliveryDestination] = useState("");
+  const [deliveryRecipientName, setDeliveryRecipientName] = useState("");
+  const [deliveryMessageOverride, setDeliveryMessageOverride] = useState("");
+  const [deliveryMessage, setDeliveryMessage] = useState<string | null>(null);
 
   const { signOut } = useClerk();
+  const location = useLocation();
+  const apiReady = hasBetaApiCredentials();
+  const firstSessionMode = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("first_session") === "1";
+  }, [location.search]);
+
+  const applyQuoteSuccess = useCallback((payload: QuoteResponse) => {
+    setActiveQuote(payload);
+    setEditedScopeOfWork(payload.quote_draft.scope_of_work ?? "");
+    setEditedTotalPrice(String(payload.quote_draft.total_price ?? ""));
+    setFeedbackNote("");
+    setDecisionStatus(null);
+    setDecisionMessage(null);
+    setDeliveryDestination("");
+    setDeliveryRecipientName(payload.quote_draft.customer_name ?? "");
+    setDeliveryMessageOverride("");
+    setDeliveryMessage(null);
+    setShareMessage(null);
+    setQueueMessage(null);
+    if (payload.errors.length > 0) {
+      setCaptureError(payload.errors[0] ?? null);
+    } else {
+      setCaptureError(null);
+    }
+  }, []);
+
+  const enqueueOfflineQuote = useCallback((input: string, source: QuoteInputSource) => {
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const nextEntry: OfflineQueuedQuote = {
+      id: buildOfflineQueueId(),
+      input: trimmed,
+      source,
+      created_at: new Date().toISOString(),
+    };
+
+    setOfflineQueue((current) => [...current, nextEntry]);
+    setNotes("");
+    setActiveQuote(null);
+    setCaptureError(null);
+    setShareMessage(null);
+    setDecisionStatus(null);
+    setDecisionMessage(null);
+    setDeliveryMessage(null);
+    setQueueMessage(
+      "Offline mode: notes saved locally and queued. They will sync when you reconnect."
+    );
+  }, []);
 
   const quoteMutation = useMutation({
-    mutationFn: async (input: string) => submitQuote(input),
-    onSuccess: (payload) => {
-      setActiveQuote(payload);
-      setShareMessage(null);
-      if (payload.errors.length > 0) {
-        setCaptureError(payload.errors[0] ?? null);
-      } else {
-        setCaptureError(null);
+    mutationFn: async ({ input }: QuoteSubmissionRequest) => submitQuote(input),
+    onSuccess: applyQuoteSuccess,
+    onError: (error, variables) => {
+      const currentlyOnline =
+        typeof navigator === "undefined" ? true : navigator.onLine;
+      if (!currentlyOnline) {
+        enqueueOfflineQuote(variables.input, variables.source);
+        return;
       }
-    },
-    onError: (error) => {
       const message =
         error instanceof Error ? error.message : "Quote request failed. Check API key and contractor ID.";
       setCaptureError(message);
     },
   });
+
+  const syncQueuedNotes = useCallback(async () => {
+    if (isQueueSyncing || quoteMutation.isPending) {
+      return;
+    }
+    if (!apiReady) {
+      setQueueMessage("Set VITE_BETA_API_KEY and VITE_BETA_CONTRACTOR_ID before syncing queued notes.");
+      return;
+    }
+    if (!isOnline) {
+      setQueueMessage("Still offline. Queued notes will sync after reconnection.");
+      return;
+    }
+    if (offlineQueue.length === 0) {
+      setQueueMessage("No queued notes waiting to sync.");
+      return;
+    }
+
+    setIsQueueSyncing(true);
+    setCaptureError(null);
+    let pending = [...offlineQueue];
+    let syncedCount = 0;
+
+    while (pending.length > 0) {
+      const queued = pending[0];
+      if (!queued) {
+        break;
+      }
+      try {
+        const payload = await submitQuote(queued.input);
+        applyQuoteSuccess(payload);
+        pending = pending.slice(1);
+        syncedCount += 1;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unable to sync all queued notes.";
+        setCaptureError(message);
+        break;
+      }
+    }
+
+    setOfflineQueue(pending);
+    if (pending.length === 0) {
+      setQueueMessage(
+        `Synced ${syncedCount} queued note${syncedCount === 1 ? "" : "s"}.`
+      );
+    } else {
+      setQueueMessage(
+        `Synced ${syncedCount} queued note${syncedCount === 1 ? "" : "s"}. ${pending.length} still queued.`
+      );
+    }
+    setIsQueueSyncing(false);
+  }, [
+    apiReady,
+    applyQuoteSuccess,
+    isOnline,
+    isQueueSyncing,
+    offlineQueue,
+    quoteMutation.isPending,
+  ]);
+
+  const submitInput = useCallback(
+    (input: string, source: QuoteInputSource) => {
+      const trimmed = input.trim();
+      if (!trimmed || quoteMutation.isPending || isQueueSyncing) {
+        return;
+      }
+
+      setActiveQuote(null);
+      setCaptureError(null);
+      setShareMessage(null);
+      setDecisionStatus(null);
+      setDecisionMessage(null);
+      setDeliveryMessage(null);
+      setQueueMessage(null);
+      latestTranscriptRef.current = trimmed;
+
+      if (!isOnline) {
+        enqueueOfflineQuote(trimmed, source);
+        return;
+      }
+
+      quoteMutation.mutate({ input: trimmed, source });
+    },
+    [enqueueOfflineQuote, isOnline, isQueueSyncing, quoteMutation]
+  );
+
+  useEffect(() => {
+    if (!activeQuote) {
+      return;
+    }
+    setEditedScopeOfWork(activeQuote.quote_draft.scope_of_work ?? "");
+    setEditedTotalPrice(String(activeQuote.quote_draft.total_price ?? ""));
+  }, [activeQuote]);
+
+  useEffect(() => {
+    saveStoredNotes(notes);
+  }, [notes]);
+
+  useEffect(() => {
+    saveOfflineQueue(offlineQueue);
+  }, [offlineQueue]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleOnline = () => {
+      setIsOnline(true);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const becameOnline = !wasOnlineRef.current && isOnline;
+    wasOnlineRef.current = isOnline;
+    if (becameOnline && offlineQueue.length > 0 && apiReady) {
+      void syncQueuedNotes();
+    }
+  }, [apiReady, isOnline, offlineQueue.length, syncQueuedNotes]);
 
   const sendMutation = useMutation({
     mutationFn: async (quote: QuoteResponse) => {
@@ -218,7 +623,78 @@ export function QuotePage() {
     },
   });
 
-  const apiReady = hasBetaApiCredentials();
+  const directDeliveryMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeQuote) {
+        throw new Error("No active quote to send.");
+      }
+      const destination = deliveryDestination.trim();
+      if (!destination) {
+        throw new Error("Enter a destination phone number.");
+      }
+      return sendQuoteToClient(activeQuote.quote_id, {
+        channel: deliveryChannel,
+        destination,
+        recipient_name: deliveryRecipientName.trim(),
+        message_override: deliveryMessageOverride.trim(),
+      });
+    },
+    onSuccess: (payload) => {
+      setDeliveryMessage(
+        `Quote sent via ${payload.channel.toUpperCase()} to ${payload.destination}.`
+      );
+      setCaptureError(null);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Could not send quote to customer.";
+      setCaptureError(message);
+      setDeliveryMessage(null);
+    },
+  });
+
+  const decisionMutation = useMutation({
+    mutationFn: async (action: QuoteDecisionAction) => {
+      if (!activeQuote) {
+        throw new Error("No active quote to review");
+      }
+
+      if (action === "approve") {
+        return approveQuote(activeQuote.quote_id, feedbackNote);
+      }
+
+      if (action === "discard") {
+        return discardQuote(activeQuote.quote_id, feedbackNote);
+      }
+
+      const parsedTotal = Number.parseFloat(editedTotalPrice);
+      return editQuote(activeQuote.quote_id, {
+        edited_scope_of_work: editedScopeOfWork,
+        edited_total_price: Number.isFinite(parsedTotal) ? parsedTotal : null,
+        feedback_note: feedbackNote,
+      });
+    },
+    onSuccess: (payload) => {
+      setDecisionStatus(payload.approval_status);
+      setDecisionMessage(
+        payload.memory_updated
+          ? `Quote ${payload.approval_status}. Learning signal saved to estimating memory.`
+          : `Quote ${payload.approval_status}.`
+      );
+      if (activeQuote && payload.quote_draft) {
+        setActiveQuote({
+          ...activeQuote,
+          quote_draft: payload.quote_draft,
+        });
+      }
+      setCaptureError(null);
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Could not save quote decision.";
+      setCaptureError(message);
+      setDecisionMessage(null);
+    },
+  });
 
   const helperText = useMemo(() => {
     if (!voiceSupported) {
@@ -274,7 +750,7 @@ export function QuotePage() {
         setIsRecording(false);
         const transcript = latestTranscriptRef.current.trim();
         if (autoSubmitRef.current && transcript) {
-          quoteMutation.mutate(transcript);
+          submitInput(transcript, "voice");
         }
         autoSubmitRef.current = false;
       };
@@ -301,15 +777,7 @@ export function QuotePage() {
   };
 
   const handleManualSubmit = () => {
-    const trimmed = notes.trim();
-    if (!trimmed || quoteMutation.isPending) {
-      return;
-    }
-    setActiveQuote(null);
-    setCaptureError(null);
-    setShareMessage(null);
-    latestTranscriptRef.current = trimmed;
-    quoteMutation.mutate(trimmed);
+    submitInput(notes, "manual");
   };
 
   return (
@@ -352,6 +820,16 @@ export function QuotePage() {
           </div>
         </header>
 
+        {firstSessionMode ? (
+          <section className="mt-4 rounded-2xl border border-green/40 bg-green/10 p-4">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-green">First session</p>
+            <p className="mt-1 text-sm text-text/90">
+              Goal: get your first approved draft in under 10 minutes. Send one real field note, review assumptions,
+              then approve or edit so memory can learn your style.
+            </p>
+          </section>
+        ) : null}
+
         <section className="mt-4 rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-border bg-bg p-3">
@@ -372,6 +850,64 @@ export function QuotePage() {
             </div>
           </div>
 
+          <div
+            className={`mt-4 rounded-xl border px-3 py-3 ${
+              isOnline
+                ? "border-green/40 bg-green/10"
+                : "border-yellow/40 bg-yellow/10"
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text">
+                {isOnline ? "Online" : "Offline"} | queued {offlineQueue.length}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => void syncQueuedNotes()}
+                disabled={
+                  !apiReady ||
+                  !isOnline ||
+                  offlineQueue.length === 0 ||
+                  isQueueSyncing ||
+                  quoteMutation.isPending
+                }
+                className="inline-flex min-h-9 items-center justify-center rounded-lg border border-border bg-bg px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isQueueSyncing ? "Syncing..." : "Sync queued notes"}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              If you lose signal on-site, notes are saved locally and synced after reconnect.
+            </p>
+          </div>
+
+          {queueMessage ? (
+            <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+              {queueMessage}
+            </div>
+          ) : null}
+
+          {offlineQueue.length > 0 ? (
+            <div className="mt-3 rounded-xl border border-border bg-bg px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                Queued note preview
+              </p>
+              <div className="mt-2 space-y-2">
+                {offlineQueue.slice(0, 3).map((queued) => (
+                  <p
+                    key={queued.id}
+                    className="rounded-lg border border-border bg-surface px-3 py-2 text-xs text-text/90"
+                  >
+                    {queued.input.length > 120
+                      ? `${queued.input.slice(0, 120)}...`
+                      : queued.input}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-5">
             <button
               type="button"
@@ -379,7 +915,9 @@ export function QuotePage() {
               onPointerUp={stopRecordingAndSend}
               onPointerLeave={stopRecordingAndSend}
               onPointerCancel={stopRecordingAndSend}
-              disabled={!voiceSupported || !apiReady || quoteMutation.isPending}
+              disabled={
+                !voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing
+              }
               className="flex min-h-28 w-full items-center justify-center gap-3 rounded-2xl border border-orange/50 bg-orange/10 px-5 py-6 text-left transition hover:border-orange hover:bg-orange/15 disabled:cursor-not-allowed disabled:border-border disabled:bg-bg disabled:text-muted"
               style={{ touchAction: "none" }}
             >
@@ -419,11 +957,17 @@ export function QuotePage() {
             <button
               type="button"
               onClick={handleManualSubmit}
-              disabled={!apiReady || !notes.trim() || quoteMutation.isPending}
+              disabled={!apiReady || !notes.trim() || quoteMutation.isPending || isQueueSyncing}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {quoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-              <span>{quoteMutation.isPending ? "Running agent..." : "Send Notes"}</span>
+              <span>
+                {quoteMutation.isPending
+                  ? "Running agent..."
+                  : !isOnline
+                  ? "Save Offline"
+                  : "Send Notes"}
+              </span>
             </button>
 
             <p className="text-sm text-muted">
@@ -440,7 +984,99 @@ export function QuotePage() {
 
         {activeQuote ? (
           <section className="mt-5 space-y-4">
+            <ConfidenceBadge confidence={activeQuote.estimate_confidence} />
+            <AssumptionsCard
+              assumptions={activeQuote.assumptions ?? []}
+              clarificationQuestions={activeQuote.clarification_questions ?? []}
+              coldStart={
+                activeQuote.cold_start ?? {
+                  active: false,
+                  primary_trade: "general_construction",
+                }
+              }
+            />
             <QuotePreviewCard quote={activeQuote.quote_draft} />
+
+            <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Review & learn</p>
+              <p className="mt-1 text-sm text-muted">
+                Approve as-is, approve with edits, or discard. Approve/edit actions feed estimating memory.
+              </p>
+
+              <div className="mt-4 grid gap-3">
+                <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="edited-scope">
+                  Scope edits
+                </label>
+                <textarea
+                  id="edited-scope"
+                  value={editedScopeOfWork}
+                  onChange={(event) => setEditedScopeOfWork(event.target.value)}
+                  rows={5}
+                  className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm leading-6 text-text outline-none transition focus:border-orange"
+                />
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="edited-total">
+                    Final total price
+                  </label>
+                  <input
+                    id="edited-total"
+                    type="number"
+                    value={editedTotalPrice}
+                    onChange={(event) => setEditedTotalPrice(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="feedback-note">
+                    Feedback note (optional)
+                  </label>
+                  <input
+                    id="feedback-note"
+                    type="text"
+                    value={feedbackNote}
+                    onChange={(event) => setFeedbackNote(event.target.value)}
+                    placeholder="Why you edited or discarded"
+                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => decisionMutation.mutate("approve")}
+                  disabled={decisionMutation.isPending || !apiReady}
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Approve as-is
+                </button>
+                <button
+                  type="button"
+                  onClick={() => decisionMutation.mutate("edit")}
+                  disabled={decisionMutation.isPending || !apiReady}
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-orange px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Save edits + approve
+                </button>
+                <button
+                  type="button"
+                  onClick={() => decisionMutation.mutate("discard")}
+                  disabled={decisionMutation.isPending || !apiReady}
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Discard quote
+                </button>
+              </div>
+
+              {decisionStatus ? (
+                <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                  {decisionMessage ?? `Quote ${decisionStatus}.`}
+                </div>
+              ) : null}
+            </div>
 
             <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -465,6 +1101,95 @@ export function QuotePage() {
               {shareMessage ? (
                 <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
                   {shareMessage}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Send to client (one tap)</p>
+              <p className="mt-1 text-sm text-muted">
+                Deliver the quote directly from GC Agent via WhatsApp or SMS.
+              </p>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-channel">
+                    Channel
+                  </label>
+                  <select
+                    id="delivery-channel"
+                    value={deliveryChannel}
+                    onChange={(event) => setDeliveryChannel(event.target.value as "whatsapp" | "sms")}
+                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="sms">SMS</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-destination">
+                    Client phone
+                  </label>
+                  <input
+                    id="delivery-destination"
+                    type="text"
+                    value={deliveryDestination}
+                    onChange={(event) => setDeliveryDestination(event.target.value)}
+                    placeholder="+14235551234"
+                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-name">
+                    Client name (optional)
+                  </label>
+                  <input
+                    id="delivery-name"
+                    type="text"
+                    value={deliveryRecipientName}
+                    onChange={(event) => setDeliveryRecipientName(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-override">
+                    Custom message (optional)
+                  </label>
+                  <input
+                    id="delivery-override"
+                    type="text"
+                    value={deliveryMessageOverride}
+                    onChange={(event) => setDeliveryMessageOverride(event.target.value)}
+                    placeholder="Leave blank to use default quote message"
+                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => directDeliveryMutation.mutate()}
+                  disabled={directDeliveryMutation.isPending || !apiReady}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {directDeliveryMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  <span>{directDeliveryMutation.isPending ? "Sending..." : "Send to client now"}</span>
+                </button>
+              </div>
+
+              {deliveryMessage ? (
+                <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                  {deliveryMessage}
                 </div>
               ) : null}
             </div>

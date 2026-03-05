@@ -14,12 +14,16 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useApiAuthInterceptor } from "./api/client";
 import { BottomNav } from "./components/BottomNav";
 import { useQueueNotificationStub } from "./hooks/useQueueNotificationStub";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { BriefingPage } from "./pages/BriefingPage";
 import { JobDetailPage } from "./pages/JobDetailPage";
 import { JobsPage } from "./pages/JobsPage";
+import { InsightsPage } from "./pages/InsightsPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { QuotePage } from "./pages/QuotePage";
 import { QueuePage } from "./pages/QueuePage";
+import { ReferralsPage } from "./pages/ReferralsPage";
+import { ReferralAcceptPage } from "./pages/ReferralAcceptPage";
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_KEY as string | undefined;
 const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
@@ -77,6 +81,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
+      <Route path="/referral/:inviteCode" element={<ReferralAcceptPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route
         path="/"
@@ -132,6 +137,42 @@ function AppRoutes() {
           <ProtectedRoute>
             <QuotePage />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          bypassAuth ? (
+            <Navigate to="/quote" replace />
+          ) : (
+            <ProtectedRoute>
+              <AnalyticsPage />
+            </ProtectedRoute>
+          )
+        }
+      />
+      <Route
+        path="/referrals"
+        element={
+          bypassAuth ? (
+            <Navigate to="/quote" replace />
+          ) : (
+            <ProtectedRoute>
+              <ReferralsPage />
+            </ProtectedRoute>
+          )
+        }
+      />
+      <Route
+        path="/insights"
+        element={
+          bypassAuth ? (
+            <Navigate to="/quote" replace />
+          ) : (
+            <ProtectedRoute>
+              <InsightsPage />
+            </ProtectedRoute>
+          )
         }
       />
       <Route path="*" element={<Navigate to={bypassAuth ? "/quote" : "/"} replace />} />

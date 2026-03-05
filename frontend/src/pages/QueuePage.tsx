@@ -9,6 +9,7 @@ import { BriefingPanel } from "../components/BriefingPanel";
 import { DraftCard } from "../components/DraftCard";
 import { JobSidebar } from "../components/JobSidebar";
 import { useJobs } from "../hooks/useJobs";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
 import type { JobHealth, QueuePayload } from "../types";
 
@@ -55,6 +56,7 @@ export function QueuePage() {
   const { userId } = useAuth();
   const currentUserId = userId ?? null;
   const { signOut } = useClerk();
+  const isOnline = useOnlineStatus();
   const scope = currentUserId ?? "anonymous";
 
   const queryClient = useQueryClient();
@@ -87,6 +89,21 @@ export function QueuePage() {
     }
     return queueGroups.filter((group) => group.job_id === selectedJobId);
   }, [queueGroups, selectedJobId]);
+
+  const riskSummary = useMemo(() => {
+    const blockedJobs = jobs.filter((job) => job.health === "blocked").length;
+    const atRiskJobs = jobs.filter((job) => job.health === "at-risk").length;
+    const staleOpenItems = jobs.reduce((count, job) => {
+      const stale = job.open_items.filter((item) => item.days_silent >= 5).length;
+      return count + stale;
+    }, 0);
+    return {
+      blockedJobs,
+      atRiskJobs,
+      staleOpenItems,
+      hasCriticalRisk: blockedJobs > 0 || staleOpenItems > 0,
+    };
+  }, [jobs]);
 
   useEffect(() => {
     if (autoSelectedRef.current) {
@@ -268,6 +285,16 @@ export function QueuePage() {
           </div>
 
           <div className="mt-3 flex items-center gap-3">
+            <span
+              className={clsx(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider",
+                isOnline
+                  ? "border-green/50 bg-green/10 text-green"
+                  : "border-yellow/70 bg-yellow/10 text-yellow"
+              )}
+            >
+              {isOnline ? "Online" : "Offline (cached queue)"}
+            </span>
             <span className="inline-flex min-w-10 items-center justify-center rounded-full border border-border bg-bg px-3 py-1 font-mono text-xs text-text">
               {pendingCount}
             </span>
@@ -286,6 +313,47 @@ export function QueuePage() {
             ) : null}
           </div>
         </header>
+
+        <section
+          className={clsx(
+            "mt-4 rounded-lg border p-4",
+            riskSummary.hasCriticalRisk
+              ? "border-red-400/50 bg-red-400/10"
+              : "border-border bg-surface"
+          )}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Risk Radar</p>
+              <p className="mt-1 text-sm text-muted">Handle blocked jobs and stale items before routine drafts.</p>
+            </div>
+            <span
+              className={clsx(
+                "rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em]",
+                riskSummary.hasCriticalRisk
+                  ? "border-red-400/60 bg-red-400/20 text-red-200"
+                  : "border-green/50 bg-green/10 text-green"
+              )}
+            >
+              {riskSummary.hasCriticalRisk ? "Action Required" : "Stable"}
+            </span>
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <article className="rounded-xl border border-border bg-bg px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Blocked Jobs</p>
+              <p className="mt-1 text-xl font-semibold text-red-200">{riskSummary.blockedJobs}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">At-Risk Jobs</p>
+              <p className="mt-1 text-xl font-semibold text-yellow">{riskSummary.atRiskJobs}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Stale Open Items</p>
+              <p className="mt-1 text-xl font-semibold text-text">{riskSummary.staleOpenItems}</p>
+            </article>
+          </div>
+        </section>
 
         <div className="mt-4 flex flex-col gap-4 md:grid md:grid-cols-[240px_minmax(0,1fr)]">
           <JobSidebar

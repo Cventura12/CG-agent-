@@ -356,8 +356,8 @@ def _heuristic_job_scope_payload(cleaned_input: str) -> dict[str, Any]:
 def _normalize_job_scope(payload: dict[str, Any], cleaned_input: str) -> dict[str, object]:
     """Build a predictable job_scope object from partial model output."""
     measurements = payload.get("measurements")
-    if not isinstance(measurements, dict):
-        measurements = {}
+    if not isinstance(measurements, dict): measurements = {}
+    
 
     missing_fields = _normalize_missing_fields(payload.get("missing_fields"))
     job_type = _normalize_string(payload.get("job_type"))

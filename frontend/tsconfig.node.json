@@ -9,4 +9,5 @@
     "types": ["node"]
   },
   "include": ["vite.config.ts", "tailwind.config.ts"]
+  
 }

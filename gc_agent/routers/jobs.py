@@ -108,6 +108,7 @@ async def job_detail(job_id: str, current_gc: str = Depends(get_current_gc)) -> 
     try:
         jobs = await queries.get_active_jobs(gc_id)
         recent_updates = await queries.get_recent_update_logs(gc_id, job_id, limit=10)
+        audit_timeline = await queries.get_job_audit_timeline(gc_id, job_id, limit=80)
     except DatabaseError as exc:
         return _error(500, str(exc))
 
@@ -119,6 +120,7 @@ async def job_detail(job_id: str, current_gc: str = Depends(get_current_gc)) -> 
         {
             "job": _serialize_job(job),
             "recent_updates": recent_updates,
+            "audit_timeline": audit_timeline,
         }
     )
 

@@ -226,14 +226,12 @@ def _build_default_checkpointer() -> Any:
 
 def build_graph(checkpointer: Any = None) -> CompiledGraph:
     """Build and compile the unified GC Agent LangGraph with interrupt support."""
-    from gc_agent.nodes import (
-        draft_actions,
-        flag_risks,
-        generate_briefing,
-        ingest,
-        parse_update,
-        update_state,
-    )
+    from gc_agent.nodes.draft_actions import draft_actions
+    from gc_agent.nodes.flag_risks import flag_risks
+    from gc_agent.nodes.generate_briefing import generate_briefing
+    from gc_agent.nodes.ingest import ingest
+    from gc_agent.nodes.parse_update import parse_update
+    from gc_agent.nodes.update_state import update_state
 
     workflow = StateGraph(AgentState)
 

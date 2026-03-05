@@ -60,6 +60,7 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
         trace_id: str = "",
         quote_draft: dict[str, object],
         rendered_quote: str,
+        estimate_confidence: dict[str, object] | None = None,
     ) -> None:
         stored_quotes[quote_id] = {
             "id": quote_id,
@@ -68,6 +69,7 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
             "trace_id": trace_id,
             "quote_draft": quote_draft,
             "rendered_quote": rendered_quote,
+            "estimate_confidence": estimate_confidence or {},
         }
 
     async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:

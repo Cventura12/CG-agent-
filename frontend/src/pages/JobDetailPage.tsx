@@ -94,6 +94,20 @@ function formatTimestamp(value: string): string {
   return parsed.toLocaleString();
 }
 
+function eventTone(eventType: string): string {
+  const normalized = eventType.toLowerCase();
+  if (normalized.includes("failed") || normalized.includes("discarded")) {
+    return "border-red-400/40 bg-red-400/10";
+  }
+  if (normalized.includes("approved") || normalized.includes("sent")) {
+    return "border-green/40 bg-green/10";
+  }
+  if (normalized.includes("edited")) {
+    return "border-yellow/50 bg-yellow/10";
+  }
+  return "border-border bg-bg";
+}
+
 export function JobDetailPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId ?? "";
@@ -116,6 +130,9 @@ export function JobDetailPage() {
   const job = detailQuery.data?.job;
   const updates = useMemo(() => {
     return (detailQuery.data?.recent_updates ?? []).slice(0, 5);
+  }, [detailQuery.data]);
+  const auditTimeline = useMemo(() => {
+    return (detailQuery.data?.audit_timeline ?? []).slice(0, 20);
   }, [detailQuery.data]);
 
   const pendingDrafts = useMemo(() => {
@@ -397,6 +414,41 @@ export function JobDetailPage() {
                       </article>
                     );
                   })}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
+              <h2 className="font-mono text-xs uppercase tracking-[0.16em] text-muted">Audit Trail</h2>
+              <p className="mt-2 text-sm text-muted">
+                Timeline of updates, quote decisions, and delivery events for this job.
+              </p>
+
+              {auditTimeline.length === 0 ? (
+                <p className="mt-3 text-sm text-muted">No audit events yet.</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {auditTimeline.map((event) => (
+                    <article key={event.id} className={clsx("rounded-md border p-3", eventTone(event.event_type))}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-[11px] text-muted">{formatTimestamp(event.timestamp)}</span>
+                            <span className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted">
+                              {event.event_type.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-text">{event.title}</p>
+                          <p className="mt-1 text-sm text-text/90">{event.summary}</p>
+                        </div>
+                        {event.trace_id ? (
+                          <span className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted">
+                            {truncate(event.trace_id, 18)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
                 </div>
               )}
             </section>

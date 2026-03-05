@@ -6,7 +6,12 @@ import { Link } from "react-router-dom";
 
 import { fetchContractorBriefing, hasContractorApiCredentials } from "../api/contractor";
 import { useJobs } from "../hooks/useJobs";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
+import type { BriefingPayload } from "../types";
+import { loadCachedJson, saveCachedJson } from "../utils/offlineCache";
+
+const BRIEFING_CACHE_KEY = "gc-agent:cache:public-briefing:v1";
 
 function lineTone(line: string): string {
   const normalized = line.trimStart().toUpperCase();
@@ -47,15 +52,28 @@ function formatTimestamp(value: string): string {
 export function BriefingPage() {
   const { userId } = useAuth();
   const { signOut } = useClerk();
+  const isOnline = useOnlineStatus();
   const currentUserId = userId ?? null;
 
   const queueQuery = useQueue(currentUserId);
   const jobsQuery = useJobs(currentUserId);
+  const initialBriefing = loadCachedJson<BriefingPayload>(BRIEFING_CACHE_KEY) ?? undefined;
   const briefingQuery = useQuery({
     queryKey: ["public-briefing"],
-    queryFn: () => fetchContractorBriefing(),
+    queryFn: async () => {
+      const payload = await fetchContractorBriefing();
+      saveCachedJson(BRIEFING_CACHE_KEY, payload);
+      return payload;
+    },
     enabled: hasContractorApiCredentials(),
+    retry: (failureCount) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     staleTime: 30000,
+    initialData: initialBriefing,
   });
 
   const queueCount = useMemo(() => {
@@ -92,6 +110,23 @@ export function BriefingPage() {
       .slice(0, 4);
   }, [jobsQuery.data]);
 
+  const riskSummary = useMemo(() => {
+    const jobs = jobsQuery.data?.jobs ?? [];
+    const blockedJobs = jobs.filter((job) => job.health === "blocked").length;
+    const atRiskJobs = jobs.filter((job) => job.health === "at-risk").length;
+    const staleOpenItems = jobs.reduce((count, job) => {
+      const stale = job.open_items.filter((item) => item.days_silent >= 5).length;
+      return count + stale;
+    }, 0);
+
+    return {
+      blockedJobs,
+      atRiskJobs,
+      staleOpenItems,
+      hasCriticalRisk: blockedJobs > 0 || staleOpenItems > 0,
+    };
+  }, [jobsQuery.data]);
+
   return (
     <main className="min-h-screen bg-bg px-3 pb-6 pt-3 text-text sm:px-4">
       <div className="mx-auto max-w-4xl space-y-4">
@@ -116,6 +151,16 @@ export function BriefingPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span
+              className={clsx(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wider",
+                isOnline
+                  ? "border-green/50 bg-green/10 text-green"
+                  : "border-yellow/70 bg-yellow/10 text-yellow"
+              )}
+            >
+              {isOnline ? "Online" : "Offline (cached mode)"}
+            </span>
             <span className="inline-flex items-center gap-2 rounded-full border border-orange/50 bg-orange/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-orange">
               <span className="text-text">{queueCount}</span>
               <span>Queued</span>
@@ -132,8 +177,54 @@ export function BriefingPage() {
             >
               New Quote
             </Link>
+            <Link
+              to="/analytics"
+              className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
+            >
+              Analytics
+            </Link>
           </div>
         </header>
+
+        <section
+          className={clsx(
+            "rounded-2xl border p-4",
+            riskSummary.hasCriticalRisk
+              ? "border-red-400/50 bg-red-400/10"
+              : "border-border bg-surface"
+          )}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Risk Radar</p>
+              <p className="mt-1 text-sm text-muted">Prioritize blocked jobs and stale open items first.</p>
+            </div>
+            {riskSummary.hasCriticalRisk ? (
+              <span className="rounded-full border border-red-400/60 bg-red-400/20 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-red-200">
+                Action Required
+              </span>
+            ) : (
+              <span className="rounded-full border border-green/50 bg-green/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-green">
+                Stable
+              </span>
+            )}
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <article className="rounded-xl border border-border bg-bg px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Blocked Jobs</p>
+              <p className="mt-1 text-xl font-semibold text-red-200">{riskSummary.blockedJobs}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">At-Risk Jobs</p>
+              <p className="mt-1 text-xl font-semibold text-yellow">{riskSummary.atRiskJobs}</p>
+            </article>
+            <article className="rounded-xl border border-border bg-bg px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Stale Open Items</p>
+              <p className="mt-1 text-xl font-semibold text-text">{riskSummary.staleOpenItems}</p>
+            </article>
+          </div>
+        </section>
 
         <section className="rounded-2xl border border-border bg-surface p-4">
           <div className="flex items-center justify-between gap-3">
@@ -161,7 +252,7 @@ export function BriefingPage() {
 
           {!briefingQuery.isLoading && briefingQuery.isError ? (
             <p className="mt-4 rounded-xl border border-red-400/40 bg-red-400/10 px-3 py-3 text-sm text-red-200">
-              Briefing unavailable. Check the beta API and try again.
+              Briefing unavailable from network. Showing cached data when available.
             </p>
           ) : null}
 

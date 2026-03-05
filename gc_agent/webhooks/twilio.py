@@ -11,11 +11,20 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 from supabase import Client, create_client
-from twilio.rest import Client as TwilioClient
-from twilio.request_validator import RequestValidator
-from twilio.twiml.messaging_response import MessagingResponse
+try:
+    from twilio.rest import Client as TwilioClient
+    from twilio.request_validator import RequestValidator
+    from twilio.twiml.messaging_response import MessagingResponse
+    _TWILIO_IMPORT_ERROR: Exception | None = None
+except ModuleNotFoundError as exc:  # pragma: no cover - handled at runtime.
+    TwilioClient = Any  # type: ignore[assignment]
+    RequestValidator = None  # type: ignore[assignment]
+    MessagingResponse = None  # type: ignore[assignment]
+    _TWILIO_IMPORT_ERROR = exc
 
 from gc_agent import graph
+from gc_agent.db import queries
+from gc_agent.db.queries import DatabaseError
 from gc_agent.state import AgentState
 from gc_agent.webhooks.onboarding import build_unregistered_onboarding_message
 
@@ -38,6 +47,10 @@ def _truncate(text: str, max_chars: int) -> str:
 
 def _twiml_message(message_text: str) -> str:
     """Build a TwiML response body for outbound WhatsApp replies."""
+    if MessagingResponse is None:
+        escaped = message_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        return f"<Response><Message>{escaped}</Message></Response>"
+
     response = MessagingResponse()
     response.message(message_text)
     return str(response)
@@ -53,12 +66,28 @@ def _normalize_whatsapp_number(phone_number: str) -> str:
     return f"whatsapp:{cleaned}"
 
 
+def _normalize_sms_number(phone_number: str) -> str:
+    """Return Twilio SMS destination format (no whatsapp: prefix)."""
+    cleaned = phone_number.strip()
+    if not cleaned:
+        raise ValueError("Destination phone number is required")
+    if cleaned.startswith("whatsapp:"):
+        cleaned = cleaned.replace("whatsapp:", "", 1).strip()
+    return cleaned
+
+
 def _get_twilio_client() -> TwilioClient:
     """Create and memoize Twilio REST client from environment variables."""
     global _TWILIO_CLIENT
 
     if _TWILIO_CLIENT is not None:
         return _TWILIO_CLIENT
+
+    if _TWILIO_IMPORT_ERROR is not None:
+        raise RuntimeError(
+            "Twilio SDK is required for notification delivery. "
+            "Install the 'twilio' package."
+        ) from _TWILIO_IMPORT_ERROR
 
     account_sid = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
     auth_token = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
@@ -164,6 +193,36 @@ async def send_whatsapp_message(to_number: str, body: str) -> str:
     return ",".join(sids)
 
 
+async def send_sms_message(to_number: str, body: str) -> str:
+    """Send an SMS message and return the Twilio SID string."""
+    client = _get_twilio_client()
+
+    from_number = os.getenv("TWILIO_SMS_FROM", "").strip()
+    if not from_number:
+        fallback = os.getenv("TWILIO_WHATSAPP_FROM", "").strip()
+        if fallback.startswith("whatsapp:"):
+            fallback = fallback.replace("whatsapp:", "", 1).strip()
+        from_number = fallback
+    if not from_number:
+        raise RuntimeError("TWILIO_SMS_FROM (or TWILIO_WHATSAPP_FROM) is required")
+
+    destination = _normalize_sms_number(to_number)
+    message_parts = _split_for_twilio(body, max_chars=1600)
+    sids: list[str] = []
+
+    for part in message_parts:
+        sid = await asyncio.to_thread(
+            _send_single_whatsapp_message,
+            client,
+            from_number,
+            destination,
+            part,
+        )
+        sids.append(sid)
+
+    return ",".join(sids)
+
+
 async def _lookup_gc_id_by_phone(phone_number: str) -> tuple[str, bool]:
     """Resolve gc_id by Twilio sender phone number via Supabase gc_users table."""
     if not phone_number:
@@ -201,6 +260,10 @@ async def _lookup_gc_id_by_phone(phone_number: str) -> tuple[str, bool]:
 
 def _validate_twilio_signature(request: Request, payload: dict[str, str]) -> bool:
     """Validate incoming Twilio signature against request URL and form payload."""
+    if RequestValidator is None:
+        LOGGER.error("Twilio SDK is not installed; cannot validate webhook signature")
+        return False
+
     auth_token = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
     signature = request.headers.get("X-Twilio-Signature", "")
 
@@ -236,6 +299,18 @@ def _compose_reply(state: AgentState) -> str:
         message = f"{message} Heads up: {first_risk}"
 
     return message
+
+
+def _normalize_callback_status(raw_status: str) -> str:
+    """Map Twilio callback status values into stable sent/pending/failed states."""
+    normalized = raw_status.strip().lower()
+    if normalized in {"sent", "delivered", "read"}:
+        return "sent"
+    if normalized in {"failed", "undelivered", "canceled"}:
+        return "failed"
+    if normalized in {"accepted", "queued", "scheduled"}:
+        return "pending"
+    return normalized or "pending"
 
 
 @router.post("/whatsapp")
@@ -302,18 +377,53 @@ async def whatsapp_webhook(request: Request) -> Response:
 @router.post("/whatsapp/status")
 async def whatsapp_status_callback(request: Request) -> JSONResponse:
     """Receive Twilio status callbacks for outbound WhatsApp messages."""
-    form = await request.form()
-    payload = {key: str(value) for key, value in form.multi_items()}
+    try:
+        form = await request.form()
+        payload = {key: str(value) for key, value in form.multi_items()}
+    except Exception:
+        LOGGER.exception("Failed to parse Twilio status callback payload")
+        return JSONResponse(content={"status": "error", "detail": "invalid payload"}, status_code=400)
+
+    if not _validate_twilio_signature(request, payload):
+        LOGGER.warning("Rejected Twilio status callback due to invalid signature")
+        return JSONResponse(content={"status": "forbidden"}, status_code=403)
+
     message_sid = payload.get("MessageSid", "").strip()
     message_status = payload.get("MessageStatus", "").strip()
+    error_code = payload.get("ErrorCode", "").strip()
+    error_message = payload.get("ErrorMessage", "").strip()
+    normalized_status = _normalize_callback_status(message_status)
 
     LOGGER.info(
-        "Twilio status callback sid=%s status=%s",
+        "Twilio status callback sid=%s status=%s normalized=%s",
         message_sid,
         message_status,
+        normalized_status,
     )
 
-    return JSONResponse(content={"status": "ok"}, status_code=200)
+    if not message_sid:
+        return JSONResponse(content={"status": "ok", "updated": 0}, status_code=200)
+
+    update_error = " ".join(part for part in [error_code, error_message] if part).strip()
+    try:
+        update_result = await queries.apply_twilio_delivery_status(
+            provider_message_id=message_sid,
+            delivery_status=normalized_status,
+            error_message=update_error,
+        )
+    except DatabaseError:
+        LOGGER.exception("Failed to persist Twilio callback sid=%s", message_sid)
+        return JSONResponse(content={"status": "ok", "updated": 0}, status_code=200)
+
+    return JSONResponse(
+        content={
+            "status": "ok",
+            "updated": update_result.get("updated_rows", 0),
+            "quote_rows": update_result.get("quote_rows", 0),
+            "briefing_rows": update_result.get("briefing_rows", 0),
+        },
+        status_code=200,
+    )
 
 
 @router.get("/whatsapp/health")
@@ -328,5 +438,6 @@ __all__ = [
     "whatsapp_status_callback",
     "whatsapp_health",
     "send_whatsapp_message",
+    "send_sms_message",
     
 ]

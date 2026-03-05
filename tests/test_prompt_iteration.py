@@ -45,3 +45,4 @@ def test_prompt_tuning_signals_fall_back_to_minor_edit() -> None:
 
     assert signals["change_patterns"] == ["minor_non_structural_edit"]
     assert signals["likely_prompt_targets"] == []
+    

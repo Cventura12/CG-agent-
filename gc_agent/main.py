@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import uuid4
 
@@ -26,11 +27,18 @@ except ModuleNotFoundError:
 from gc_agent import graph
 from gc_agent.api.router import open_router as public_open_router
 from gc_agent.api.router import router as public_router
+from gc_agent.routers.analytics import router as analytics_router
 from gc_agent.routers.auth import router as auth_router
 from gc_agent.routers.ingest import router as ingest_router
+from gc_agent.routers.insights import router as insights_router
 from gc_agent.routers.jobs import router as jobs_router
 from gc_agent.routers.queue import router as queue_router
-from gc_agent.webhooks.twilio import router as twilio_router, send_whatsapp_message
+from gc_agent.routers.referrals import router as referrals_router
+from gc_agent.webhooks.twilio import (
+    router as twilio_router,
+    send_sms_message,
+    send_whatsapp_message,
+)
 
 LOGGER = logging.getLogger(__name__)
 APP_VERSION = "1.0"
@@ -52,6 +60,10 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
 
     briefing_hour: int = 6
+    briefing_retry_interval_minutes: int = 20
+    briefing_retry_lookback_hours: int = 24
+    briefing_retry_max_attempts: int = 3
+    briefing_retry_batch_size: int = 25
 
     supabase_url: str = ""
     supabase_service_role_key: str = ""
@@ -150,6 +162,7 @@ async def _store_failed_briefing(
     briefing_text: str,
     error_message: str,
     trace_id: str = "",
+    delivery_channel: str = "whatsapp",
 ) -> None:
     """Persist an undelivered briefing for manual retrieval."""
     supabase: Optional[SupabaseClient] = app.state.supabase_client
@@ -162,7 +175,7 @@ async def _store_failed_briefing(
         "gc_id": gc_id,
         "phone_number": phone_number,
         "briefing_text": briefing_text,
-        "delivery_channel": "whatsapp",
+        "delivery_channel": delivery_channel.strip() or "whatsapp",
         "delivery_status": "failed",
         "error_message": error_message[:500],
         "trace_id": trace_id.strip() or None,
@@ -185,6 +198,7 @@ async def _store_sent_briefing(
     briefing_text: str,
     twilio_sid: str,
     trace_id: str = "",
+    delivery_channel: str = "whatsapp",
 ) -> None:
     """Persist a successfully delivered briefing."""
     supabase: Optional[SupabaseClient] = app.state.supabase_client
@@ -196,7 +210,7 @@ async def _store_sent_briefing(
         "gc_id": gc_id,
         "phone_number": phone_number,
         "briefing_text": briefing_text,
-        "delivery_channel": "whatsapp",
+        "delivery_channel": delivery_channel.strip() or "whatsapp",
         "delivery_status": "sent",
         "twilio_sid": twilio_sid[:120],
         "trace_id": trace_id.strip() or None,
@@ -209,6 +223,177 @@ async def _store_sent_briefing(
         await asyncio.to_thread(_insert)
     except Exception:
         LOGGER.exception("Failed writing successful briefing_log entry gc_id=%s", gc_id)
+
+
+async def _deliver_briefing_with_fallback(
+    phone_number: str,
+    briefing_text: str,
+) -> tuple[str, str, str]:
+    """Deliver morning briefing with WhatsApp first, then SMS fallback."""
+    try:
+        sid = await send_whatsapp_message(phone_number, briefing_text)
+        return ("whatsapp", sid, "")
+    except Exception as whatsapp_exc:
+        LOGGER.warning("WhatsApp briefing send failed for %s: %s", phone_number, whatsapp_exc)
+        try:
+            sid = await send_sms_message(phone_number, briefing_text)
+            warning = f"whatsapp_failed: {whatsapp_exc}"
+            return ("sms", sid, warning[:500])
+        except Exception as sms_exc:
+            error = f"whatsapp_failed: {whatsapp_exc}; sms_failed: {sms_exc}"
+            raise RuntimeError(error[:500]) from sms_exc
+
+
+async def _fetch_failed_briefings_for_retry(app: FastAPI) -> list[dict[str, str]]:
+    """Fetch failed briefing log rows eligible for retry attempts."""
+    supabase: Optional[SupabaseClient] = app.state.supabase_client
+    if supabase is None:
+        return []
+
+    lookback = max(settings.briefing_retry_lookback_hours, 1)
+    batch_size = max(settings.briefing_retry_batch_size, 1)
+    cutoff_iso = (datetime.now(timezone.utc) - timedelta(hours=lookback)).isoformat()
+
+    def _query() -> list[dict[str, str]]:
+        response = (
+            supabase.table("briefing_log")
+            .select("id,gc_id,phone_number,briefing_text,trace_id,created_at")
+            .eq("delivery_status", "failed")
+            .gte("created_at", cutoff_iso)
+            .order("created_at", desc=False)
+            .limit(batch_size)
+            .execute()
+        )
+        rows = response.data or []
+        return [dict(row) for row in rows]
+
+    try:
+        return await asyncio.to_thread(_query)
+    except Exception:
+        LOGGER.exception("Failed loading briefing retry candidates")
+        return []
+
+
+async def _count_briefing_attempts(app: FastAPI, trace_id: str, gc_id: str) -> int:
+    """Count recorded send attempts for a trace_id/gc_id pair."""
+    supabase: Optional[SupabaseClient] = app.state.supabase_client
+    if supabase is None:
+        return 0
+
+    if not trace_id.strip() or not gc_id.strip():
+        return 0
+
+    def _query() -> int:
+        response = (
+            supabase.table("briefing_log")
+            .select("id", count="exact")
+            .eq("trace_id", trace_id.strip())
+            .eq("gc_id", gc_id.strip())
+            .execute()
+        )
+        if getattr(response, "count", None) is not None:
+            return int(response.count or 0)
+        return len(response.data or [])
+
+    try:
+        return await asyncio.to_thread(_query)
+    except Exception:
+        LOGGER.exception("Failed counting briefing attempts trace_id=%s gc_id=%s", trace_id, gc_id)
+        return 0
+
+
+async def _has_sent_briefing_delivery(app: FastAPI, trace_id: str, gc_id: str) -> bool:
+    """Return True when a successful delivery already exists for this trace."""
+    supabase: Optional[SupabaseClient] = app.state.supabase_client
+    if supabase is None:
+        return False
+
+    if not trace_id.strip() or not gc_id.strip():
+        return False
+
+    def _query() -> bool:
+        response = (
+            supabase.table("briefing_log")
+            .select("id")
+            .eq("trace_id", trace_id.strip())
+            .eq("gc_id", gc_id.strip())
+            .eq("delivery_status", "sent")
+            .limit(1)
+            .execute()
+        )
+        return bool(response.data)
+
+    try:
+        return await asyncio.to_thread(_query)
+    except Exception:
+        LOGGER.exception(
+            "Failed checking sent briefing delivery trace_id=%s gc_id=%s",
+            trace_id,
+            gc_id,
+        )
+        return False
+
+
+async def retry_failed_briefings() -> None:
+    """Retry failed briefing sends to improve morning delivery reliability."""
+    if _APP is None:
+        LOGGER.warning("retry_failed_briefings called before app startup")
+        return
+
+    app = _APP
+    candidates = await _fetch_failed_briefings_for_retry(app)
+    if not candidates:
+        return
+
+    max_attempts = max(settings.briefing_retry_max_attempts, 1)
+    LOGGER.info("Retrying %s failed briefing(s)", len(candidates))
+
+    for row in candidates:
+        gc_id = str(row.get("gc_id", "")).strip()
+        phone_number = str(row.get("phone_number", "")).strip()
+        briefing_text = str(row.get("briefing_text", "")).strip() or "Morning briefing unavailable."
+        trace_id = str(row.get("trace_id", "")).strip()
+
+        attempts = await _count_briefing_attempts(app, trace_id=trace_id, gc_id=gc_id)
+        if attempts >= max_attempts:
+            continue
+        if await _has_sent_briefing_delivery(app, trace_id=trace_id, gc_id=gc_id):
+            continue
+
+        if not gc_id or not phone_number:
+            continue
+
+        try:
+            delivery_channel, provider_sid, warning = await _deliver_briefing_with_fallback(
+                phone_number,
+                briefing_text,
+            )
+            await _store_sent_briefing(
+                app=app,
+                gc_id=gc_id,
+                phone_number=phone_number,
+                briefing_text=briefing_text,
+                twilio_sid=provider_sid,
+                trace_id=trace_id,
+                delivery_channel=delivery_channel,
+            )
+            if warning:
+                LOGGER.warning(
+                    "Briefing retry used fallback channel gc_id=%s trace_id=%s detail=%s",
+                    gc_id,
+                    trace_id,
+                    warning,
+                )
+        except Exception as exc:
+            await _store_failed_briefing(
+                app=app,
+                gc_id=gc_id,
+                phone_number=phone_number,
+                briefing_text=briefing_text,
+                error_message=str(exc),
+                trace_id=trace_id,
+                delivery_channel="whatsapp",
+            )
 
 
 async def send_daily_briefings() -> None:
@@ -238,8 +423,16 @@ async def send_daily_briefings() -> None:
             continue
 
         try:
-            message_sid = await send_whatsapp_message(phone_number, briefing_text)
-            LOGGER.info("Briefing delivered gc_id=%s sid=%s", gc_id, message_sid)
+            delivery_channel, message_sid, warning = await _deliver_briefing_with_fallback(
+                phone_number,
+                briefing_text,
+            )
+            LOGGER.info(
+                "Briefing delivered gc_id=%s channel=%s sid=%s",
+                gc_id,
+                delivery_channel,
+                message_sid,
+            )
             await _store_sent_briefing(
                 app=app,
                 gc_id=gc_id,
@@ -247,7 +440,15 @@ async def send_daily_briefings() -> None:
                 briefing_text=briefing_text,
                 twilio_sid=message_sid,
                 trace_id=trace_id,
+                delivery_channel=delivery_channel,
             )
+            if warning:
+                LOGGER.warning(
+                    "Briefing delivery used fallback channel gc_id=%s trace_id=%s detail=%s",
+                    gc_id,
+                    trace_id,
+                    warning,
+                )
         except Exception as exc:
             LOGGER.exception("Briefing delivery failed gc_id=%s", gc_id)
             await _store_failed_briefing(
@@ -257,6 +458,7 @@ async def send_daily_briefings() -> None:
                 briefing_text=briefing_text,
                 error_message=str(exc),
                 trace_id=trace_id,
+                delivery_channel="whatsapp",
             )
 
 
@@ -291,6 +493,13 @@ async def lifespan(app: FastAPI):
         id="daily_briefings",
         replace_existing=True,
     )
+    scheduler.add_job(
+        retry_failed_briefings,
+        trigger="interval",
+        minutes=max(settings.briefing_retry_interval_minutes, 5),
+        id="retry_failed_briefings",
+        replace_existing=True,
+    )
     scheduler.start()
     app.state.scheduler = scheduler
 
@@ -320,9 +529,12 @@ app.add_middleware(
 
 app.include_router(twilio_router, prefix="/webhook")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
+app.include_router(insights_router, prefix="/api/v1")
 app.include_router(queue_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")
+app.include_router(referrals_router, prefix="/api/v1")
 app.include_router(public_open_router, prefix="/public", tags=["public"])
 app.include_router(public_router, prefix="/public", tags=["public"])
 
