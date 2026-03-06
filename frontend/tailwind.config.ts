@@ -19,9 +19,9 @@ const config: Config = {
         ember: "#C96B30",
       },
       fontFamily: {
-        sans: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "monospace"],
-        display: ["Barlow Condensed", "Archivo Narrow", "ui-sans-serif", "sans-serif"],
+        sans: ["DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["Syne Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ["Oswald", "ui-sans-serif", "system-ui", "sans-serif"],
       }
     }
   },

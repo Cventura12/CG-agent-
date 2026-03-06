@@ -120,10 +120,10 @@ export function FollowupStatusCard({
 }: FollowupStatusCardProps) {
   if (isLoading) {
     return (
-      <div className={clsx("rounded-[1.5rem] border px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)]", toneClass("loading"))}>
+      <div className={clsx("surface-panel-subtle px-4 py-4", toneClass("loading"))}>
         <div className="flex items-center justify-between gap-3">
           <p className="kicker">{title}</p>
-          <span className="rounded-full border border-border/70 bg-bg/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+          <span className="terminal-mini-chip border-border/80 bg-bg/60 text-muted">
             Loading
           </span>
         </div>
@@ -149,7 +149,7 @@ export function FollowupStatusCard({
     (effective.status === "scheduled" || effective.status === "pending_destination");
 
   return (
-    <div className={clsx("rounded-[1.5rem] border px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)]", toneClass(effective.status))}>
+    <div className={clsx("surface-panel-subtle px-4 py-4", toneClass(effective.status))}>
       <div className="flex items-center justify-between gap-3">
         <p className="kicker">{title}</p>
         <div className="flex items-center gap-2">
@@ -158,12 +158,12 @@ export function FollowupStatusCard({
               type="button"
               onClick={onStop ?? undefined}
               disabled={isStopping}
-              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-bg/55 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-50"
+              className="action-button-secondary disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isStopping ? "Stopping..." : "Stop follow-up"}
             </button>
           ) : null}
-          <span className="rounded-full border border-border/70 bg-bg/55 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-text/90">
+          <span className="terminal-mini-chip border-border/80 bg-bg/55 text-text/90">
             {statusLabel(effective)}
           </span>
         </div>
@@ -195,7 +195,7 @@ export function FollowupStatusCard({
       </div>
 
       {effective.status === "stopped" ? (
-        <div className="mt-4 rounded-[1.2rem] border border-border/70 bg-bg/50 px-3 py-3">
+        <div className="mt-4 border border-border/70 bg-bg/50 px-3 py-3" style={{ borderRadius: 2 }}>
           <p className="data-label">Why it stopped</p>
           <p className="mt-1 text-sm text-text">{stopReasonText(effective.stop_reason)}</p>
           {effective.stopped_at ? (

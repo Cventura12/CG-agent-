@@ -7,7 +7,7 @@ export function BottomNav() {
   const location = useLocation();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-bg/90 backdrop-blur-xl lg:hidden">
+    <nav className="mobile-nav-shell fixed inset-x-0 bottom-0 z-40 lg:hidden">
       <div className="no-scrollbar mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-2 py-2">
         {APP_NAV_ITEMS.map((item) => {
           const isActive = item.match(location.pathname);
@@ -18,10 +18,8 @@ export function BottomNav() {
               key={item.href}
               to={item.href}
               className={clsx(
-                "flex min-h-[4.2rem] min-w-[4.6rem] flex-col items-center justify-center gap-1 rounded-2xl border px-3 py-2 text-[11px] font-medium transition",
-                isActive
-                  ? "border-orange/60 bg-orange/10 text-orange"
-                  : "border-transparent text-muted hover:border-border hover:bg-surface/80 hover:text-text"
+                "mobile-nav-item",
+                isActive ? "mobile-nav-item-active" : "border-transparent text-muted hover:border-border/80 hover:bg-surface/70 hover:text-text"
               )}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />

@@ -1,7 +1,7 @@
-import { UserButton, useAuth, useClerk } from "@clerk/clerk-react";
+﻿import { UserButton, useClerk, useUser } from "@clerk/clerk-react";
 import clsx from "clsx";
 import { ArrowUpRight, BellRing, Wifi, WifiOff } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
@@ -10,172 +10,199 @@ import { BottomNav } from "./BottomNav";
 
 const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
 
+function useClockLabel(): string {
+  const [value, setValue] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setValue(new Date()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(value);
+}
+
+function initialsFromName(value: string): string {
+  const tokens = value
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (tokens.length === 0) {
+    return "GC";
+  }
+
+  return tokens.map((token) => token[0]?.toUpperCase() ?? "").join("");
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isOnline = useOnlineStatus();
   const { signOut } = useClerk();
-  const { userId } = useAuth();
+  const { user } = useUser();
   const activeItem = navItemForPath(location.pathname);
+  const clockLabel = useClockLabel();
+
+  const groupedNav = useMemo(() => {
+    return ["Operations", "Field"].map((section) => ({
+      section,
+      items: APP_NAV_ITEMS.filter((item) => item.section === section),
+    }));
+  }, []);
+
+  const operatorName = bypassAuth
+    ? "Demo Operator"
+    : user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Signed-in operator";
+  const operatorRole = bypassAuth ? "Bypass mode" : "Owner / GC";
+  const operatorInitials = initialsFromName(operatorName);
+
+  const statusTone = isOnline
+    ? "border-green/40 bg-green/10 text-green"
+    : "border-yellow/50 bg-yellow/10 text-yellow";
 
   return (
     <div className="app-shell-bg min-h-screen text-text">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-[-8rem] top-[-5rem] h-72 w-72 rounded-full bg-orange/10 blur-3xl" />
-        <div className="absolute right-[-5rem] top-24 h-80 w-80 rounded-full bg-steel/10 blur-3xl" />
-        <div className="absolute bottom-[-8rem] left-1/4 h-96 w-96 rounded-full bg-green/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:44px_44px]" />
-      </div>
-
       <div className="relative flex min-h-screen">
-        <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-80 lg:flex-col lg:border-r lg:border-border/80 lg:bg-surface/70 lg:px-6 lg:pb-8 lg:pt-6 lg:backdrop-blur-xl">
-          <div className="surface-panel px-5 py-5">
-            <p className="kicker">GC Agent</p>
-            <h1 className="mt-3 font-display text-3xl uppercase tracking-[0.08em] text-text">
-              Construction Ops
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Quotes, briefings, queue decisions, follow-up, and job history in one operating surface.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/quote" className="action-button-primary">
-                Start quote
-              </Link>
-              <Link to="/queue" className="action-button-secondary">
-                Open queue
-              </Link>
+        <aside className="terminal-sidebar hidden lg:flex lg:w-[248px] lg:flex-col">
+          <div className="terminal-brand">
+            <div className="terminal-brand-mark">GC</div>
+            <div className="min-w-0">
+              <div className="terminal-brand-title">
+                GC <span>Agent</span>
+              </div>
+              <p className="terminal-brand-sub">Intelligent Ops System</p>
             </div>
           </div>
 
-          <nav className="mt-6 space-y-2">
-            {APP_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.match(location.pathname);
+          <div className="terminal-system-row">
+            <span className="terminal-pulse" aria-hidden="true" />
+            <span className="terminal-system-label">{isOnline ? "System nominal" : "Cached operation"}</span>
+          </div>
 
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={clsx(
-                    "group block rounded-[1.35rem] border px-4 py-4 transition",
-                    isActive
-                      ? "border-orange/60 bg-orange/12 shadow-[0_14px_30px_rgba(217,119,43,0.14)]"
-                      : "border-border/70 bg-surface/45 hover:border-orange/35 hover:bg-surface/75"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={clsx(
-                        "flex h-11 w-11 items-center justify-center rounded-2xl border transition",
-                        isActive
-                          ? "border-orange/60 bg-orange/15 text-orange"
-                          : "border-border/70 bg-bg/70 text-muted group-hover:text-text"
-                      )}
-                    >
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-display text-lg uppercase tracking-[0.08em] text-text">
-                        {item.label}
-                      </p>
-                      <p className="mt-1 text-sm leading-5 text-muted">{item.description}</p>
-                    </div>
-                  </div>
+          <div className="px-3 pt-3">
+            <div className="surface-panel-subtle px-3 py-3">
+              <p className="data-label">Mission</p>
+              <p className="mt-2 text-sm leading-6 text-text">
+                Quotes, follow-up, queue, and job signal in one operating surface.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link to="/quote" className="action-button-primary">
+                  Start quote
                 </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-auto grid gap-3 pt-6">
-            <div className="surface-panel-subtle px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="data-label">Runtime</p>
-                  <p className="mt-1 text-sm text-text">
-                    {isOnline ? "Connected to live data" : "Offline cache mode"}
-                  </p>
-                </div>
-                <span
-                  className={clsx(
-                    "inline-flex h-10 w-10 items-center justify-center rounded-2xl border",
-                    isOnline
-                      ? "border-green/50 bg-green/12 text-green"
-                      : "border-yellow/60 bg-yellow/12 text-yellow"
-                  )}
-                >
-                  {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
-                </span>
+                <Link to="/queue" className="action-button-secondary">
+                  Open queue
+                </Link>
               </div>
             </div>
+          </div>
 
-            <div className="surface-panel-subtle px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="data-label">Current user</p>
-                  <p className="mt-1 text-sm text-text">{userId ? "Signed in" : "Bypass mode"}</p>
+          <nav className="mt-4 flex-1 px-3 pb-4">
+            {groupedNav.map((group) => (
+              <div key={group.section} className="terminal-nav-group">
+                <p className="terminal-nav-label">{group.section}</p>
+                <div className="space-y-1.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = item.match(location.pathname);
+
+                    return (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        className={clsx("terminal-nav-item", isActive && "terminal-nav-item-active")}
+                      >
+                        <div className="terminal-nav-icon-wrap">
+                          <Icon className="terminal-nav-icon" aria-hidden="true" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="terminal-nav-title">{item.label}</p>
+                          <p className="terminal-nav-copy">{item.description}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
-                <BellRing className="h-4 w-4 text-orange" />
+              </div>
+            ))}
+          </nav>
+
+          <div className="border-t border-border/80 px-3 py-3">
+            <div className="surface-panel-subtle px-3 py-3">
+              <div className="flex items-center gap-3">
+                <div className="terminal-avatar">{operatorInitials}</div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-text">{operatorName}</p>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
+                    {operatorRole}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2">
+                <div className="terminal-readout-row">
+                  <span>Runtime</span>
+                  <span className={clsx("terminal-mini-chip", statusTone)}>{isOnline ? "Live" : "Cached"}</span>
+                </div>
+                <div className="terminal-readout-row">
+                  <span>Memory</span>
+                  <span className="terminal-mini-chip border-steel/40 bg-steel/10 text-steel">Learning active</span>
+                </div>
               </div>
             </div>
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1 lg:pl-80">
-          <header className="sticky top-0 z-30 border-b border-border/70 bg-bg/72 backdrop-blur-xl">
-            <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-3 py-3 sm:px-4 lg:px-8">
+        <div className="min-w-0 flex-1 lg:pl-[248px]">
+          <header className="terminal-topbar sticky top-0 z-30">
+            <div className="mx-auto flex max-w-[92rem] items-center justify-between gap-3 px-3 py-2.5 sm:px-4 lg:px-6">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex rounded-full border border-orange/35 bg-orange/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-orange lg:hidden">
-                    GC Agent
-                  </span>
-                  <span
-                    className={clsx(
-                      "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em]",
-                      isOnline
-                        ? "border-green/45 bg-green/10 text-green"
-                        : "border-yellow/55 bg-yellow/10 text-yellow"
-                    )}
-                  >
-                    {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                    {isOnline ? "Live" : "Cached"}
-                  </span>
-                </div>
-                <p className="mt-2 font-display text-lg uppercase tracking-[0.08em] text-text">
-                  {activeItem?.label ?? "GC Agent"}
-                </p>
-                <p className="max-w-2xl text-sm text-muted">
-                  {activeItem?.description ?? "Construction operations for field capture and office execution."}
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted">
+                  GC Agent / <span className="text-orange">{activeItem?.label ?? "Operations"}</span>
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
-                <Link to="/quote" className="hidden min-h-11 items-center gap-2 rounded-2xl border border-border bg-surface/80 px-4 py-2 text-sm text-text transition hover:border-orange hover:text-orange sm:inline-flex">
-                  <span>New quote</span>
-                  <ArrowUpRight className="h-4 w-4" />
+              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                <span className={clsx("terminal-status-chip", statusTone)}>
+                  {isOnline ? <Wifi className="h-3 w-3" aria-hidden="true" /> : <WifiOff className="h-3 w-3" aria-hidden="true" />}
+                  {isOnline ? "System nominal" : "Offline cache"}
+                </span>
+                <span className="terminal-status-chip border-border/80 bg-surface/70 text-steel">
+                  <BellRing className="h-3 w-3" aria-hidden="true" />
+                  Live ops
+                </span>
+                <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-muted sm:inline-flex">
+                  {clockLabel}
+                </span>
+                <Link to="/quote" className="action-button-secondary hidden sm:inline-flex">
+                  New quote <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 {!bypassAuth ? (
                   <>
                     <button
                       type="button"
                       onClick={() => void signOut({ redirectUrl: "/onboarding" })}
-                      className="hidden min-h-11 rounded-2xl border border-border bg-surface/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted transition hover:border-orange hover:text-orange sm:inline-flex"
+                      className="action-button-secondary hidden sm:inline-flex"
                     >
                       Sign out
                     </button>
                     <UserButton afterSignOutUrl="/onboarding" />
                   </>
                 ) : (
-                  <span className="inline-flex rounded-full border border-yellow/55 bg-yellow/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-yellow">
-                    Demo mode
-                  </span>
+                  <span className="terminal-status-chip border-yellow/50 bg-yellow/10 text-yellow">Demo mode</span>
                 )}
               </div>
             </div>
           </header>
 
-          <div className="pb-24 lg:pb-10">{children}</div>
+          <div className="pb-24 lg:pb-8">{children}</div>
           {!bypassAuth ? <BottomNav /> : null}
         </div>
       </div>
     </div>
   );
 }
+
+

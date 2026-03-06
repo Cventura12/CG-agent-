@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+﻿import type { LucideIcon } from "lucide-react";
 import {
   AudioWaveform,
   BarChart3,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 export type AppNavItem = {
+  section: "Operations" | "Field";
   label: string;
   shortLabel: string;
   href: string;
@@ -19,14 +20,16 @@ export type AppNavItem = {
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
+    section: "Operations",
     label: "Command Center",
     shortLabel: "Home",
     href: "/",
     icon: House,
-    description: "Morning briefing, risk summary, and today’s work stack.",
+    description: "Morning briefing, risk summary, and today's work stack.",
     match: (pathname) => pathname === "/",
   },
   {
+    section: "Operations",
     label: "New Quote",
     shortLabel: "Quote",
     href: "/quote",
@@ -35,6 +38,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     match: (pathname) => pathname.startsWith("/quote"),
   },
   {
+    section: "Operations",
     label: "Queue",
     shortLabel: "Queue",
     href: "/queue",
@@ -43,6 +47,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     match: (pathname) => pathname.startsWith("/queue"),
   },
   {
+    section: "Field",
     label: "Jobs",
     shortLabel: "Jobs",
     href: "/jobs",
@@ -51,6 +56,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     match: (pathname) => pathname.startsWith("/jobs"),
   },
   {
+    section: "Field",
     label: "Analytics",
     shortLabel: "Metrics",
     href: "/analytics",
@@ -59,6 +65,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     match: (pathname) => pathname.startsWith("/analytics"),
   },
   {
+    section: "Field",
     label: "Insights",
     shortLabel: "Insights",
     href: "/insights",
