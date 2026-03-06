@@ -523,6 +523,64 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
+
+  .terminal-onboarding-shell {
+    @apply min-h-screen px-4 py-8 sm:px-6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .terminal-onboarding-frame {
+    @apply flex w-full max-w-[46rem] flex-col items-center gap-8;
+  }
+
+  .terminal-onboarding-brand-stack {
+    @apply flex items-center gap-3;
+  }
+
+  .terminal-onboarding-stepper {
+    @apply flex w-full max-w-[35rem] items-center justify-between;
+  }
+
+  .terminal-onboarding-step-slot {
+    @apply flex flex-1 items-center;
+  }
+
+  .terminal-onboarding-step-node {
+    @apply flex h-8 w-8 items-center justify-center border;
+    border-radius: 2px;
+    border-color: rgba(38, 48, 64, 0.96);
+    background: rgba(13, 16, 24, 0.88);
+    color: var(--steel);
+    font-family: "Syne Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  .terminal-onboarding-step-node-active {
+    border-color: rgba(232, 137, 42, 0.78);
+    background: rgba(232, 137, 42, 0.12);
+    color: var(--amber-hot);
+    box-shadow: 0 0 16px rgba(232, 137, 42, 0.18);
+  }
+
+  .terminal-onboarding-step-node-complete {
+    border-color: rgba(232, 137, 42, 0.88);
+    background: var(--amber);
+    color: var(--ink);
+  }
+
+  .terminal-onboarding-step-line {
+    flex: 1;
+    height: 1px;
+    margin: 0 12px;
+    background: rgba(38, 48, 64, 0.96);
+  }
+
+  .terminal-onboarding-step-line-complete {
+    background: rgba(232, 137, 42, 0.88);
+  }
 }
 
 @keyframes terminal-pulse {

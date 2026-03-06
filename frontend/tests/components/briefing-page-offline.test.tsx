@@ -85,8 +85,9 @@ describe("BriefingPage offline mode", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText("Offline")).toBeInTheDocument();
-    expect(await screen.findByText("Risk radar")).toBeInTheDocument();
-    expect(screen.getByText("Needs action")).toBeInTheDocument();
+    expect(screen.getByText(/Offline cache active/i)).toBeInTheDocument();
+    expect(await screen.findByText("Morning readout")).toBeInTheDocument();
+    expect(screen.getByText("Action required")).toBeInTheDocument();
+    expect(screen.getByText("Job health")).toBeInTheDocument();
   });
 });
