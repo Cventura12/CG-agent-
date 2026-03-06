@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+﻿import { apiClient } from "./client";
 import type { ApiEnvelope, UsageAnalyticsPayload } from "../types";
 
 export async function fetchUsageAnalytics(days = 30): Promise<UsageAnalyticsPayload> {

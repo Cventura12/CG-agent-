@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 
 import { fetchJobs } from "../api/jobs";
 import { loadCachedJson, saveCachedJson } from "../utils/offlineCache";

@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Link, useLocation } from "react-router-dom";
-import { Loader2, Mic, Send, Square, TriangleAlert } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { Mic, Square, TriangleAlert } from "lucide-react";
 
 import {
   approveQuote,
@@ -17,13 +17,9 @@ import {
   submitQuote,
   submitQuoteUpload,
 } from "../api/quote";
-import { FollowupStatusCard } from "../components/FollowupStatusCard";
-import { PageHeader } from "../components/PageHeader";
-import { SurfaceCard } from "../components/SurfaceCard";
 import type {
   QuoteApprovalStatus,
   QuoteDeliveryAttempt,
-  QuoteDraft,
   QuoteFollowupState,
   QuoteLineItem,
   QuoteResponse,
@@ -256,16 +252,10 @@ function formatDeliveryTimestamp(value: string | null): string {
 
 function deliveryStatusTone(status: string): string {
   const normalized = status.trim().toLowerCase();
-  if (normalized === "delivered") {
-    return "border-green/40 bg-green/10 text-green";
-  }
-  if (normalized === "sent" || normalized === "queued" || normalized === "accepted") {
-    return "border-orange/40 bg-orange/10 text-orange";
-  }
-  if (normalized === "pending" || normalized === "scheduled") {
-    return "border-yellow/50 bg-yellow/10 text-yellow";
-  }
-  return "border-red-400/40 bg-red-400/10 text-red-200";
+  if (normalized === "delivered") return "tg";
+  if (normalized === "sent" || normalized === "queued" || normalized === "accepted") return "ta";
+  if (normalized === "pending" || normalized === "scheduled") return "ts";
+  return "tr";
 }
 
 function lineItemLabel(item: QuoteLineItem): string {
@@ -281,167 +271,59 @@ function lineItemTotal(item: QuoteLineItem): number {
   return quantity * unitCost;
 }
 
-function QuotePreviewCard({ quote }: { quote: QuoteDraft }) {
-  const lineItems = Array.isArray(quote.line_items) ? quote.line_items : [];
-
-  return (
-    <article className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-orange">Quote Draft</p>
-          <h2 className="mt-1 text-lg font-semibold text-text">{quote.company_name}</h2>
-          <p className="text-sm text-muted">{quote.project_address || "Project address pending"}</p>
-        </div>
-        <div className="rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-right">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-green">Price</p>
-          <p className="mt-1 text-xl font-semibold text-text">{formatCurrency(quote.total_price)}</p>
-        </div>
-      </div>
-
-      <section className="mt-5">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Scope</p>
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-text/90">{quote.scope_of_work}</p>
-      </section>
-
-      <section className="mt-5">
-        <div className="flex items-center justify-between">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Materials</p>
-          <p className="text-xs text-muted">{lineItems.length} item(s)</p>
-        </div>
-        <div className="mt-3 space-y-2">
-          {lineItems.length === 0 ? (
-            <p className="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-muted">
-              Material line items were not returned.
-            </p>
-          ) : (
-            lineItems.map((item, index) => (
-              <div
-                key={`${lineItemLabel(item)}-${index}`}
-                className="rounded-xl border border-border bg-bg px-3 py-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-text">{lineItemLabel(item)}</p>
-                    <p className="mt-1 text-xs text-muted">
-                      {item.quantity ?? 0} {item.unit ?? "unit"}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold text-text">{formatCurrency(lineItemTotal(item))}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section className="mt-5 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-border bg-bg px-3 py-3">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Terms</p>
-          <p className="mt-2 text-sm leading-6 text-text/90">
-            {quote.approval_notes || "Field conditions and hidden damage are subject to final review."}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-border bg-bg px-3 py-3">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Exclusions</p>
-          <ul className="mt-2 space-y-2 text-sm leading-6 text-text/90">
-            {quote.exclusions.map((item) => (
-              <li key={item} className="flex gap-2">
-                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-orange" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-    </article>
-  );
+function followupStatusLabel(followup: QuoteFollowupState | null): string {
+  if (!followup) return "No follow-up";
+  if (followup.status === "scheduled") return "Scheduled";
+  if (followup.status === "stopped") return "Stopped";
+  if (followup.status === "pending_destination") return "Pending destination";
+  return "No follow-up";
 }
 
-function ConfidenceBadge({
-  confidence,
-}: {
-  confidence: QuoteResponse["estimate_confidence"];
-}) {
-  const tone =
-    confidence.level === "high"
-      ? "border-green/40 bg-green/10 text-green"
-      : confidence.level === "medium"
-      ? "border-yellow/50 bg-yellow/10 text-yellow"
-      : "border-red-400/40 bg-red-400/10 text-red-200";
-
-  return (
-    <section className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Estimate confidence</p>
-        <span className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] ${tone}`}>
-          {confidence.level} ({confidence.score})
-        </span>
-      </div>
-      <div className="mt-3 space-y-2">
-        {confidence.reasons.map((reason) => (
-          <p key={reason} className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text/90">
-            {reason}
-          </p>
-        ))}
-      </div>
-    </section>
-  );
+function followupTone(followup: QuoteFollowupState | null): string {
+  if (!followup) return "ts";
+  if (followup.status === "scheduled") return "ta";
+  if (followup.status === "stopped") return "tr";
+  if (followup.status === "pending_destination") return "ts";
+  return "ts";
 }
 
-function AssumptionsCard({
-  assumptions,
-  clarificationQuestions,
-  coldStart,
-}: {
-  assumptions: string[];
-  clarificationQuestions: string[];
-  coldStart: QuoteResponse["cold_start"];
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Assumptions to confirm</p>
-        {coldStart.active ? (
-          <span className="rounded-full border border-yellow/50 bg-yellow/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-yellow">
-            Cold start
-          </span>
-        ) : null}
-      </div>
+function followupSummary(followup: QuoteFollowupState | null): string {
+  if (!followup || followup.status === "none") {
+    return "No reminder is scheduled for this quote yet.";
+  }
+  if (followup.status === "pending_destination") {
+    return "Send the quote to the customer first so GC Agent knows where to follow up.";
+  }
+  if (followup.status === "stopped") {
+    return "Automatic follow-up is paused for this quote.";
+  }
+  return "GC Agent will keep the reminder on the calendar until it is stopped or completed.";
+}
 
-      {coldStart.active ? (
-        <p className="mt-2 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-sm text-yellow">
-          Limited memory signal found. This draft used template defaults for{" "}
-          {coldStart.primary_trade.replace("_", " ")}.
-        </p>
-      ) : null}
+function followupStopReason(reason: string | null): string {
+  const normalized = (reason ?? "").trim().toLowerCase();
+  if (!normalized) return "Stopped by the current quote status.";
+  if (normalized === "max_reminders_reached") return "Two reminders have already been sent.";
+  if (normalized === "manual_stop") return "You paused automatic follow-up for this quote.";
+  if (normalized === "quote_discarded") return "This quote was discarded.";
+  if (normalized === "quote_expired") return "This quote is marked expired.";
+  if (
+    normalized === "quote_closed" ||
+    normalized === "quote_converted" ||
+    normalized === "quote_accepted"
+  ) {
+    return "This quote is already closed out.";
+  }
+  return normalized.replace(/_/g, " ");
+}
 
-      <div className="mt-3 space-y-2">
-        {assumptions.length > 0 ? (
-          assumptions.map((item) => (
-            <p key={item} className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text/90">
-              {item}
-            </p>
-          ))
-        ) : (
-          <p className="rounded-xl border border-border bg-bg px-3 py-2 text-sm text-muted">
-            No explicit assumptions were returned.
-          </p>
-        )}
-      </div>
-
-      {clarificationQuestions.length > 0 ? (
-        <div className="mt-3 rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-red-200">Open clarification items</p>
-          <ul className="mt-2 space-y-1 text-sm text-red-100">
-            {clarificationQuestions.map((question) => (
-              <li key={question}>{question}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </section>
-  );
+function followupChannel(channel: string | null): string {
+  const normalized = (channel ?? "").trim().toLowerCase();
+  if (!normalized) return "Not chosen yet";
+  if (normalized === "sms") return "SMS";
+  if (normalized === "whatsapp") return "WhatsApp";
+  if (normalized === "email") return "Email";
+  return normalized;
 }
 
 export function QuotePage() {
@@ -471,6 +353,7 @@ export function QuotePage() {
   const [editedScopeOfWork, setEditedScopeOfWork] = useState("");
   const [editedTotalPrice, setEditedTotalPrice] = useState("");
   const [feedbackNote, setFeedbackNote] = useState("");
+  const [editMode, setEditMode] = useState(false);
   const [decisionStatus, setDecisionStatus] = useState<QuoteApprovalStatus | null>(null);
   const [decisionMessage, setDecisionMessage] = useState<string | null>(null);
   const [deliveryChannel, setDeliveryChannel] = useState<"whatsapp" | "sms" | "email">("whatsapp");
@@ -483,6 +366,7 @@ export function QuotePage() {
   const [followupState, setFollowupState] = useState<QuoteFollowupState | null>(null);
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
   const [followupMessage, setFollowupMessage] = useState<string | null>(null);
+  const [tab, setTab] = useState<"notes" | "voice" | "upload">("notes");
   const location = useLocation();
   const apiReady = hasBetaApiCredentials();
   const firstSessionMode = useMemo(() => {
@@ -499,6 +383,7 @@ export function QuotePage() {
     setEditedScopeOfWork(payload.quote_draft.scope_of_work ?? "");
     setEditedTotalPrice(String(payload.quote_draft.total_price ?? ""));
     setFeedbackNote("");
+    setEditMode(false);
     setDecisionStatus(null);
     setDecisionMessage(null);
     setDeliveryDestination("");
@@ -867,11 +752,14 @@ export function QuotePage() {
           : `Quote ${payload.approval_status}.`
       );
       if (activeQuote && payload.quote_draft) {
-        setActiveQuote({
-          ...activeQuote,
-          quote_draft: payload.quote_draft,
-        });
-      }
+      setActiveQuote({
+        ...activeQuote,
+        quote_draft: payload.quote_draft,
+      });
+      setEditedScopeOfWork(payload.quote_draft.scope_of_work ?? "");
+      setEditedTotalPrice(String(payload.quote_draft.total_price ?? ""));
+      setEditMode(false);
+    }
       setCaptureError(null);
       if (activeQuote) {
         void loadFollowupState(activeQuote.quote_id);
@@ -1019,565 +907,959 @@ export function QuotePage() {
     submitInput(notes, "manual", selectedUploadFile);
   };
 
+  const phase = quoteMutation.isPending ? "gen" : activeQuote ? "review" : "input";
+  const confidenceScore = activeQuote?.estimate_confidence.score ?? 0;
+  const confidenceLevel = activeQuote?.estimate_confidence.level ?? "low";
+  const confidenceClass =
+    confidenceLevel === "high" ? "chi" : confidenceLevel === "medium" ? "cmd" : "clo";
+  const confidenceFill =
+    confidenceLevel === "high"
+      ? "var(--green-hi)"
+      : confidenceLevel === "medium"
+        ? "var(--amber-hot)"
+        : "var(--red-hi)";
+  const memoryTrade = (activeQuote?.cold_start?.primary_trade ?? "general_construction")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const lineItems = activeQuote?.quote_draft.line_items ?? [];
+  const assumptions = activeQuote?.assumptions ?? [];
+  const clarificationQuestions = activeQuote?.clarification_questions ?? [];
+  const exclusions = activeQuote?.quote_draft.exclusions ?? [];
+  const canStopFollowup =
+    followupState?.status === "scheduled" || followupState?.status === "pending_destination";
+
   return (
-    <main className="page-wrap">
-      <div className="section-stack">
-        <PageHeader
-          eyebrow="Estimate workspace"
-          title="Build the next quote"
-          description="Capture messy field input, review assumptions and confidence, then send a clean customer-facing quote without leaving the workflow."
-          actions={
-            !bypassAuth ? (
-              <Link to="/queue" className="action-button-secondary">
-                Open queue
-              </Link>
-            ) : (
-              <span className="inline-flex rounded-full border border-yellow/55 bg-yellow/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-yellow">
-                Demo mode
-              </span>
-            )
-          }
-          stats={[
-            { label: "Runtime", value: isOnline ? "Live" : "Offline", tone: isOnline ? "success" : "warning" },
-            { label: "Offline queue", value: offlineQueue.length, tone: offlineQueue.length > 0 ? "warning" : "default" },
-            { label: "Voice input", value: voiceSupported ? "Ready" : "Unavailable", tone: voiceSupported ? "success" : "warning" },
-            { label: "Contractor", value: apiReady ? getBetaContractorId() : "Set beta API env" },
-          ]}
-        />
+    <div className="pw">
+      <div className="ph">
+        <div className="eyebrow">Estimating Engine</div>
+        <div className="ptitle">New Quote</div>
+        <div className="psub">Convert field input into a structured, send-ready estimate.</div>
+      </div>
 
-        {firstSessionMode ? (
-          <div className="rounded-[1.4rem] border border-green/40 bg-green/10 px-5 py-4">
-            <p className="kicker text-green">First session</p>
-            <p className="mt-2 text-sm leading-6 text-text/90">
-              Goal: get your first approved draft in under 10 minutes. Send one real field note, review assumptions, then approve or edit so memory can learn your style.
-            </p>
+      {firstSessionMode ? (
+        <div className="alert ainfo" style={{ marginBottom: 14 }}>
+          <span>◈</span>
+          <div>
+            <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+              FIRST SESSION TARGET
+            </strong>
+            <div style={{ marginTop: 3 }}>
+              Get one real quote draft out in under ten minutes. Approve or edit it so estimating memory starts learning immediately.
+            </div>
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-[0.94fr_1.06fr]">
-          <div className="space-y-4">
-            <SurfaceCard
-              eyebrow="Capture"
-              title="Field input"
-              description={
-                apiReady
-                  ? "Built for jobsite capture: hold to record, type if needed, and attach one PDF or photo when it helps the scope."
-                  : "Set VITE_BETA_API_KEY and VITE_BETA_CONTRACTOR_ID in frontend/.env before sending quotes."
-              }
-            >
-              <div className="flex items-start gap-3 rounded-[1.2rem] border border-border bg-bg/50 px-4 py-4">
-                <div className="rounded-xl border border-border bg-surface/80 p-3">
-                  {apiReady ? (
-                    <Mic className="h-5 w-5 text-orange" aria-hidden="true" />
-                  ) : (
-                    <TriangleAlert className="h-5 w-5 text-yellow" aria-hidden="true" />
-                  )}
-                </div>
+      {!apiReady ? (
+        <div className="alert awarn" style={{ marginBottom: 14 }}>
+          <span>
+            <TriangleAlert className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div>Set VITE_BETA_API_KEY and VITE_BETA_CONTRACTOR_ID before sending quotes through the public contractor API.</div>
+        </div>
+      ) : null}
 
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-text">{helperText}</p>
-                  <p className="mt-1 text-sm leading-6 text-muted">
-                    {apiReady
-                      ? "Designed for field speed: capture one clean input, then move immediately into review and delivery."
-                      : "Public quote credentials are required before the agent can generate a draft."}
-                  </p>
-                </div>
+      <div className="tcol">
+        <div className="vs">
+          {phase === "input" ? (
+            <div className="panel ani">
+              <div className="ph2">
+                <span className="ptl">Capture Input</span>
+                <span className="pid">{apiReady ? `CONTRACTOR ${getBetaContractorId()}` : "API NOT READY"}</span>
               </div>
 
-              <div
-                className={`mt-4 rounded-[1.2rem] border px-4 py-4 ${
-                  isOnline ? "border-green/40 bg-green/10" : "border-yellow/40 bg-yellow/10"
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text">
-                    {isOnline ? "Online" : "Offline"} | queued {offlineQueue.length}
-                  </p>
+              <div className="qitabs">
+                <span className={`qit ${tab === "notes" ? "active" : ""}`} onClick={() => setTab("notes")}>
+                  ✎ Typed Notes
+                </span>
+                <span className={`qit ${tab === "voice" ? "active" : ""}`} onClick={() => setTab("voice")}>
+                  ⏺ Transcript
+                </span>
+                <span className={`qit ${tab === "upload" ? "active" : ""}`} onClick={() => setTab("upload")}>
+                  ⬆ File / Photo
+                </span>
+              </div>
 
+              <div className="pb lg">
+                <div
+                  className="sp"
+                  style={{
+                    marginBottom: 12,
+                    padding: "9px 12px",
+                    border: "1px solid var(--wire)",
+                    background: isOnline ? "rgba(42,122,80,0.08)" : "rgba(232,137,42,0.06)",
+                  }}
+                >
+                  <div>
+                    <div className="lbl" style={{ marginBottom: 2 }}>
+                      Runtime
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--cream)" }}>
+                      {isOnline ? "Live connection" : "Offline cache active"} · {offlineQueue.length} queued
+                    </div>
+                  </div>
                   <button
                     type="button"
+                    className="btn bw sm"
                     onClick={() => void syncQueuedNotes()}
-                    disabled={!apiReady || !isOnline || offlineQueue.length === 0 || isQueueSyncing || quoteMutation.isPending}
-                    className="action-button-secondary min-h-9 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={
+                      !apiReady ||
+                      !isOnline ||
+                      offlineQueue.length === 0 ||
+                      isQueueSyncing ||
+                      quoteMutation.isPending
+                    }
                   >
-                    {isQueueSyncing ? "Syncing..." : "Sync queued notes"}
+                    {isQueueSyncing ? "Syncing..." : "Sync queued"}
                   </button>
                 </div>
-                <p className="mt-2 text-xs text-muted">
-                  If you lose signal on-site, notes are saved locally and synced after reconnect.
-                </p>
-              </div>
 
-              {queueMessage ? (
-                <div className="mt-3 rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                  {queueMessage}
-                </div>
-              ) : null}
-
-              {offlineQueue.length > 0 ? (
-                <div className="mt-3 rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
-                  <p className="data-label">Queued note preview</p>
-                  <div className="mt-3 space-y-2">
-                    {offlineQueue.slice(0, 3).map((queued) => (
-                      <p
-                        key={queued.id}
-                        className="rounded-xl border border-border bg-surface/70 px-3 py-2 text-xs leading-5 text-text/90"
-                      >
-                        {queued.input.length > 120 ? `${queued.input.slice(0, 120)}...` : queued.input}
-                      </p>
-                    ))}
+                {queueMessage ? (
+                  <div className="alert aok" style={{ marginBottom: 12 }}>
+                    <span>✓</span>
+                    <div>{queueMessage}</div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              <div className="mt-5">
-                <button
-                  type="button"
-                  onPointerDown={beginRecording}
-                  onPointerUp={stopRecordingAndSend}
-                  onPointerLeave={stopRecordingAndSend}
-                  onPointerCancel={stopRecordingAndSend}
-                  disabled={!voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing}
-                  className="flex min-h-32 w-full items-center justify-center gap-4 rounded-[1.7rem] border border-orange/45 bg-orange/10 px-5 py-6 text-left transition hover:border-orange hover:bg-orange/15 disabled:cursor-not-allowed disabled:border-border disabled:bg-bg/60 disabled:text-muted"
-                  style={{ touchAction: "none" }}
-                >
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-orange text-bg">
-                    {isRecording ? (
-                      <Square className="h-5 w-5" aria-hidden="true" />
-                    ) : (
-                      <Mic className="h-5 w-5" aria-hidden="true" />
-                    )}
-                  </span>
-                  <span>
-                    <span className="block font-mono text-xs uppercase tracking-[0.2em] text-orange">
-                      {isRecording ? "Recording" : "Hold to record"}
-                    </span>
-                    <span className="mt-2 block font-display text-2xl uppercase tracking-[0.06em] text-text">
-                      {isRecording ? "Release to send" : "Press, talk, release"}
-                    </span>
-                  </span>
-                </button>
-              </div>
+                {tab === "notes" ? (
+                  <div className="vs">
+                    <div>
+                      <label className="lbl" htmlFor="quote-notes">
+                        Transcript / field notes
+                      </label>
+                      <textarea
+                        id="quote-notes"
+                        className="txta"
+                        rows={6}
+                        value={notes}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          latestTranscriptRef.current = value;
+                          setNotes(value);
+                        }}
+                        placeholder="Scope, measurements, materials, site conditions, customer requests..."
+                      />
+                    </div>
 
-              <div className="mt-4">
-                <label htmlFor="quote-notes" className="data-label">
-                  Transcript / field notes
-                </label>
-                <textarea
-                  id="quote-notes"
-                  value={notes}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    latestTranscriptRef.current = value;
-                    setNotes(value);
-                  }}
-                  rows={7}
-                  placeholder="If voice capture is unavailable, type field notes here."
-                  className="field-textarea"
-                />
-              </div>
-
-              <div className="mt-4 rounded-[1.45rem] border border-border bg-bg/60 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="data-label">Optional file</p>
-                    <p className="mt-1 text-sm text-muted">
-                      Add one PDF or jobsite photo. The agent will read it together with your notes.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <label
-                      htmlFor="quote-upload"
-                      className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:border-orange hover:text-orange"
+                    <div
+                      style={{
+                        border: "1px solid var(--wire)",
+                        background: "var(--ink2)",
+                        padding: 12,
+                      }}
                     >
-                      {selectedUploadFile ? "Replace file" : "Choose PDF or photo"}
-                    </label>
-                    {selectedUploadFile ? (
+                      <div className="sp" style={{ marginBottom: 8 }}>
+                        <div>
+                          <div className="lbl" style={{ marginBottom: 2 }}>
+                            Optional file
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--fog)" }}>
+                            Add one PDF or jobsite photo. The agent will read it together with your notes.
+                          </div>
+                        </div>
+                        <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                          <label htmlFor="quote-upload" className="btn bw sm">
+                            {selectedUploadFile ? "Replace file" : "Choose file"}
+                          </label>
+                          {selectedUploadFile ? (
+                            <button type="button" className="btn bw sm" onClick={clearSelectedUpload}>
+                              Remove
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <input
+                        ref={uploadInputRef}
+                        id="quote-upload"
+                        type="file"
+                        accept=".pdf,image/png,image/jpeg,application/pdf"
+                        onChange={handleUploadSelection}
+                        className="sr-only"
+                      />
+
+                      <div style={{ fontSize: 12, color: selectedUploadFile ? "var(--cream)" : "var(--fog)" }}>
+                        {selectedUploadFile ? `Attached: ${selectedUploadFile.name}` : "No file attached. Notes-only quotes still work."}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
                       <button
                         type="button"
-                        onClick={clearSelectedUpload}
-                        className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 py-2 text-sm text-muted transition hover:border-orange hover:text-orange"
+                        className="cta"
+                        onClick={handleManualSubmit}
+                        disabled={
+                          !apiReady ||
+                          (!notes.trim() && !selectedUploadFile) ||
+                          (!isOnline && Boolean(selectedUploadFile)) ||
+                          quoteMutation.isPending ||
+                          isQueueSyncing
+                        }
                       >
-                        Remove
+                        {quoteMutation.isPending
+                          ? "RUNNING AGENT..."
+                          : !isOnline && selectedUploadFile
+                            ? "UPLOAD NEEDS CONNECTION"
+                            : selectedUploadFile
+                              ? "Upload & run agent"
+                              : !isOnline
+                                ? "SAVE OFFLINE"
+                                : "GENERATE QUOTE →"}
                       </button>
+                    </div>
+                  </div>
+                ) : null}
+                {tab === "voice" ? (
+                  <div className="vs">
+                    <div className="alert ainfo" style={{ fontSize: 11 }}>
+                      <span>◈</span>
+                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "0.5px", lineHeight: 1.7 }}>
+                        {helperText.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onPointerDown={beginRecording}
+                      onPointerUp={stopRecordingAndSend}
+                      onPointerLeave={stopRecordingAndSend}
+                      onPointerCancel={stopRecordingAndSend}
+                      disabled={!voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing}
+                      className="dropz"
+                      style={{ touchAction: "none", padding: 28 }}
+                    >
+                      <div style={{ fontSize: 26, marginBottom: 8, opacity: 0.85 }}>
+                        {isRecording ? <Square className="mx-auto h-6 w-6" aria-hidden="true" /> : <Mic className="mx-auto h-6 w-6" aria-hidden="true" />}
+                      </div>
+                      <div style={{ color: "var(--cream)", fontWeight: 500, marginBottom: 4, fontSize: 13 }}>
+                        {isRecording ? "Recording now" : "Hold to record"}
+                      </div>
+                      <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.2px" }}>
+                        {isRecording ? "RELEASE TO SEND" : "PRESS · TALK · RELEASE"}
+                      </div>
+                    </button>
+
+                    <div>
+                      <label className="lbl" htmlFor="quote-notes-voice">
+                        Transcript / field notes
+                      </label>
+                      <textarea
+                        id="quote-notes-voice"
+                        className="txta"
+                        rows={5}
+                        value={notes}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          latestTranscriptRef.current = value;
+                          setNotes(value);
+                        }}
+                        placeholder="Paste transcript here if live voice is unavailable..."
+                      />
+                    </div>
+
+                    <div style={{ textAlign: "right" }}>
+                      <button
+                        type="button"
+                        className="cta"
+                        onClick={handleManualSubmit}
+                        disabled={!apiReady || !notes.trim() || quoteMutation.isPending || isQueueSyncing}
+                      >
+                        PROCESS TRANSCRIPT →
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {tab === "upload" ? (
+                  <div className="vs">
+                    <label htmlFor="quote-upload" className="dropz">
+                      <div style={{ fontSize: 26, marginBottom: 8, opacity: 0.4 }}>⬆</div>
+                      <div style={{ color: "var(--cream)", fontWeight: 500, marginBottom: 4, fontSize: 13 }}>
+                        {selectedUploadFile ? selectedUploadFile.name : "Drop files or click to upload"}
+                      </div>
+                      <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.2px" }}>
+                        PDF · PHOTOS · HANDWRITTEN NOTES
+                      </div>
+                    </label>
+
+                    <input
+                      ref={uploadInputRef}
+                      id="quote-upload"
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg,application/pdf"
+                      onChange={handleUploadSelection}
+                      className="sr-only"
+                    />
+
+                    <div>
+                      <label className="lbl" htmlFor="quote-notes-upload">
+                        Transcript / field notes
+                      </label>
+                      <textarea
+                        id="quote-notes-upload"
+                        className="txta"
+                        rows={5}
+                        value={notes}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          latestTranscriptRef.current = value;
+                          setNotes(value);
+                        }}
+                        placeholder="Add typed context to help the uploaded scope..."
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                      {selectedUploadFile ? (
+                        <button type="button" className="btn bw" onClick={clearSelectedUpload}>
+                          Remove file
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "var(--fog)" }}>No file attached yet.</span>
+                      )}
+
+                      <button
+                        type="button"
+                        className="cta"
+                        onClick={handleManualSubmit}
+                        disabled={
+                          !apiReady ||
+                          (!notes.trim() && !selectedUploadFile) ||
+                          (!isOnline && Boolean(selectedUploadFile)) ||
+                          quoteMutation.isPending ||
+                          isQueueSyncing
+                        }
+                      >
+                        {quoteMutation.isPending
+                          ? "RUNNING AGENT..."
+                          : !isOnline && selectedUploadFile
+                            ? "UPLOAD NEEDS CONNECTION"
+                            : selectedUploadFile
+                              ? "Upload & run agent"
+                              : "PROCESS FILES →"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {captureError ? (
+                  <div className="alert awarn" style={{ marginTop: 12 }}>
+                    <span>⚠</span>
+                    <div>{captureError}</div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {phase === "gen" ? (
+            <div className="panel ani" style={{ textAlign: "center", padding: "48px 24px" }}>
+              <div className="spin" style={{ margin: "0 auto 16px" }} />
+              <div
+                style={{
+                  fontFamily: "'Oswald', sans-serif",
+                  fontSize: 17,
+                  letterSpacing: "2px",
+                  color: "var(--cream)",
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                Processing Input
+              </div>
+              <div
+                style={{
+                  fontFamily: "'Syne Mono', monospace",
+                  fontSize: 8,
+                  color: "var(--fog)",
+                  letterSpacing: "1.2px",
+                  lineHeight: 1.8,
+                }}
+              >
+                STRUCTURING LINE ITEMS · APPLYING PRICING BASELINE · FLAGGING ASSUMPTIONS
+              </div>
+            </div>
+          ) : null}
+
+          {phase === "review" && activeQuote ? (
+            <div className="vs ani">
+              <div className="panel">
+                <div className="ph2 sp">
+                  <div className="hs">
+                    <span className="ptl">Quote Draft</span>
+                    <span className="tag ts" style={{ fontSize: 8 }}>
+                      {activeQuote.quote_id}
+                    </span>
+                  </div>
+                  <div className="hs" style={{ gap: 10 }}>
+                    <span className={`cnum ${confidenceClass}`}>
+                      {confidenceScore}
+                      <span style={{ fontSize: 8, opacity: 0.6 }}>%</span>
+                    </span>
+                    <div className="ctrack" style={{ width: 88 }}>
+                      <div className="cfill" style={{ width: `${confidenceScore}%`, background: confidenceFill }} />
+                    </div>
+                    <span className={`tag td ${decisionStatus === "discarded" ? "tr" : "ta"}`}>
+                      {decisionStatus === "discarded" ? "Discarded" : "Pending"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pb lg">
+                  <div className="alert aok" style={{ marginBottom: 14 }}>
+                    <span>✓</span>
+                    <div>
+                      <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                        {confidenceScore}% CONFIDENCE · PRICING BASELINE {activeQuote.cold_start.active ? "PARTIAL" : "APPLIED"}
+                      </strong>
+                      <div style={{ marginTop: 3, fontSize: 12 }}>
+                        {clarificationQuestions.length > 0
+                          ? `${clarificationQuestions.length} clarification item${clarificationQuestions.length === 1 ? "" : "s"} flagged below.`
+                          : "Review assumptions before you send."}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <div className="sh">Project</div>
+                    <div style={{ fontSize: 12, color: "var(--cream)" }}>
+                      {activeQuote.quote_draft.project_address || "Project address pending"}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 2,
+                        fontFamily: "'Syne Mono', monospace",
+                        fontSize: 8,
+                        color: "var(--fog)",
+                        letterSpacing: "0.6px",
+                      }}
+                    >
+                      {activeQuote.quote_draft.customer_name || "CUSTOMER PENDING"}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <div className="sh">Scope</div>
+                    <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                      {activeQuote.quote_draft.scope_of_work}
+                    </div>
+                  </div>
+
+                  <div className="sh">Line Items</div>
+                  <table className="lit">
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Qty</th>
+                        <th style={{ textAlign: "right" }}>Unit</th>
+                        <th style={{ textAlign: "right" }}>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lineItems.length > 0 ? (
+                        lineItems.map((item, index) => (
+                          <tr key={`${lineItemLabel(item)}-${index}`}>
+                            <td>{lineItemLabel(item)}</td>
+                            <td style={{ fontFamily: "'Syne Mono', monospace", fontSize: 9, color: "var(--fog)" }}>
+                              {item.quantity ?? 0} {item.unit ?? "unit"}
+                            </td>
+                            <td style={{ textAlign: "right", fontFamily: "'Syne Mono', monospace", fontSize: 9, color: "var(--fog)" }}>
+                              {typeof item.unit_cost === "number" && Number.isFinite(item.unit_cost)
+                                ? formatCurrency(item.unit_cost)
+                                : "--"}
+                            </td>
+                            <td>{formatCurrency(lineItemTotal(item))}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: "left", color: "var(--fog)" }}>
+                            No material line items were returned.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 12, gap: 8, alignItems: "baseline" }}>
+                    <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.2px" }}>
+                      TOTAL
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Oswald', sans-serif",
+                        fontSize: 26,
+                        fontWeight: 600,
+                        color: "var(--amber-hot)",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      {formatCurrency(activeQuote.quote_draft.total_price)}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--wire)", padding: "12px 14px" }}>
+                  <div className="sh">Assumptions</div>
+                  <div className="vs">
+                    {assumptions.length > 0 ? (
+                      assumptions.map((assumption) => (
+                        <div key={assumption} className="alert awarn" style={{ fontSize: 12 }}>
+                          <span style={{ flexShrink: 0 }}>⚠</span>
+                          <div>{assumption}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ fontSize: 12, color: "var(--fog)" }}>No explicit assumptions were returned.</div>
+                    )}
+
+                    {clarificationQuestions.length > 0 ? (
+                      <div className="alert ainfo" style={{ fontSize: 12 }}>
+                        <span>◈</span>
+                        <div>
+                          <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                            CLARIFICATION NEEDED
+                          </strong>
+                          <div style={{ marginTop: 4 }}>
+                            {clarificationQuestions.map((question) => (
+                              <div key={question}>{question}</div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {exclusions.length > 0 ? (
+                      <div style={{ paddingTop: 6 }}>
+                        <div className="sh">Exclusions</div>
+                        <div className="vs">
+                          {exclusions.map((item) => (
+                            <div key={item} style={{ fontSize: 12, color: "var(--steel)" }}>
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     ) : null}
                   </div>
                 </div>
 
-                <input
-                  ref={uploadInputRef}
-                  id="quote-upload"
-                  type="file"
-                  accept=".pdf,image/png,image/jpeg,application/pdf"
-                  onChange={handleUploadSelection}
-                  className="sr-only"
-                />
-
-                {selectedUploadFile ? (
-                  <p className="mt-3 rounded-xl border border-orange/40 bg-orange/10 px-3 py-2 text-sm text-text">
-                    Attached: {selectedUploadFile.name}
-                  </p>
-                ) : (
-                  <p className="mt-3 text-sm text-muted">No file attached. Notes-only quotes still work.</p>
-                )}
+                <div style={{ borderTop: "1px solid var(--wire)", padding: "10px 14px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn bg"
+                    onClick={() => decisionMutation.mutate("approve")}
+                    disabled={decisionMutation.isPending || !apiReady}
+                  >
+                    {decisionMutation.isPending && decisionMutation.variables === "approve" ? "Saving..." : "✓ Approve"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn bw"
+                    onClick={() => setEditMode((current) => !current)}
+                    disabled={decisionMutation.isPending || !apiReady}
+                  >
+                    ✎ Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn brd"
+                    onClick={() => decisionMutation.mutate("discard")}
+                    disabled={decisionMutation.isPending || !apiReady}
+                  >
+                    {decisionMutation.isPending && decisionMutation.variables === "discard" ? "Saving..." : "✕ Discard"}
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button
-                  type="button"
-                  onClick={handleManualSubmit}
-                  disabled={!apiReady || (!notes.trim() && !selectedUploadFile) || (!isOnline && Boolean(selectedUploadFile)) || quoteMutation.isPending || isQueueSyncing}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {quoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                  <span>
-                    {quoteMutation.isPending
-                      ? "Running agent..."
-                      : !isOnline && selectedUploadFile
-                        ? "Upload needs connection"
-                        : selectedUploadFile
-                          ? "Upload & run agent"
-                          : !isOnline
-                            ? "Save Offline"
-                            : "Send Notes"}
-                  </span>
-                </button>
-
-                <p className="text-sm text-muted">
-                  Mobile-first target: large tap zones and one obvious primary action from the field.
-                </p>
-              </div>
-
-              {captureError ? (
-                <div className="mt-4 rounded-[1.2rem] border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                  {captureError}
+              {decisionMessage ? (
+                <div className="alert aok">
+                  <span>✓</span>
+                  <div>{decisionMessage}</div>
                 </div>
               ) : null}
-            </SurfaceCard>
+            </div>
+          ) : null}
+        </div>
 
-            {activeQuote ? (
-              <>
-                <ConfidenceBadge confidence={activeQuote.estimate_confidence} />
-                <AssumptionsCard
-                  assumptions={activeQuote.assumptions ?? []}
-                  clarificationQuestions={activeQuote.clarification_questions ?? []}
-                  coldStart={
-                    activeQuote.cold_start ?? {
-                      active: false,
-                      primary_trade: "general_construction",
-                    }
-                  }
-                />
-              </>
-            ) : null}
-          </div>
+        <div className="vs him">
+          {phase === "review" && activeQuote ? (
+            <>
+              <div className="panel ani">
+                <div className="ph2">
+                  <span className="ptl">Delivery</span>
+                  <button
+                    type="button"
+                    className="btn bw sm"
+                    onClick={() => void loadDeliveryHistory(activeQuote.quote_id)}
+                    disabled={isDeliveryHistoryLoading || !apiReady}
+                  >
+                    {isDeliveryHistoryLoading ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
+                <div className="pb vs" style={{ gap: 10 }}>
+                  <div>
+                    <div className="lbl">Send via</div>
+                    <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                      {[
+                        { key: "sms", label: "📱 SMS" },
+                        { key: "whatsapp", label: "💬 WhatsApp" },
+                        { key: "email", label: "📧 Email" },
+                      ].map((option) => (
+                        <button
+                          key={option.key}
+                          type="button"
+                          className={`btn sm ${deliveryChannel === option.key ? "ba" : "bw"}`}
+                          onClick={() =>
+                            setDeliveryChannel(option.key as "whatsapp" | "sms" | "email")
+                          }
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-          <div className="space-y-4">
-            {activeQuote ? (
-              <>
-                <QuotePreviewCard quote={activeQuote.quote_draft} />
-
-                <SurfaceCard
-                  eyebrow="Review and learn"
-                  title="Final contractor decision"
-                  description="Approve as-is, approve with edits, or discard. Approve and edit actions feed estimating memory."
-                >
-                  <div className="grid gap-3">
-                    <label className="data-label" htmlFor="edited-scope">
-                      Scope edits
+                  <div>
+                    <label className="lbl" htmlFor="delivery-destination">
+                      {deliveryDestinationLabel}
                     </label>
-                    <textarea
-                      id="edited-scope"
-                      value={editedScopeOfWork}
-                      onChange={(event) => setEditedScopeOfWork(event.target.value)}
-                      rows={6}
-                      className="field-textarea"
+                    <input
+                      id="delivery-destination"
+                      className="inp"
+                      type={deliveryChannel === "email" ? "email" : "text"}
+                      value={deliveryDestination}
+                      onChange={(event) => setDeliveryDestination(event.target.value)}
+                      placeholder={deliveryDestinationPlaceholder}
                     />
                   </div>
 
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="data-label" htmlFor="edited-total">
-                        Final total price
-                      </label>
-                      <input
-                        id="edited-total"
-                        type="number"
-                        value={editedTotalPrice}
-                        onChange={(event) => setEditedTotalPrice(event.target.value)}
-                        className="field-input"
-                      />
-                    </div>
-                    <div>
-                      <label className="data-label" htmlFor="feedback-note">
-                        Feedback note (optional)
-                      </label>
-                      <input
-                        id="feedback-note"
-                        type="text"
-                        value={feedbackNote}
-                        onChange={(event) => setFeedbackNote(event.target.value)}
-                        placeholder="Why you edited or discarded"
-                        className="field-input"
-                      />
-                    </div>
+                  <div>
+                    <label className="lbl" htmlFor="delivery-name">
+                      Client name
+                    </label>
+                    <input
+                      id="delivery-name"
+                      className="inp"
+                      value={deliveryRecipientName}
+                      onChange={(event) => setDeliveryRecipientName(event.target.value)}
+                      placeholder="Optional"
+                    />
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => decisionMutation.mutate("approve")}
-                      disabled={decisionMutation.isPending || !apiReady}
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Approve as-is
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => decisionMutation.mutate("edit")}
-                      disabled={decisionMutation.isPending || !apiReady}
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-orange px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Save edits + approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => decisionMutation.mutate("discard")}
-                      disabled={decisionMutation.isPending || !apiReady}
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Discard quote
-                    </button>
+                  <div>
+                    <label className="lbl" htmlFor="delivery-override">
+                      Message override
+                    </label>
+                    <input
+                      id="delivery-override"
+                      className="inp"
+                      value={deliveryMessageOverride}
+                      onChange={(event) => setDeliveryMessageOverride(event.target.value)}
+                      placeholder="Leave blank to use the default message"
+                    />
                   </div>
 
-                  {decisionStatus ? (
-                    <div className="mt-3 rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                      {decisionMessage ?? `Quote ${decisionStatus}.`}
-                    </div>
-                  ) : null}
-                </SurfaceCard>
+                  <button
+                    type="button"
+                    className="cta"
+                    style={{ width: "100%", textAlign: "center", display: "block" }}
+                    onClick={() => directDeliveryMutation.mutate()}
+                    disabled={directDeliveryMutation.isPending || !apiReady}
+                  >
+                    {directDeliveryMutation.isPending ? "SENDING..." : "SEND QUOTE"}
+                  </button>
 
-                <div className="space-y-3">
-                  <FollowupStatusCard
-                    followup={followupState}
-                    isLoading={isFollowupLoading}
-                    title="Follow-up"
-                    onStop={() => stopFollowupMutation.mutate()}
-                    isStopping={stopFollowupMutation.isPending}
-                  />
-                  {followupMessage ? (
-                    <div className="rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                      {followupMessage}
-                    </div>
-                  ) : null}
-                </div>
-
-                <SurfaceCard
-                  eyebrow="PDF handoff"
-                  title="Share or download"
-                  description="Generate the customer-facing PDF and hand it off through the device share sheet when you want a manual send."
-                  actions={
-                    <button
-                      type="button"
-                      onClick={() => sendMutation.mutate(activeQuote)}
-                      disabled={sendMutation.isPending || !apiReady}
-                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {sendMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Send className="h-4 w-4" aria-hidden="true" />
-                      )}
-                      <span>{sendMutation.isPending ? "Generating PDF..." : "Send PDF"}</span>
-                    </button>
-                  }
-                >
-                  {shareMessage ? (
-                    <div className="rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                      {shareMessage}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted">Use this when you want manual control over the final delivery channel.</p>
-                  )}
-                </SurfaceCard>
-
-                <SurfaceCard
-                  eyebrow="Client delivery"
-                  title="Send directly from GC Agent"
-                  description="Deliver the quote directly by WhatsApp, SMS, or email and keep the status visible here."
-                  actions={
-                    <button
-                      type="button"
-                      onClick={() => activeQuote && void loadDeliveryHistory(activeQuote.quote_id)}
-                      disabled={isDeliveryHistoryLoading || !apiReady}
-                      className="action-button-secondary disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isDeliveryHistoryLoading ? "Refreshing..." : "Refresh status"}
-                    </button>
-                  }
-                >
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="data-label" htmlFor="delivery-channel">
-                        Channel
-                      </label>
-                      <select
-                        id="delivery-channel"
-                        value={deliveryChannel}
-                        onChange={(event) =>
-                          setDeliveryChannel(event.target.value as "whatsapp" | "sms" | "email")
-                        }
-                        className="field-input"
-                      >
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="sms">SMS</option>
-                        <option value="email">Email</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="data-label" htmlFor="delivery-destination">
-                        {deliveryDestinationLabel}
-                      </label>
-                      <input
-                        id="delivery-destination"
-                        type={deliveryChannel === "email" ? "email" : "text"}
-                        value={deliveryDestination}
-                        onChange={(event) => setDeliveryDestination(event.target.value)}
-                        placeholder={deliveryDestinationPlaceholder}
-                        className="field-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="data-label" htmlFor="delivery-name">
-                        Client name (optional)
-                      </label>
-                      <input
-                        id="delivery-name"
-                        type="text"
-                        value={deliveryRecipientName}
-                        onChange={(event) => setDeliveryRecipientName(event.target.value)}
-                        className="field-input"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="data-label" htmlFor="delivery-override">
-                        Custom message (optional)
-                      </label>
-                      <input
-                        id="delivery-override"
-                        type="text"
-                        value={deliveryMessageOverride}
-                        onChange={(event) => setDeliveryMessageOverride(event.target.value)}
-                        placeholder="Leave blank to use default quote message"
-                        className="field-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={() => directDeliveryMutation.mutate()}
-                      disabled={directDeliveryMutation.isPending || !apiReady}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {directDeliveryMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Send className="h-4 w-4" aria-hidden="true" />
-                      )}
-                      <span>{directDeliveryMutation.isPending ? "Sending..." : "Send to client now"}</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="btn bw"
+                    style={{ width: "100%", justifyContent: "center" }}
+                    onClick={() => sendMutation.mutate(activeQuote)}
+                    disabled={sendMutation.isPending || !apiReady}
+                  >
+                    {sendMutation.isPending ? "Generating PDF..." : "Open PDF"}
+                  </button>
 
                   {deliveryMessage ? (
-                    <div className="mt-3 rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                      {deliveryMessage}
+                    <div className="alert aok" style={{ fontSize: 12 }}>
+                      <span>✓</span>
+                      <div>{deliveryMessage}</div>
                     </div>
                   ) : null}
 
-                  <div className="mt-4 rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="data-label">Delivery status</p>
-                      <p className="text-xs text-muted">
-                        {deliveryHistory.length > 0 ? `${deliveryHistory.length} attempt(s)` : "No sends yet"}
-                      </p>
+                  {shareMessage ? (
+                    <div className="alert ainfo" style={{ fontSize: 12 }}>
+                      <span>◈</span>
+                      <div>{shareMessage}</div>
                     </div>
+                  ) : null}
 
+                  <div style={{ paddingTop: 4 }}>
+                    <div className="sh">Delivery Status</div>
                     {isDeliveryHistoryLoading ? (
-                      <p className="mt-3 text-sm text-muted">Refreshing latest delivery state...</p>
+                      <div style={{ fontSize: 12, color: "var(--fog)" }}>Refreshing latest delivery state...</div>
                     ) : deliveryHistory.length === 0 ? (
-                      <p className="mt-3 text-sm text-muted">
+                      <div style={{ fontSize: 12, color: "var(--fog)" }}>
                         No delivery attempts recorded yet. Once you send the quote, status will show here.
-                      </p>
+                      </div>
                     ) : (
-                      <div className="mt-3 space-y-2">
+                      <div className="vs" style={{ gap: 6 }}>
                         {deliveryHistory.map((attempt) => (
                           <div
                             key={attempt.delivery_id}
-                            className="rounded-[1.1rem] border border-border bg-surface/80 px-3 py-3"
+                            style={{ border: "1px solid var(--wire)", padding: "8px 10px" }}
                           >
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-medium text-text">
-                                  {attempt.channel.toUpperCase()} to {attempt.recipient || attempt.destination}
-                                </p>
-                                <p className="mt-1 text-xs text-muted">
-                                  {attempt.destination} • {formatDeliveryTimestamp(attempt.sent_at)}
-                                </p>
+                            <div className="sp" style={{ marginBottom: 4, gap: 8 }}>
+                              <div style={{ fontSize: 12, color: "var(--cream)" }}>
+                                {attempt.channel.toUpperCase()} · {attempt.recipient || attempt.destination}
                               </div>
-                              <span
-                                className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] ${deliveryStatusTone(attempt.status)}`}
-                              >
-                                {attempt.status}
-                              </span>
+                              <span className={`tag ${deliveryStatusTone(attempt.status)}`}>{attempt.status}</span>
                             </div>
-
+                            <div
+                              style={{
+                                fontFamily: "'Syne Mono', monospace",
+                                fontSize: 8,
+                                color: "var(--fog)",
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              {attempt.destination} · {formatDeliveryTimestamp(attempt.sent_at)}
+                            </div>
                             {attempt.error_message ? (
-                              <p className="mt-2 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs text-red-100">
+                              <div style={{ marginTop: 6, fontSize: 12, color: "var(--red-hi)" }}>
                                 {attempt.error_message}
-                              </p>
+                              </div>
                             ) : null}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                </SurfaceCard>
-
-                {activeQuote.rendered_quote ? (
-                  <SurfaceCard eyebrow="Rendered preview" title="Plain-text output">
-                    <pre className="whitespace-pre-wrap rounded-[1.2rem] border border-border bg-bg/55 p-4 font-mono text-xs leading-6 text-text/90">
-                      {activeQuote.rendered_quote}
-                    </pre>
-                  </SurfaceCard>
-                ) : null}
-              </>
-            ) : (
-              <SurfaceCard
-                eyebrow="Output"
-                title="Quote review workspace"
-                description="Once the agent returns a draft, this side becomes your review, approval, delivery, and follow-up workspace."
-              >
-                <div className="rounded-[1.4rem] border border-dashed border-border bg-bg/45 px-5 py-10 text-center">
-                  <p className="font-display text-2xl uppercase tracking-[0.06em] text-text">No active draft yet</p>
-                  <p className="mt-3 text-sm leading-6 text-muted">
-                    Capture notes or upload a file on the left. Confidence, assumptions, final review, delivery status, and follow-up will show here after the quote is generated.
-                  </p>
                 </div>
-              </SurfaceCard>
-            )}
+              </div>
+
+              {editMode ? (
+                <div className="panel ani a1">
+                  <div className="ph2">
+                    <span className="ptl">Contractor Edits</span>
+                  </div>
+                  <div className="pb vs">
+                    <div>
+                      <label className="lbl" htmlFor="edited-scope">
+                        Scope edits
+                      </label>
+                      <textarea
+                        id="edited-scope"
+                        className="txta"
+                        rows={6}
+                        value={editedScopeOfWork}
+                        onChange={(event) => setEditedScopeOfWork(event.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="lbl" htmlFor="edited-total">
+                        Final total price
+                      </label>
+                      <input
+                        id="edited-total"
+                        className="inp"
+                        type="number"
+                        value={editedTotalPrice}
+                        onChange={(event) => setEditedTotalPrice(event.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="lbl" htmlFor="feedback-note">
+                        Feedback note
+                      </label>
+                      <input
+                        id="feedback-note"
+                        className="inp"
+                        type="text"
+                        value={feedbackNote}
+                        onChange={(event) => setFeedbackNote(event.target.value)}
+                        placeholder="Why this changed"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="cta"
+                      style={{ width: "100%", textAlign: "center", display: "block" }}
+                      onClick={() => decisionMutation.mutate("edit")}
+                      disabled={decisionMutation.isPending || !apiReady}
+                    >
+                      {decisionMutation.isPending && decisionMutation.variables === "edit"
+                        ? "SAVING..."
+                        : "SAVE EDITS + APPROVE"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="panel ani a1">
+                <div className="ph2">
+                  <span className="ptl">Follow-up</span>
+                </div>
+                <div className="pb">
+                  {isFollowupLoading ? (
+                    <div style={{ fontSize: 12, color: "var(--fog)" }}>Checking the latest reminder schedule...</div>
+                  ) : (
+                    <>
+                      <div className="sp" style={{ marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, color: "var(--steel)" }}>Auto follow-up</span>
+                        <div className="hs" style={{ gap: 8 }}>
+                          {canStopFollowup ? (
+                            <button
+                              type="button"
+                              className="btn bw sm"
+                              onClick={() => stopFollowupMutation.mutate()}
+                              disabled={stopFollowupMutation.isPending}
+                            >
+                              {stopFollowupMutation.isPending ? "Stopping..." : "Stop follow-up"}
+                            </button>
+                          ) : null}
+                          <span className={`tag ${followupTone(followupState)}`}>{followupStatusLabel(followupState)}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: 12, color: "var(--cream)", marginBottom: 10 }}>
+                        {followupSummary(followupState)}
+                      </div>
+
+                      <div className="ir">
+                        <span className="ik">Next reminder</span>
+                        <span className="iv">
+                          {followupState && (followupState.status === "scheduled" || followupState.status === "pending_destination")
+                            ? formatDeliveryTimestamp(followupState.next_due_at)
+                            : "Not scheduled"}
+                        </span>
+                      </div>
+                      <div className="ir">
+                        <span className="ik">Reminders sent</span>
+                        <span className="iv m">{followupState?.reminder_count ?? 0}</span>
+                      </div>
+                      <div className="ir">
+                        <span className="ik">Last reminder</span>
+                        <span className="iv">{formatDeliveryTimestamp(followupState?.last_reminder_at ?? null)}</span>
+                      </div>
+                      <div className="ir">
+                        <span className="ik">Channel</span>
+                        <span className="iv">{followupChannel(followupState?.channel ?? null)}</span>
+                      </div>
+
+                      {followupState?.status === "stopped" ? (
+                        <div style={{ marginTop: 10, border: "1px solid var(--wire)", padding: "9px 10px" }}>
+                          <div className="lbl" style={{ marginBottom: 2 }}>
+                            Why it stopped
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--cream)" }}>
+                            {followupStopReason(followupState.stop_reason)}
+                          </div>
+                          {followupState.stopped_at ? (
+                            <div
+                              style={{
+                                marginTop: 4,
+                                fontFamily: "'Syne Mono', monospace",
+                                fontSize: 8,
+                                color: "var(--fog)",
+                              }}
+                            >
+                              STOPPED {formatDeliveryTimestamp(followupState.stopped_at).toUpperCase()}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {followupMessage ? (
+                <div className="alert aok">
+                  <span>✓</span>
+                  <div>{followupMessage}</div>
+                </div>
+              ) : null}
+            </>
+          ) : null}
+
+          <div className="panel ani a2">
+            <div className="ph2">
+              <span className="ptl">Memory Context</span>
+            </div>
+            <div className="pb">
+              {[
+                ["Pricing baseline", activeQuote?.cold_start.active ? "Partial" : "Applied", true],
+                ["Trade signal", memoryTrade, false],
+                ["Past jobs", activeQuote ? String(Math.max(1, deliveryHistory.length + 1)) : "--", false],
+                ["Memory strength", activeQuote ? `${confidenceScore}%` : apiReady ? "Warming" : "Offline", false],
+              ].map(([key, value, badge]) => (
+                <div className="ir" key={String(key)}>
+                  <span className="ik">{key}</span>
+                  {badge ? (
+                    <span className={`tag ${activeQuote?.cold_start.active ? "ta" : "tg"}`} style={{ marginLeft: "auto" }}>
+                      {value}
+                    </span>
+                  ) : (
+                    <span className="iv m">{value}</span>
+                  )}
+                </div>
+              ))}
+              <hr className="wd" />
+              <div
+                style={{
+                  fontFamily: "'Syne Mono', monospace",
+                  fontSize: 8,
+                  color: "var(--fog)",
+                  lineHeight: 1.8,
+                  letterSpacing: "0.4px",
+                }}
+              >
+                ESTIMATES DRAW FROM HISTORICAL PRICING
+                <br />
+                ACCURACY IMPROVES WITH EACH COMPLETED JOB
+                <br />
+                {bypassAuth ? "DEMO MODE ACTIVE" : apiReady ? "LIVE PUBLIC QUOTE ENDPOINT CONNECTED" : "CONFIGURE PUBLIC API CREDENTIALS"}
+              </div>
+            </div>
           </div>
+
+          {!activeQuote ? (
+            <div className="panel ani a3">
+              <div className="ph2">
+                <span className="ptl">Output</span>
+              </div>
+              <div className="pb">
+                <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.7 }}>
+                  Once the agent returns a draft, this side becomes your review, delivery, and follow-up workspace.
+                </div>
+              </div>
+            </div>
+          ) : activeQuote.rendered_quote ? (
+            <div className="panel ani a3">
+              <div className="ph2">
+                <span className="ptl">Rendered Preview</span>
+              </div>
+              <div className="pb">
+                <pre
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    fontFamily: "'Syne Mono', monospace",
+                    fontSize: 10,
+                    lineHeight: 1.8,
+                    color: "var(--steel)",
+                  }}
+                >
+                  {activeQuote.rendered_quote}
+                </pre>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
-
-

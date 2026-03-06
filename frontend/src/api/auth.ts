@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+﻿import { apiClient } from "./client";
 import type { ApiEnvelope, AuthProfile, OnboardingProfile } from "../types";
 
 export async function fetchCurrentGcProfile(): Promise<AuthProfile> {

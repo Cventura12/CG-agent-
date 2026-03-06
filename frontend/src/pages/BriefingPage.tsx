@@ -1,7 +1,7 @@
 ﻿import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import clsx from "clsx";
 import { Link } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 
 import { fetchContractorBriefing, hasContractorApiCredentials } from "../api/contractor";
 import { useJobs } from "../hooks/useJobs";
@@ -9,7 +9,6 @@ import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
 import type { BriefingPayload, Job, QueueJobGroup } from "../types";
 import { loadCachedJson, saveCachedJson } from "../utils/offlineCache";
-import { useAuth } from "@clerk/clerk-react";
 
 const BRIEFING_CACHE_KEY = "gc-agent:cache:public-briefing:v1";
 
@@ -31,39 +30,26 @@ function formatCurrency(value: number): string {
 
 function urgencyFromLine(line: string): { label: string; tone: string } {
   const normalized = line.trimStart().toUpperCase();
-  if (normalized.startsWith("ACTION")) {
-    return { label: "High", tone: "border-orange/45 bg-orange/10 text-orange" };
-  }
-  if (normalized.startsWith("WATCH")) {
-    return { label: "Risk", tone: "border-red-400/45 bg-red-400/10 text-red-200" };
-  }
-  return { label: "Normal", tone: "border-steel/35 bg-steel/10 text-steel" };
+  if (normalized.startsWith("ACTION")) return { label: "HIGH", tone: "ta" };
+  if (normalized.startsWith("WATCH")) return { label: "RISK", tone: "tr" };
+  return { label: "NORMAL", tone: "ts" };
 }
 
 function cleanBriefingLine(line: string): string {
   return line.replace(/^(ACTION|WATCH|READY FOR)\s*[-:]*\s*/i, "").trim();
 }
 
-function jobHealthTone(health: Job["health"]): string {
-  if (health === "blocked") {
-    return "bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.55)]";
-  }
-  if (health === "at-risk") {
-    return "bg-yellow shadow-[0_0_12px_rgba(245,158,11,0.55)]";
-  }
-  return "bg-green shadow-[0_0_12px_rgba(56,166,104,0.55)]";
+function healthTone(health: Job["health"]): "good" | "warn" | "risk" {
+  if (health === "blocked") return "risk";
+  if (health === "at-risk") return "warn";
+  return "good";
 }
 
 function queueSummary(group: QueueJobGroup): string {
-  if (group.drafts.length === 0) {
-    return "Awaiting draft details";
-  }
+  if (group.drafts.length === 0) return "AWAITING DRAFT DETAILS";
   const latest = group.drafts[0];
-  if (!latest) {
-    return "Awaiting draft details";
-  }
-  const draftLabel = (latest.type || latest.title || "draft").replace(/-/g, " ");
-  return `${draftLabel} · ${group.drafts.length} queued`;
+  const draftLabel = (latest?.type || latest?.title || "draft").replace(/-/g, " ");
+  return `${draftLabel.toUpperCase()} · ${group.drafts.length} QUEUED`;
 }
 
 export function BriefingPage() {
@@ -83,9 +69,7 @@ export function BriefingPage() {
     },
     enabled: hasContractorApiCredentials(),
     retry: (failureCount) => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        return false;
-      }
+      if (typeof navigator !== "undefined" && !navigator.onLine) return false;
       return failureCount < 2;
     },
     staleTime: 30000,
@@ -97,11 +81,7 @@ export function BriefingPage() {
 
   const briefingLines = useMemo(() => {
     const raw = briefingQuery.data?.briefing ?? "";
-    return raw
-      .replace(/\r\n/g, "\n")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+    return raw.replace(/\r\n/g, "\n").split("\n").map((line) => line.trim()).filter(Boolean);
   }, [briefingQuery.data]);
 
   const actionLines = useMemo(() => {
@@ -111,10 +91,7 @@ export function BriefingPage() {
     });
 
     if (lines.length > 0) {
-      return lines.slice(0, 4).map((line, index) => ({
-        id: `${index}-${line}`,
-        line,
-      }));
+      return lines.slice(0, 4).map((line, index) => ({ id: `${index}-${line}`, line }));
     }
 
     if (queueGroups.length > 0) {
@@ -137,201 +114,122 @@ export function BriefingPage() {
   const staleOpenItems = jobs.reduce((count, job) => count + job.open_items.filter((item) => item.days_silent >= 5).length, 0);
   const activeValue = jobs.reduce((sum, job) => sum + Number(job.contract_value || 0), 0);
   const queueCount = queueGroups.reduce((sum, group) => sum + group.drafts.length, 0);
-  const urgentJobs = jobs.filter((job) => job.health !== "on-track" || job.open_items.length > 0).slice(0, 4);
   const healthJobs = jobs.slice(0, 4);
+  const urgentJobs = jobs.filter((job) => job.health !== "on-track" || job.open_items.length > 0).slice(0, 4);
 
   return (
-    <main className="page-wrap">
-      <div className="section-stack">
-        <section className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0">
-            <p className="kicker">System briefing · {formatToday()}</p>
-            <h1 className="mt-3 font-display text-[2.4rem] uppercase leading-none tracking-[0.08em] text-text sm:text-[3.1rem]">
-              Morning readout
-            </h1>
-            <p className="mt-3 text-sm text-muted sm:text-base">
-              {jobs.length} open jobs · {queueCount} drafts in queue · {isOnline ? "System nominal" : "Offline cache active"}
-            </p>
+    <div className="pw">
+      <div className="ph">
+        <div className="ph-row">
+          <div>
+            <div className="eyebrow">System Briefing · {formatToday()}</div>
+            <div className="ptitle">Morning readout</div>
+            <div className="psub">{jobs.length} open jobs · {queueCount} drafts in queue · {isOnline ? "System nominal" : "Offline cache active"}</div>
           </div>
-          <div className="flex flex-wrap gap-2 xl:justify-end">
-            <Link to="/quote" className="action-button-primary">
-              + New quote
-            </Link>
+          <Link to="/quote" className="cta him">＋ NEW QUOTE</Link>
+        </div>
+      </div>
+
+      <div className="sstrip c4 ani" style={{ marginBottom: 14 }}>
+        {[
+          { k: "Open Jobs", v: String(jobs.length), delta: `${Math.max(jobs.length - 6, 0)} added this week`, dir: "flat" },
+          { k: "Queue", v: String(queueCount), delta: queueCount > 0 ? "needs review" : "clear", dir: queueCount > 0 ? "flat" : "up" },
+          { k: "At Risk", v: String(blockedJobs + atRiskJobs), delta: staleOpenItems > 0 ? "follow-up overdue" : "monitoring only", dir: blockedJobs + atRiskJobs > 0 || staleOpenItems > 0 ? "dn" : "flat" },
+          { k: "Active Value", v: formatCurrency(activeValue), delta: isOnline ? "live from jobs" : "cached totals", dir: activeValue > 0 ? "up" : "flat" },
+        ].map((stat) => (
+          <div className="scell" key={stat.k}>
+            <div className="sk">{stat.k}</div>
+            <div className="sv">{stat.v}</div>
+            <div className={`sd ${stat.dir}`}>{stat.delta}</div>
           </div>
-        </section>
+        ))}
+      </div>
 
-        <section className="surface-panel overflow-hidden">
-          <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              { label: "Open jobs", value: jobs.length, detail: `${Math.max(jobs.length - 6, 0)} added this week`, tone: "text-text" },
-              { label: "Queue", value: queueCount, detail: queueCount > 0 ? "needs review" : "clear", tone: queueCount > 0 ? "text-text" : "text-green" },
-              { label: "At risk", value: blockedJobs + atRiskJobs, detail: staleOpenItems > 0 ? "follow-up overdue" : "monitoring only", tone: blockedJobs + atRiskJobs > 0 || staleOpenItems > 0 ? "text-red-200" : "text-text" },
-              { label: "Active value", value: formatCurrency(activeValue), detail: isOnline ? "live from jobs" : "cached totals", tone: activeValue > 0 ? "text-green" : "text-text" },
-            ].map((stat) => (
-              <article key={stat.label} className="stat-cell">
-                <p className="data-label">{stat.label}</p>
-                <div className={clsx("stat-value", stat.tone)}>{stat.value}</div>
-                <p className={clsx("mt-2 font-mono text-[10px] uppercase tracking-[0.16em]", stat.tone === "text-red-200" ? "text-red-200" : stat.tone === "text-green" ? "text-green" : "text-muted")}>{stat.detail}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+      {!hasContractorApiCredentials() ? (
+        <div className="alert awarn" style={{ marginBottom: 14 }}>
+          <span>⚠</span>
+          <div>Set <strong>VITE_BETA_API_KEY</strong> and <strong>VITE_BETA_CONTRACTOR_ID</strong> to pull the live contractor briefing endpoint.</div>
+        </div>
+      ) : null}
 
-        {!hasContractorApiCredentials() ? (
-          <section className="surface-panel-subtle px-4 py-3 text-sm text-yellow sm:px-5">
-            Set `VITE_BETA_API_KEY` and `VITE_BETA_CONTRACTOR_ID` in `frontend/.env` to pull the live contractor-facing briefing endpoint.
-          </section>
-        ) : null}
-
-        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-          <section className="surface-panel overflow-hidden">
-            <div className="surface-card-header">
-              <div>
-                <p className="kicker">Action required</p>
-                <h2 className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-steel">Live briefing signals</h2>
-              </div>
-              <span className="terminal-mini-chip border-orange/45 bg-orange/10 text-orange">{actionLines.length} items</span>
-            </div>
-            <div className="surface-card-body p-0">
-              {briefingQuery.isLoading ? (
-                <div className="px-5 py-5 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Loading live briefing...</div>
-              ) : null}
-
-              {!briefingQuery.isLoading && briefingQuery.isError ? (
-                <div className="px-5 py-5 text-sm text-red-200">Briefing unavailable from network. Cached data is shown when present.</div>
-              ) : null}
-
-              {!briefingQuery.isLoading && !briefingQuery.isError && actionLines.length === 0 ? (
-                <div className="px-5 py-5 text-sm text-muted">No action items are stacked right now.</div>
-              ) : null}
-
-              {!briefingQuery.isLoading && !briefingQuery.isError ? (
-                <div>
-                  {actionLines.map((item, index) => {
-                    const urgency = urgencyFromLine(item.line);
-                    const relatedJob = urgentJobs[index] ?? jobs[index] ?? null;
-                    return (
-                      <article key={item.id} className="border-b border-border/80 px-5 py-4 last:border-b-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 border-l-2 border-orange pl-4">
-                            <p className="text-lg text-text">{cleanBriefingLine(item.line)}</p>
-                            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-                              {relatedJob
-                                ? `${relatedJob.id} · ${relatedJob.type} · ${formatCurrency(relatedJob.contract_value)}`
-                                : "Briefing signal"}
-                            </p>
-                          </div>
-                          <span className={clsx("terminal-mini-chip", urgency.tone)}>{urgency.label}</span>
-                        </div>
-                      </article>
-                    );
-                  })}
+      <div className="g2 ani a1" style={{ gap: 14 }}>
+        <div className="panel">
+          <div className="ph2"><span className="ptl">Action required</span><span className="tag ta" style={{ marginLeft: "auto" }}>{actionLines.length} items</span></div>
+          {briefingQuery.isLoading ? <div className="pb">Loading live briefing...</div> : null}
+          {!briefingQuery.isLoading && actionLines.length === 0 ? <div className="pb">No action items are stacked right now.</div> : null}
+          {!briefingQuery.isLoading && actionLines.map((item, index) => {
+            const urgency = urgencyFromLine(item.line);
+            const relatedJob = urgentJobs[index] ?? jobs[index] ?? null;
+            return (
+              <div className="drow" key={item.id}>
+                <span style={{ fontSize: 17, flexShrink: 0 }}>{urgency.label === "HIGH" ? "📋" : urgency.label === "RISK" ? "📤" : "⚡"}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: "var(--cream)" }}>{cleanBriefingLine(item.line)}</div>
+                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 2, letterSpacing: "0.5px" }}>
+                    {relatedJob ? `${relatedJob.id} · ${relatedJob.type} · ${formatCurrency(relatedJob.contract_value)}` : "BRIEFING SIGNAL"}
+                  </div>
                 </div>
-              ) : null}
-            </div>
-          </section>
-
-          <div className="grid gap-4">
-            <section className="surface-panel overflow-hidden">
-              <div className="surface-card-header">
-                <div>
-                  <p className="kicker">Draft queue</p>
-                  <h2 className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-steel">Queued review work</h2>
-                </div>
-                <span className="terminal-mini-chip border-orange/45 bg-orange/10 text-orange">{queueCount}</span>
+                <span className={`tag ${urgency.tone}`}>{urgency.label}</span>
               </div>
-              <div className="surface-card-body p-0">
-                {queueGroups.length === 0 ? (
-                  <div className="px-5 py-5 text-sm text-muted">No queued drafts waiting right now.</div>
-                ) : (
-                  <>
-                    {queueGroups.slice(0, 3).map((group) => (
-                      <article key={group.job_id} className="border-b border-border/80 px-5 py-4 last:border-b-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-lg text-text">{group.job_name}</p>
-                            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">{queueSummary(group)}</p>
-                          </div>
-                          <span className="font-mono text-xs uppercase tracking-[0.16em] text-green">{group.drafts.length}</span>
-                        </div>
-                      </article>
-                    ))}
-                    <div className="px-5 py-4">
-                      <Link to="/queue" className="action-button-secondary flex w-full justify-center">
-                        Review queue ?
-                      </Link>
-                    </div>
-                  </>
-                )}
-              </div>
-            </section>
-
-            <section className="surface-panel overflow-hidden">
-              <div className="surface-card-header">
-                <div>
-                  <p className="kicker">Job health</p>
-                  <h2 className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-steel">Where attention is stacking up</h2>
-                </div>
-              </div>
-              <div className="surface-card-body p-0">
-                {(healthJobs.length > 0 ? healthJobs : urgentJobs).length === 0 ? (
-                  <div className="px-5 py-5 text-sm text-muted">No active job signals yet.</div>
-                ) : (
-                  (healthJobs.length > 0 ? healthJobs : urgentJobs).map((job) => (
-                    <Link
-                      key={job.id}
-                      to={`/jobs/${job.id}`}
-                      className="flex items-start justify-between gap-3 border-b border-border/80 px-5 py-4 transition hover:bg-surface/60 last:border-b-0"
-                    >
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span className={clsx("mt-1 h-2.5 w-2.5 rounded-full", jobHealthTone(job.health))} aria-hidden="true" />
-                        <div className="min-w-0">
-                          <p className="text-lg text-text">{job.name}</p>
-                          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-                            {job.type} · {job.open_items.length} open item{job.open_items.length === 1 ? "" : "s"}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="terminal-mini-chip border-blue-500/45 bg-blue-500/10 text-blue-200">{job.status}</span>
-                    </Link>
-                  ))
-                )}
-              </div>
-            </section>
-          </div>
+            );
+          })}
         </div>
 
-        <section className="surface-panel overflow-hidden">
-          <div className="surface-card-header">
-            <div>
-              <p className="kicker">FYI</p>
-              <h2 className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-steel">Background notes</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => void briefingQuery.refetch()}
-              disabled={!hasContractorApiCredentials() || briefingQuery.isFetching}
-              className="action-button-secondary disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {briefingQuery.isFetching ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-          <div className="surface-card-body">
-            {secondaryLines.length === 0 ? (
-              <p className="text-sm text-muted">No additional briefing notes.</p>
-            ) : (
-              <div className="space-y-3">
-                {secondaryLines.map((line) => (
-                  <article key={line} className="rounded-[2px] border border-border/80 bg-surface/75 px-4 py-3 text-sm leading-6 text-text">
-                    {line}
-                  </article>
-                ))}
+        <div className="vs" style={{ gap: 14 }}>
+          <div className="panel">
+            <div className="ph2"><span className="ptl">Draft Queue</span><span className="tag ta" style={{ marginLeft: "auto" }}>{queueCount}</span></div>
+            {queueGroups.length === 0 ? <div className="pb">No queued drafts waiting right now.</div> : queueGroups.slice(0, 3).map((group) => (
+              <div className="drow" key={group.job_id}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: "var(--cream)" }}>{group.job_name}</div>
+                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 2, letterSpacing: "0.5px" }}>{queueSummary(group)}</div>
+                </div>
+                <span className="cnum chi">{Math.max(78, 88 - group.drafts.length)}%</span>
               </div>
-            )}
+            ))}
+            <div className="pb" style={{ paddingTop: 10, paddingBottom: 10 }}>
+              <Link to="/queue" className="btn bw" style={{ width: "100%", justifyContent: "center", fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1.5px", textTransform: "uppercase" }}>Review Queue →</Link>
+            </div>
           </div>
-        </section>
+
+          <div className="panel">
+            <div className="ph2"><span className="ptl">Job health</span></div>
+            {(healthJobs.length > 0 ? healthJobs : urgentJobs).map((job) => (
+              <Link key={job.id} to={`/jobs/${job.id}`} className="drow">
+                <span className={`hdot ${healthTone(job.health)}`} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: "var(--cream)" }}>{job.name}</div>
+                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 1, letterSpacing: "0.5px" }}>{job.contract_type} · {job.status}</div>
+                </div>
+                <span className="tag tb td">active</span>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
-    </main>
+
+      <div className="alert ainfo ani a2" style={{ marginTop: 14, fontSize: 12 }}>
+        <span style={{ flexShrink: 0, fontSize: 13 }}>◈</span>
+        <div>
+          <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 9, letterSpacing: "1px" }}>ESTIMATING MEMORY — ACTIVE</strong>
+          <div style={{ marginTop: 3, color: "var(--steel)" }}>This workspace is reading jobs, drafts, and the contractor briefing endpoint in the same terminal surface.</div>
+        </div>
+      </div>
+
+      <div className="panel ani a2" style={{ marginTop: 14 }}>
+        <div className="ph2"><span className="ptl">FYI</span><button type="button" onClick={() => void briefingQuery.refetch()} disabled={!hasContractorApiCredentials() || briefingQuery.isFetching} className="btn bw sm">{briefingQuery.isFetching ? "Refreshing..." : "Refresh"}</button></div>
+        <div className="pb">
+          {secondaryLines.length === 0 ? (
+            <div style={{ fontSize: 12, color: "var(--steel)" }}>No additional briefing notes.</div>
+          ) : (
+            <div className="vs">
+              {secondaryLines.map((line) => (
+                <div key={line} style={{ border: "1px solid var(--wire)", padding: "10px 12px", fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>{line}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
-

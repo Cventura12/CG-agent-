@@ -1,4 +1,4 @@
-import {
+﻿import {
   AuthenticateWithRedirectCallback,
   ClerkFailed,
   ClerkLoaded,

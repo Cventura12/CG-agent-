@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
+import { Link } from "react-router-dom";
 
-import { PageHeader } from "../components/PageHeader";
-import { SurfaceCard } from "../components/SurfaceCard";
 import { useMultiJobInsights } from "../hooks/useMultiJobInsights";
 
 function formatCurrency(value: number): string {
@@ -14,6 +13,12 @@ function formatCurrency(value: number): string {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function confidenceTone(confidence: string): string {
+  if (confidence === "high") return "tg";
+  if (confidence === "medium") return "ta";
+  return "tr";
 }
 
 export function InsightsPage() {
@@ -28,132 +33,124 @@ export function InsightsPage() {
     if (!data) {
       return [];
     }
-    return [...data.opportunities].sort(
-      (a, b) => b.estimated_savings_amount - a.estimated_savings_amount
-    );
+    return [...data.opportunities].sort((a, b) => b.estimated_savings_amount - a.estimated_savings_amount);
   }, [data]);
 
   return (
-    <main className="page-wrap">
-      <div className="section-stack">
-        <PageHeader
-          eyebrow="Insights"
-          title="Cross-job leverage"
-          description="Find jobs with similar scope and place one supplier order to reduce cost, delivery churn, and coordination waste."
-          actions={
-            <div className="flex gap-2">
-              {[7, 14, 30].map((window) => (
-                <button
-                  key={window}
-                  type="button"
-                  onClick={() => setHorizonDays(window as 7 | 14 | 30)}
-                  className={`rounded-2xl px-3 py-2 font-mono text-[11px] uppercase tracking-wider ${
-                    horizonDays === window
-                      ? "border border-orange/50 bg-orange/10 text-orange"
-                      : "border border-border bg-bg/55 text-muted hover:border-orange hover:text-orange"
-                  }`}
-                >
-                  {window} day window
-                </button>
-              ))}
-            </div>
-          }
-        />
-
-        {insightsQuery.isLoading ? (
-          <SurfaceCard eyebrow="Loading" title="Pulling insights">
-            <p className="text-sm text-muted">Loading multi-job insights...</p>
-          </SurfaceCard>
-        ) : null}
-
-        {insightsQuery.isError ? (
-          <SurfaceCard eyebrow="Unavailable" title="Insights not available">
-            <p className="text-sm text-red-200">Could not load insights. Check backend connectivity and auth.</p>
-          </SurfaceCard>
-        ) : null}
-
-        {data ? (
-          <>
-            <section className="grid gap-3 sm:grid-cols-3">
-              <article className="rounded-2xl border border-border bg-surface p-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Jobs considered</p>
-                <p className="mt-2 text-2xl font-semibold text-text">{data.summary.active_jobs_considered}</p>
-              </article>
-              <article className="rounded-2xl border border-border bg-surface p-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Opportunities</p>
-                <p className="mt-2 text-2xl font-semibold text-text">{data.summary.opportunities_found}</p>
-              </article>
-              <article className="rounded-2xl border border-border bg-surface p-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Potential savings</p>
-                <p className="mt-2 text-2xl font-semibold text-text">
-                  {formatCurrency(data.summary.estimated_total_savings_amount)}
-                </p>
-              </article>
-            </section>
-
-            <section className="space-y-3">
-              {sorted.length === 0 ? (
-                <SurfaceCard eyebrow="No opportunities" title="Nothing grouped in this horizon">
-                  <p className="text-sm text-muted">No grouped order opportunities found in this horizon.</p>
-                </SurfaceCard>
-              ) : (
-                sorted.map((opportunity) => (
-                  <article key={opportunity.group_key} className="surface-panel px-4 py-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
-                          {opportunity.job_type} / {opportunity.contract_type}
-                        </p>
-                        <h2 className="mt-1 text-lg font-semibold text-text">
-                          {opportunity.job_count} jobs can share one order
-                        </h2>
-                        <p className="mt-1 text-sm text-muted">{opportunity.rationale}</p>
-                      </div>
-                      <div className="rounded-xl border border-green/40 bg-green/10 px-3 py-2 text-right">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-green">Estimated savings</p>
-                        <p className="mt-1 text-lg font-semibold text-text">
-                          {formatCurrency(opportunity.estimated_savings_amount)}
-                        </p>
-                        <p className="text-xs text-muted">{opportunity.estimated_savings_pct}%</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                      <div className="rounded-xl border border-border bg-bg px-3 py-3">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">Jobs in group</p>
-                        <ul className="mt-2 space-y-2 text-sm text-text/90">
-                          {opportunity.jobs.map((job) => (
-                            <li key={job.id}>
-                              {job.name}{" "}
-                              <span className="text-muted">
-                                ({job.days_until_completion ?? "?"}d, {formatCurrency(job.contract_value)})
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="rounded-xl border border-border bg-bg px-3 py-3">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-                          Suggested combined order
-                        </p>
-                        <ul className="mt-2 space-y-2 text-sm text-text/90">
-                          {opportunity.suggested_materials.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                        <p className="mt-3 text-xs text-muted">
-                          Confidence: {opportunity.confidence}. Recommended order window:{" "}
-                          {opportunity.recommended_order_window_days} days.
-                        </p>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
-            </section>
-          </>
-        ) : null}
+    <div className="pw">
+      <div className="ph">
+        <div className="eyebrow">Intelligence Layer</div>
+        <div className="ptitle">Insights</div>
+        <div className="psub">Cross-job pattern analysis · {sorted.length} signals detected</div>
       </div>
-    </main>
+
+      <div className="tabrow">
+        {[7, 14, 30].map((window) => (
+          <span key={window} className={`tabt ${horizonDays === window ? "active" : ""}`} onClick={() => setHorizonDays(window as 7 | 14 | 30)}>
+            {window} day window
+          </span>
+        ))}
+      </div>
+
+      {insightsQuery.isLoading ? <div className="panel"><div className="pb">Loading multi-job insights...</div></div> : null}
+      {insightsQuery.isError ? <div className="panel"><div className="pb">Insights unavailable. Check backend connectivity and auth.</div></div> : null}
+
+      {data ? (
+        <>
+          <div className="sstrip c2 ani" style={{ marginBottom: 14 }}>
+            {[
+              { k: "Jobs Considered", v: String(data.summary.active_jobs_considered), delta: `${data.summary.opportunities_found} opportunities`, dir: "flat" },
+              { k: "Potential Savings", v: formatCurrency(data.summary.estimated_total_savings_amount), delta: `${horizonDays} day planning window`, dir: data.summary.estimated_total_savings_amount > 0 ? "up" : "flat" },
+            ].map((stat) => (
+              <div className="scell" key={stat.k}>
+                <div className="sk">{stat.k}</div>
+                <div className="sv">{stat.v}</div>
+                <div className={`sd ${stat.dir}`}>{stat.delta}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="vs">
+            {sorted.length === 0 ? (
+              <div className="panel"><div className="pb">No grouped order opportunities found in this horizon.</div></div>
+            ) : (
+              sorted.map((opportunity, index) => (
+                <div className={`panel ani a${index % 4}`} key={opportunity.group_key}>
+                  <div className="ph2 hs">
+                    <span style={{ fontSize: 15 }}>{opportunity.estimated_savings_amount > 0 ? "?" : "•"}</span>
+                    <span className={`tag ${confidenceTone(opportunity.confidence)}`}>{opportunity.confidence}</span>
+                    <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px", marginLeft: 4 }}>
+                      {opportunity.job_count} jobs can share one order
+                    </span>
+                  </div>
+                  <div className="pb">
+                    <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.6, marginBottom: 10 }}>{opportunity.rationale}</div>
+                    <div className="g2">
+                      <div>
+                        <div className="lbl" style={{ marginBottom: 6 }}>Jobs in group</div>
+                        <div className="vs">
+                          {opportunity.jobs.map((job) => (
+                            <div key={job.id} className="drow" style={{ cursor: "default" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 12, color: "var(--cream)" }}>{job.name}</div>
+                                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 2, letterSpacing: "0.5px" }}>
+                                  {job.id} · {job.days_until_completion ?? "?"} DAYS · {formatCurrency(job.contract_value)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="lbl" style={{ marginBottom: 6 }}>Suggested combined order</div>
+                        <div className="vs">
+                          {opportunity.suggested_materials.map((item) => (
+                            <div key={item} className="drow" style={{ cursor: "default" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 12, color: "var(--cream)" }}>{item}</div>
+                                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 2, letterSpacing: "0.5px" }}>
+                                  ORDER WINDOW · {opportunity.recommended_order_window_days} DAYS
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="sp" style={{ marginTop: 12, flexWrap: "wrap", gap: 8 }}>
+                      <div className="hs" style={{ gap: 6, flexWrap: "wrap" }}>
+                        <span className="tag tb">{opportunity.job_type}</span>
+                        <span className="tag ts">{opportunity.contract_type}</span>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 18, fontWeight: 600, color: "var(--amber-hot)" }}>
+                          {formatCurrency(opportunity.estimated_savings_amount)}
+                        </div>
+                        <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.5px" }}>
+                          {opportunity.estimated_savings_pct}% EST. SAVINGS
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="panel" style={{ marginTop: 14 }}>
+            <div className="ph2"><span className="ptl">Operator Actions</span></div>
+            <div className="pb">
+              <div className="hs" style={{ flexWrap: "wrap" }}>
+                <Link to="/jobs" className="btn bw sm">View jobs ?</Link>
+                <Link to="/quote" className="btn bw sm">New quote ?</Link>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
+

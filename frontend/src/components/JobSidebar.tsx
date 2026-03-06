@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+﻿import type { KeyboardEvent } from "react";
 import clsx from "clsx";
 
 import type { Job } from "../types";

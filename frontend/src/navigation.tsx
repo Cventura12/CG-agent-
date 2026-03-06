@@ -1,19 +1,10 @@
-﻿import type { LucideIcon } from "lucide-react";
-import {
-  AudioWaveform,
-  BarChart3,
-  Blocks,
-  BriefcaseBusiness,
-  ClipboardList,
-  House,
-} from "lucide-react";
-
-export type AppNavItem = {
+﻿export type AppNavItem = {
   section: "Operations" | "Field";
   label: string;
   shortLabel: string;
   href: string;
-  icon: LucideIcon;
+  ico: string;
+  badge?: number | null;
   description: string;
   match: (pathname: string) => boolean;
 };
@@ -21,11 +12,12 @@ export type AppNavItem = {
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
     section: "Operations",
-    label: "Command Center",
+    label: "Briefing",
     shortLabel: "Home",
     href: "/",
-    icon: House,
-    description: "Morning briefing, risk summary, and today's work stack.",
+    ico: "⬡",
+    badge: null,
+    description: "Morning briefing and live action readout.",
     match: (pathname) => pathname === "/",
   },
   {
@@ -33,8 +25,9 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "New Quote",
     shortLabel: "Quote",
     href: "/quote",
-    icon: AudioWaveform,
-    description: "Capture field notes, upload files, review, send, and follow up.",
+    ico: "＋",
+    badge: null,
+    description: "Capture, review, send, and follow up.",
     match: (pathname) => pathname.startsWith("/quote"),
   },
   {
@@ -42,8 +35,9 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Queue",
     shortLabel: "Queue",
     href: "/queue",
-    icon: ClipboardList,
-    description: "Fast approvals, edits, and draft triage across active jobs.",
+    ico: "⚡",
+    badge: null,
+    description: "Drafts awaiting contractor review.",
     match: (pathname) => pathname.startsWith("/queue"),
   },
   {
@@ -51,17 +45,19 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Jobs",
     shortLabel: "Jobs",
     href: "/jobs",
-    icon: BriefcaseBusiness,
-    description: "Operational records, open items, and job history.",
+    ico: "◫",
+    badge: null,
+    description: "Operational records and job history.",
     match: (pathname) => pathname.startsWith("/jobs"),
   },
   {
     section: "Field",
     label: "Analytics",
-    shortLabel: "Metrics",
+    shortLabel: "Stats",
     href: "/analytics",
-    icon: BarChart3,
-    description: "Usage, delivery, queue performance, and runtime health.",
+    ico: "⊞",
+    badge: null,
+    description: "Runtime, delivery, and outcome metrics.",
     match: (pathname) => pathname.startsWith("/analytics"),
   },
   {
@@ -69,8 +65,9 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Insights",
     shortLabel: "Insights",
     href: "/insights",
-    icon: Blocks,
-    description: "Cross-job patterns and grouped order opportunities.",
+    ico: "◈",
+    badge: null,
+    description: "Cross-job leverage and pattern detection.",
     match: (pathname) => pathname.startsWith("/insights"),
   },
 ];

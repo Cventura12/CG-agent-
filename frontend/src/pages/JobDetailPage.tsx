@@ -1,16 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
-import clsx from "clsx";
-import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import { fetchJobDetail } from "../api/jobs";
-import { FollowupStatusCard } from "../components/FollowupStatusCard";
 import { approveDraft, discardDraft, editDraft } from "../api/queue";
-import { DraftCard } from "../components/DraftCard";
-import { PageHeader } from "../components/PageHeader";
-import { SurfaceCard } from "../components/SurfaceCard";
 import { useQueue } from "../hooks/useQueue";
 import type { QueuePayload } from "../types";
 
@@ -45,31 +39,15 @@ function formatCurrency(value: number): string {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value || 0);
 }
 
-function healthBadgeClass(health: "on-track" | "at-risk" | "blocked"): string {
-  if (health === "blocked") {
-    return "border-red-400/60 bg-red-400/10 text-red-300";
+function formatTimestamp(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
   }
-  if (health === "at-risk") {
-    return "border-yellow/70 bg-yellow/10 text-yellow";
-  }
-  return "border-green/60 bg-green/10 text-green";
-}
-
-function inputTypeBadgeClass(inputType: string): string {
-  const normalized = inputType.toLowerCase();
-  if (normalized === "voice") {
-    return "border-steel/60 bg-steel/15 text-steel";
-  }
-  if (normalized === "whatsapp") {
-    return "border-green/60 bg-green/15 text-green";
-  }
-  if (normalized === "sms") {
-    return "border-yellow/60 bg-yellow/15 text-yellow";
-  }
-  return "border-border bg-bg text-muted";
+  return parsed.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 function truncate(value: string, maxChars: number): string {
@@ -79,36 +57,28 @@ function truncate(value: string, maxChars: number): string {
   return `${value.slice(0, maxChars - 3)}...`;
 }
 
-function silentTone(daysSilent: number): string {
-  if (daysSilent >= 7) {
-    return "border-red-400/60 bg-red-400/10";
-  }
-  if (daysSilent >= 5) {
-    return "border-yellow/70 bg-yellow/10";
-  }
-  return "border-border bg-surface";
+function inputTone(inputType: string): string {
+  const normalized = inputType.toLowerCase();
+  if (normalized === "voice") return "tb";
+  if (normalized === "whatsapp") return "tg";
+  if (normalized === "sms") return "ta";
+  return "ts";
 }
 
-function formatTimestamp(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-  return parsed.toLocaleString();
+function followupTag(status: string | undefined): { label: string; cls: string } {
+  if (status === "scheduled") return { label: "Active", cls: "ta td" };
+  if (status === "stopped") return { label: "Stopped", cls: "tr" };
+  if (status === "pending_destination") return { label: "Pending", cls: "ts" };
+  return { label: "Inactive", cls: "ts" };
 }
 
-function eventTone(eventType: string): string {
-  const normalized = eventType.toLowerCase();
-  if (normalized.includes("failed") || normalized.includes("discarded")) {
-    return "border-red-400/40 bg-red-400/10";
-  }
-  if (normalized.includes("approved") || normalized.includes("sent")) {
-    return "border-green/40 bg-green/10";
-  }
-  if (normalized.includes("edited")) {
-    return "border-yellow/50 bg-yellow/10";
-  }
-  return "border-border bg-bg";
+function followupReason(reason: string | null): string {
+  const normalized = (reason ?? "").trim().toLowerCase();
+  if (normalized === "max_reminders_reached") return "Two reminders have already been sent.";
+  if (normalized === "manual_stop") return "You paused automatic follow-up for this quote.";
+  if (normalized === "quote_discarded") return "This quote was discarded.";
+  if (!normalized) return "Sequence activates after the quote is sent.";
+  return normalized.replace(/_/g, " ");
 }
 
 export function JobDetailPage() {
@@ -117,6 +87,7 @@ export function JobDetailPage() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [expandedUpdateIds, setExpandedUpdateIds] = useState<Record<string, boolean>>({});
+  const [draftEdits, setDraftEdits] = useState<Record<string, string>>({});
 
   const { userId } = useAuth();
   const currentUserId = userId ?? null;
@@ -131,12 +102,8 @@ export function JobDetailPage() {
   });
 
   const job = detailQuery.data?.job;
-  const updates = useMemo(() => {
-    return (detailQuery.data?.recent_updates ?? []).slice(0, 5);
-  }, [detailQuery.data]);
-  const auditTimeline = useMemo(() => {
-    return (detailQuery.data?.audit_timeline ?? []).slice(0, 20);
-  }, [detailQuery.data]);
+  const updates = useMemo(() => (detailQuery.data?.recent_updates ?? []).slice(0, 5), [detailQuery.data]);
+  const auditTimeline = useMemo(() => (detailQuery.data?.audit_timeline ?? []).slice(0, 20), [detailQuery.data]);
   const followupState = detailQuery.data?.followup_state ?? null;
 
   const pendingDrafts = useMemo(() => {
@@ -157,11 +124,9 @@ export function JobDetailPage() {
       setErrorMessage(null);
       await queryClient.cancelQueries({ queryKey: ["queue", scope] });
       const previousQueue = queryClient.getQueryData<QueuePayload>(["queue", scope]);
-
       if (previousQueue) {
         queryClient.setQueryData<QueuePayload>(["queue", scope], removeDraftFromQueue(previousQueue, draftId));
       }
-
       return { previousQueue };
     },
     onError: (_error, _vars, context) => {
@@ -185,11 +150,9 @@ export function JobDetailPage() {
       setErrorMessage(null);
       await queryClient.cancelQueries({ queryKey: ["queue", scope] });
       const previousQueue = queryClient.getQueryData<QueuePayload>(["queue", scope]);
-
       if (previousQueue) {
         queryClient.setQueryData<QueuePayload>(["queue", scope], removeDraftFromQueue(previousQueue, draftId));
       }
-
       return { previousQueue };
     },
     onError: (_error, _vars, context) => {
@@ -213,11 +176,9 @@ export function JobDetailPage() {
       setErrorMessage(null);
       await queryClient.cancelQueries({ queryKey: ["queue", scope] });
       const previousQueue = queryClient.getQueryData<QueuePayload>(["queue", scope]);
-
       if (previousQueue) {
         queryClient.setQueryData<QueuePayload>(["queue", scope], removeDraftFromQueue(previousQueue, draftId));
       }
-
       return { previousQueue };
     },
     onError: (_error, _vars, context) => {
@@ -250,211 +211,177 @@ export function JobDetailPage() {
     }));
   };
 
+  const followupChip = followupTag(followupState?.status);
+
   return (
-    <main className="page-wrap">
-      <div className="section-stack">
-        <Link to="/jobs" className="inline-flex font-mono text-xs uppercase tracking-[0.18em] text-orange">
-          Back to jobs
-        </Link>
-
-        {detailQuery.isLoading ? <p className="text-sm text-muted">Loading job...</p> : null}
-        {!detailQuery.isLoading && !job ? <p className="text-sm text-muted">Job not found.</p> : null}
-
+    <div className="pw">
+      <div className="ph">
+        <Link to="/jobs" className="btn bw sm" style={{ marginBottom: 10, fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1.2px", display: "inline-flex" }}>← JOBS</Link>
+        {detailQuery.isLoading ? <div className="psub">Loading job...</div> : null}
+        {!detailQuery.isLoading && !job ? <div className="psub">Job not found.</div> : null}
         {job ? (
           <>
-            <PageHeader
-              eyebrow="Job record"
-              title={job.name}
-              description={`${job.type} at ${job.address}. Use this page as the job’s running record for open work, draft actions, quote follow-up, updates, and audit history.`}
-              actions={
-                <span
-                  className={clsx(
-                    "inline-flex rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
-                    healthBadgeClass(job.health)
-                  )}
-                >
-                  {job.health}
-                </span>
-              }
-              stats={[
-                { label: "Contract value", value: formatCurrency(job.contract_value) },
-                { label: "Open items", value: job.open_items.length, tone: job.open_items.length > 0 ? "warning" : "default" },
-                { label: "Pending drafts", value: pendingDrafts.length, tone: pendingDrafts.length > 0 ? "warning" : "default" },
-                { label: "Audit events", value: auditTimeline.length },
-              ]}
-            />
-
-            <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-              <div className="space-y-4">
-                <SurfaceCard eyebrow="Open items" title="What is still unresolved">
-                  {job.open_items.length === 0 ? (
-                    <p className="text-sm text-muted">No open items.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {job.open_items.map((item) => {
-                        const highRisk = item.days_silent >= 5;
-                        return (
-                          <article
-                            key={item.id}
-                            className={clsx("rounded-[1.2rem] border p-3", silentTone(item.days_silent))}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="rounded-full border border-border bg-bg px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted">
-                                    {item.type}
-                                  </span>
-                                  {highRisk ? (
-                                    <span className="inline-flex items-center gap-1 text-xs text-yellow">
-                                      <AlertTriangle className="h-3.5 w-3.5" />
-                                      <span>Needs attention</span>
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <p className="mt-2 text-sm leading-6 text-text">{item.description}</p>
-                                <p className="mt-1 text-xs text-muted">Owner: {item.owner}</p>
-                              </div>
-                              <span
-                                className={clsx(
-                                  "rounded-full border px-2 py-0.5 font-mono text-[11px]",
-                                  item.days_silent >= 7
-                                    ? "border-red-400/60 bg-red-400/10 text-red-300"
-                                    : item.days_silent >= 5
-                                      ? "border-yellow/70 bg-yellow/10 text-yellow"
-                                      : "border-border bg-bg text-muted"
-                                )}
-                              >
-                                {item.days_silent}d silent
-                              </span>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                </SurfaceCard>
-
-                {followupState && followupState.status !== "none" ? (
-                  <FollowupStatusCard followup={followupState} title="Customer follow-up" />
-                ) : null}
-
-                <SurfaceCard eyebrow="Pending drafts" title="Actions waiting for review">
-                  {errorMessage ? (
-                    <div className="mb-3 rounded-[1.1rem] border border-red-400/50 bg-red-400/10 px-3 py-2 text-sm text-red-200">
-                      {errorMessage}
-                    </div>
-                  ) : null}
-
-                  {queueQuery.isLoading ? <p className="text-sm text-muted">Loading drafts...</p> : null}
-                  {!queueQuery.isLoading && pendingDrafts.length === 0 ? (
-                    <p className="text-sm text-muted">No pending drafts for this job.</p>
-                  ) : null}
-
-                  <div className="space-y-3">
-                    {pendingDrafts.map((draft) => (
-                      <DraftCard
-                        key={draft.id}
-                        draft={draft}
-                        onApprove={(id) => approveMutation.mutate({ draftId: id })}
-                        onEdit={(id, content) => editMutation.mutate({ draftId: id, content })}
-                        onDiscard={(id) => discardMutation.mutate({ draftId: id })}
-                        isLoading={isDraftLoading(draft.id)}
-                      />
-                    ))}
-                  </div>
-                </SurfaceCard>
-              </div>
-
-              <div className="space-y-4">
-                <SurfaceCard eyebrow="Recent updates" title="Latest inbound job activity">
-                  {updates.length === 0 ? (
-                    <p className="text-sm text-muted">No updates logged yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {updates.map((entry) => {
-                        const isExpanded = !!expandedUpdateIds[entry.id];
-                        return (
-                          <article key={entry.id} className="rounded-[1.2rem] border border-border bg-bg/55">
-                            <button
-                              type="button"
-                              onClick={() => toggleUpdate(entry.id)}
-                              className="w-full px-3 py-3 text-left"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-mono text-[11px] text-muted">
-                                      {formatTimestamp(entry.created_at)}
-                                    </span>
-                                    <span
-                                      className={clsx(
-                                        "rounded-full border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider",
-                                        inputTypeBadgeClass(entry.input_type)
-                                      )}
-                                    >
-                                      {entry.input_type}
-                                    </span>
-                                  </div>
-                                  <p className="mt-2 text-sm leading-6 text-text/90">
-                                    {truncate(entry.raw_input || "", RAW_INPUT_PREVIEW_CHARS)}
-                                  </p>
-                                </div>
-                                {isExpanded ? (
-                                  <ChevronUp className="mt-0.5 h-4 w-4 text-muted" />
-                                ) : (
-                                  <ChevronDown className="mt-0.5 h-4 w-4 text-muted" />
-                                )}
-                              </div>
-                            </button>
-
-                            {isExpanded ? (
-                              <div className="border-t border-border px-3 pb-3 pt-2">
-                                <pre className="whitespace-pre-wrap rounded-[1rem] bg-surface/80 p-3 font-mono text-xs leading-6 text-text/90">
-                                  {JSON.stringify(entry.parsed_changes, null, 2)}
-                                </pre>
-                              </div>
-                            ) : null}
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                </SurfaceCard>
-
-                <SurfaceCard eyebrow="Audit trail" title="Job decisions and delivery history" description="Timeline of updates, quote decisions, sends, and other recorded actions for this job.">
-                  {auditTimeline.length === 0 ? (
-                    <p className="text-sm text-muted">No audit events yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {auditTimeline.map((event) => (
-                        <article key={event.id} className={clsx("rounded-[1.2rem] border p-3", eventTone(event.event_type))}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-[11px] text-muted">{formatTimestamp(event.timestamp)}</span>
-                                <span className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted">
-                                  {event.event_type.replace(/_/g, " ")}
-                                </span>
-                              </div>
-                              <p className="mt-2 text-sm font-medium text-text">{event.title}</p>
-                              <p className="mt-1 text-sm leading-6 text-text/90">{event.summary}</p>
-                            </div>
-                            {event.trace_id ? (
-                              <span className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted">
-                                {truncate(event.trace_id, 18)}
-                              </span>
-                            ) : null}
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </SurfaceCard>
-              </div>
-            </div>
+            <div className="eyebrow">{job.id} · Field Record</div>
+            <div className="ptitle">{job.name}</div>
+            <div className="psub">{job.address}</div>
           </>
         ) : null}
       </div>
-    </main>
+
+      {job ? (
+        <div className="tcol">
+          <div className="vs">
+            <div className="panel ani">
+              <div className="ph2 sp"><span className="ptl">Job Overview</span><span className={`tag ${job.status === "complete" ? "tg" : job.status === "on-hold" ? "ta" : "tb"} td`}>{job.status}</span></div>
+              <div className="pb">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+                  {[["Phase", job.contract_type], ["Trade", job.type], ["Value", formatCurrency(job.contract_value)], ["Last updated", formatTimestamp(job.last_updated)]].map(([key, value]) => (
+                    <div key={key} className="ir" style={{ padding: "7px 0" }}><span className="ik">{key}</span><span className="iv">{value}</span></div>
+                  ))}
+                </div>
+                <hr className="wd" />
+                <div className="lbl" style={{ marginBottom: 5 }}>Site notes</div>
+                <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{job.notes || "No site notes recorded yet."}</div>
+              </div>
+            </div>
+
+            <div className="panel ani a1">
+              <div className="ph2 sp"><span className="ptl">Customer follow-up</span><span className={`tag ${followupChip.cls}`}>{followupChip.label}</span></div>
+              <div className="pb">
+                <div style={{ fontSize: 12, color: "var(--cream)", marginBottom: 8 }}>
+                  {followupState?.status === "stopped"
+                    ? "Automatic follow-up is paused for this quote."
+                    : followupState?.status === "scheduled"
+                      ? "GC Agent will continue reminder follow-up until the quote is answered or stopped."
+                      : followupState?.status === "pending_destination"
+                        ? "Send the quote first so GC Agent knows where to follow up."
+                        : "No follow-up sent yet."}
+                </div>
+                <div className="ir"><span className="ik">Reminders sent</span><span className="iv m">{followupState?.reminder_count ?? 0}</span></div>
+                <div className="ir"><span className="ik">Last reminder</span><span className="iv">{followupState?.last_reminder_at ? formatTimestamp(followupState.last_reminder_at) : "Not recorded yet"}</span></div>
+                <div className="ir"><span className="ik">Channel</span><span className="iv">{followupState?.channel ? followupState.channel.charAt(0).toUpperCase() + followupState.channel.slice(1) : "Not chosen yet"}</span></div>
+                <hr className="wd" />
+                <div style={{ fontSize: 12, color: "var(--cream)" }}>{followupReason(followupState?.stop_reason ?? null)}</div>`r`n                <div style={{ marginTop: 6, fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", lineHeight: 1.8, letterSpacing: "0.5px" }}>FOLLOW-UP STATE IS TRACKED INSIDE THE JOB RECORD</div>
+              </div>
+            </div>
+
+            <div className="panel ani a2">
+              <div className="ph2"><span className="ptl">Pending drafts</span></div>
+              <div className="pb">
+                {errorMessage ? <div className="alert awarn" style={{ marginBottom: 12 }}><span>?</span><div>{errorMessage}</div></div> : null}
+                {pendingDrafts.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--steel)" }}>No pending drafts for this job.</div>
+                ) : (
+                  <div className="vs">
+                    {pendingDrafts.map((draft) => {
+                      const editValue = draftEdits[draft.id] ?? draft.content;
+                      return (
+                        <div key={draft.id} className="panel" style={{ borderColor: "var(--wire2)" }}>
+                          <div className="pb">
+                            <div className="sp" style={{ marginBottom: 10 }}>
+                              <div>
+                                <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
+                                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>{draft.title}</span>
+                                  <span className="tag ts" style={{ fontSize: 7 }}>{draft.id}</span>
+                                  <span className="tag tb">{draft.type}</span>
+                                </div>
+                                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.8px" }}>
+                                  {formatTimestamp(draft.created_at).toUpperCase()} · {draft.status.toUpperCase()}
+                                </div>
+                              </div>
+                            </div>
+                            <div style={{ marginBottom: 12 }}>
+                              <label className="lbl" htmlFor={`job-draft-${draft.id}`}>Draft content</label>
+                              <textarea
+                                id={`job-draft-${draft.id}`}
+                                className="txta"
+                                rows={4}
+                                value={editValue}
+                                onChange={(event) => setDraftEdits((current) => ({ ...current, [draft.id]: event.target.value }))}
+                              />
+                            </div>
+                            <div className="hs" style={{ flexWrap: "wrap" }}>
+                              <button type="button" className="btn bg sm" onClick={() => approveMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>? Approve</button>
+                              <button type="button" className="btn bw sm" onClick={() => editMutation.mutate({ draftId: draft.id, content: editValue })} disabled={isDraftLoading(draft.id)}>? Edit</button>
+                              <button type="button" className="btn brd sm" onClick={() => discardMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>? Discard</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="vs">
+            <div className="panel ani a1">
+              <div className="ph2"><span className="ptl">Recent Updates</span></div>
+              <div className="pb">
+                {updates.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--steel)" }}>No updates logged yet.</div>
+                ) : (
+                  <div className="vs">
+                    {updates.map((entry) => {
+                      const isExpanded = !!expandedUpdateIds[entry.id];
+                      return (
+                        <div key={entry.id} className="panel" style={{ borderColor: "var(--wire2)" }}>
+                          <button type="button" className="pb" style={{ width: "100%", textAlign: "left", background: "transparent" }} onClick={() => toggleUpdate(entry.id)}>
+                            <div className="sp">
+                              <div>
+                                <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
+                                  <span className="tag ts">{formatTimestamp(entry.created_at)}</span>
+                                  <span className={`tag ${inputTone(entry.input_type)}`}>{entry.input_type}</span>
+                                </div>
+                                <div style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>
+                                  {truncate(entry.raw_input || "", RAW_INPUT_PREVIEW_CHARS)}
+                                </div>
+                              </div>
+                              <span className="tag ts">{isExpanded ? "OPEN" : "VIEW"}</span>
+                            </div>
+                          </button>
+                          {isExpanded ? (
+                            <div style={{ borderTop: "1px solid var(--wire)", padding: "12px 14px" }}>
+                              <pre style={{ whiteSpace: "pre-wrap", fontFamily: "'Syne Mono', monospace", fontSize: 10, color: "var(--steel)", lineHeight: 1.8 }}>
+                                {JSON.stringify(entry.parsed_changes, null, 2)}
+                              </pre>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="panel ani a2">
+              <div className="ph2"><span className="ptl">Audit Timeline</span></div>
+              <div className="pb">
+                {auditTimeline.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--steel)" }}>No audit events yet.</div>
+                ) : (
+                  auditTimeline.map((event) => (
+                    <div className="tli" key={event.id}>
+                      <div className={`tln ${event.event_type.includes("approved") || event.event_type.includes("sent") ? "g" : event.event_type.includes("discard") || event.event_type.includes("failed") ? "a" : "m"}`}>
+                        {event.event_type.includes("approved") || event.event_type.includes("sent") ? "?" : "?"}
+                      </div>
+                      <div>
+                        <div className="tll">{event.title}</div>
+                        <div style={{ marginTop: 3, fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{event.summary}</div>
+                        <div className="tlt">{formatTimestamp(event.timestamp)}{event.trace_id ? ` · ${truncate(event.trace_id, 18)}` : ""}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
+
+
