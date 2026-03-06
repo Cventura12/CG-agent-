@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useApiAuthInterceptor } from "./api/client";
-import { BottomNav } from "./components/BottomNav";
+import { AppShell } from "./components/AppShell";
 import { useQueueNotificationStub } from "./hooks/useQueueNotificationStub";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { BriefingPage } from "./pages/BriefingPage";
@@ -65,12 +65,7 @@ function ProtectedAppFrame({ children }: { children: ReactNode }) {
   const { userId } = useAuth();
   useQueueNotificationStub(userId ?? null);
 
-  return (
-    <div className="pb-20">
-      {children}
-      {!bypassAuth ? <BottomNav /> : null}
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }
 
 function AppRoutes() {

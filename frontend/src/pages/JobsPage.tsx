@@ -1,8 +1,10 @@
 import { useMemo } from "react";
-import { UserButton, useAuth, useClerk } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 
+import { PageHeader } from "../components/PageHeader";
+import { SurfaceCard } from "../components/SurfaceCard";
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
@@ -31,7 +33,6 @@ function formatTimestamp(value: string): string {
 
 export function JobsPage() {
   const { userId } = useAuth();
-  const { signOut } = useClerk();
   const isOnline = useOnlineStatus();
   const jobsQuery = useJobs(userId ?? null);
   const jobs = jobsQuery.data?.jobs ?? [];
@@ -71,133 +72,106 @@ export function JobsPage() {
   }, [jobs]);
 
   return (
-    <main className="min-h-screen bg-bg px-3 pb-6 pt-3 text-text sm:px-4">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <header className="rounded-2xl border border-border bg-surface/95 p-4 backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Jobs</p>
-              <h1 className="mt-1 text-xl font-semibold text-text">Active jobs</h1>
-              <p className="mt-1 text-sm text-muted">Status, last update, and open item count in one list.</p>
-              <p
-                className={clsx(
-                  "mt-2 inline-flex rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em]",
-                  isOnline
-                    ? "border-green/50 bg-green/10 text-green"
-                    : "border-yellow/70 bg-yellow/10 text-yellow"
-                )}
-              >
-                {isOnline ? "Online" : "Offline (cached jobs)"}
-              </p>
-            </div>
+    <main className="page-wrap">
+      <div className="section-stack">
+        <PageHeader
+          eyebrow="Jobs"
+          title="Active operations"
+          description="Track job health, open items, and last activity without digging through separate admin screens."
+          actions={
+            <Link to="/quote" className="action-button-primary">
+              Start quote
+            </Link>
+          }
+          stats={[
+            { label: "Runtime", value: isOnline ? "Live" : "Offline", tone: isOnline ? "success" : "warning" },
+            { label: "Blocked jobs", value: riskSummary.blockedJobs, tone: riskSummary.blockedJobs > 0 ? "danger" : "default" },
+            { label: "At-risk jobs", value: riskSummary.atRiskJobs, tone: riskSummary.atRiskJobs > 0 ? "warning" : "default" },
+            { label: "Active jobs", value: jobs.length },
+          ]}
+        />
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void signOut({ redirectUrl: "/onboarding" })}
-                className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-              >
-                Sign Out
-              </button>
-              <UserButton afterSignOutUrl="/onboarding" />
-            </div>
-          </div>
-        </header>
-
-        <section
-          className={clsx(
-            "rounded-2xl border p-4",
-            riskSummary.hasCriticalRisk
-              ? "border-red-400/50 bg-red-400/10"
-              : "border-border bg-surface"
-          )}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Risk Radar</p>
-              <p className="mt-1 text-sm text-muted">Jobs are sorted by risk priority.</p>
-            </div>
-            <span
-              className={clsx(
-                "rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em]",
-                riskSummary.hasCriticalRisk
-                  ? "border-red-400/60 bg-red-400/20 text-red-200"
-                  : "border-green/50 bg-green/10 text-green"
-              )}
-            >
-              {riskSummary.hasCriticalRisk ? "Action Required" : "Stable"}
-            </span>
-          </div>
-
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Blocked Jobs</p>
-              <p className="mt-1 text-xl font-semibold text-red-200">{riskSummary.blockedJobs}</p>
-            </article>
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">At-Risk Jobs</p>
-              <p className="mt-1 text-xl font-semibold text-yellow">{riskSummary.atRiskJobs}</p>
-            </article>
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Stale Open Items</p>
-              <p className="mt-1 text-xl font-semibold text-text">{riskSummary.staleOpenItems}</p>
-            </article>
-          </div>
-        </section>
-
-        {jobsQuery.isLoading ? <p className="text-sm text-muted">Loading jobs...</p> : null}
-
-        {!jobsQuery.isLoading && jobs.length === 0 ? (
-          <p className="rounded-2xl border border-border bg-surface px-4 py-4 text-sm text-muted">
-            No active jobs found.
-          </p>
+        {jobsQuery.isLoading ? (
+          <SurfaceCard eyebrow="Loading" title="Pulling jobs">
+            <p className="text-sm text-muted">Loading jobs...</p>
+          </SurfaceCard>
         ) : null}
 
-        <div className="space-y-3">
-          {prioritizedJobs.map((job) => (
-            <Link
-              key={job.id}
-              to={`/jobs/${job.id}`}
-              className={clsx(
-                "block rounded-2xl border bg-surface px-4 py-4 transition hover:border-orange",
-                job.health === "blocked"
-                  ? "border-red-400/60"
-                  : job.health === "at-risk"
-                    ? "border-yellow/70"
-                    : "border-border"
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-base font-semibold text-text">{job.name}</h2>
-                  <p className="mt-1 text-sm text-muted">{job.address}</p>
-                </div>
-                <span
+        {!jobsQuery.isLoading && jobs.length === 0 ? (
+          <SurfaceCard eyebrow="No jobs" title="Nothing active yet">
+            <p className="text-sm text-muted">No active jobs found.</p>
+          </SurfaceCard>
+        ) : null}
+
+        <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+          <SurfaceCard eyebrow="Risk radar" title="Where jobs are drifting">
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <article className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                <p className="data-label">Blocked jobs</p>
+                <p className="mt-2 text-3xl font-semibold text-red-200">{riskSummary.blockedJobs}</p>
+                <p className="mt-2 text-sm text-muted">Work currently blocked and likely to require a decision or escalation.</p>
+              </article>
+              <article className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                <p className="data-label">At-risk jobs</p>
+                <p className="mt-2 text-3xl font-semibold text-yellow">{riskSummary.atRiskJobs}</p>
+                <p className="mt-2 text-sm text-muted">Jobs with signs of schedule or coordination pressure.</p>
+              </article>
+              <article className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                <p className="data-label">Stale open items</p>
+                <p className="mt-2 text-3xl font-semibold text-text">{riskSummary.staleOpenItems}</p>
+                <p className="mt-2 text-sm text-muted">Items that have sat long enough to become operational risk.</p>
+              </article>
+            </div>
+          </SurfaceCard>
+
+          <SurfaceCard eyebrow="All jobs" title="Operational list" description="Sorted by risk first so the top of the list reflects what deserves office attention now.">
+            <div className="space-y-3">
+              {prioritizedJobs.map((job) => (
+                <Link
+                  key={job.id}
+                  to={`/jobs/${job.id}`}
                   className={clsx(
-                    "rounded-full border px-2 py-1 font-mono text-[11px] uppercase tracking-wider",
-                    healthBadgeClass(job.health)
+                    "block rounded-[1.45rem] border px-4 py-4 transition hover:border-orange hover:bg-bg/65",
+                    job.health === "blocked"
+                      ? "border-red-400/60 bg-red-400/6"
+                      : job.health === "at-risk"
+                        ? "border-yellow/70 bg-yellow/6"
+                        : "border-border bg-bg/50"
                   )}
                 >
-                  {job.status}
-                </span>
-              </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="font-display text-xl uppercase tracking-[0.04em] text-text">{job.name}</h2>
+                      <p className="mt-2 text-sm text-muted">{job.address}</p>
+                    </div>
+                    <span
+                      className={clsx(
+                        "rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
+                        healthBadgeClass(job.health)
+                      )}
+                    >
+                      {job.status}
+                    </span>
+                  </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-border bg-bg px-3 py-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Health</p>
-                  <p className="mt-1 text-sm text-text">{job.health}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-bg px-3 py-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Last Update</p>
-                  <p className="mt-1 text-sm text-text">{formatTimestamp(job.last_updated)}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-bg px-3 py-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Open Items</p>
-                  <p className="mt-1 text-sm text-text">{job.open_items.length}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-border/70 bg-surface/75 px-3 py-3">
+                      <p className="data-label">Health</p>
+                      <p className="mt-2 text-sm text-text">{job.health}</p>
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-surface/75 px-3 py-3">
+                      <p className="data-label">Last update</p>
+                      <p className="mt-2 text-sm text-text">{formatTimestamp(job.last_updated)}</p>
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-surface/75 px-3 py-3">
+                      <p className="data-label">Open items</p>
+                      <p className="mt-2 text-sm text-text">{job.open_items.length}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </SurfaceCard>
         </div>
       </div>
     </main>

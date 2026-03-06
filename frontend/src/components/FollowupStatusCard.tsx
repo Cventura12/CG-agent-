@@ -37,9 +37,9 @@ function toneClass(status: QuoteFollowupState["status"] | "loading"): string {
     return "border-yellow/50 bg-yellow/10";
   }
   if (status === "loading") {
-    return "border-border bg-bg";
+    return "border-border/80 bg-surface/72";
   }
-  return "border-border bg-bg";
+  return "border-border/80 bg-surface/72";
 }
 
 function summaryText(followup: QuoteFollowupState | null | undefined): string {
@@ -120,14 +120,14 @@ export function FollowupStatusCard({
 }: FollowupStatusCardProps) {
   if (isLoading) {
     return (
-      <div className={clsx("rounded-2xl border p-4", toneClass("loading"))}>
+      <div className={clsx("rounded-[1.5rem] border px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)]", toneClass("loading"))}>
         <div className="flex items-center justify-between gap-3">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">{title}</p>
-          <span className="rounded-full border border-border bg-surface px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+          <p className="kicker">{title}</p>
+          <span className="rounded-full border border-border/70 bg-bg/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
             Loading
           </span>
         </div>
-        <p className="mt-3 text-sm text-muted">Checking the latest reminder state...</p>
+        <p className="mt-3 text-sm text-muted">Checking the latest reminder schedule...</p>
       </div>
     );
   }
@@ -149,31 +149,31 @@ export function FollowupStatusCard({
     (effective.status === "scheduled" || effective.status === "pending_destination");
 
   return (
-    <div className={clsx("rounded-2xl border p-4", toneClass(effective.status))}>
+    <div className={clsx("rounded-[1.5rem] border px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)]", toneClass(effective.status))}>
       <div className="flex items-center justify-between gap-3">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">{title}</p>
+        <p className="kicker">{title}</p>
         <div className="flex items-center gap-2">
           {canStop ? (
             <button
               type="button"
               onClick={onStop ?? undefined}
               disabled={isStopping}
-              className="inline-flex min-h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-bg/55 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isStopping ? "Stopping..." : "Stop follow-up"}
             </button>
           ) : null}
-          <span className="rounded-full border border-border bg-surface px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-text/90">
+          <span className="rounded-full border border-border/70 bg-bg/55 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-text/90">
             {statusLabel(effective)}
           </span>
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-text">{summaryText(effective)}</p>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-text">{summaryText(effective)}</p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Next reminder</p>
+          <p className="data-label">Next reminder</p>
           <p className="mt-1 text-sm text-text">
             {effective.status === "scheduled" || effective.status === "pending_destination"
               ? formatTimestamp(effective.next_due_at)
@@ -181,22 +181,22 @@ export function FollowupStatusCard({
           </p>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Reminders sent</p>
+          <p className="data-label">Reminders sent</p>
           <p className="mt-1 text-sm text-text">{effective.reminder_count}</p>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Last reminder</p>
+          <p className="data-label">Last reminder</p>
           <p className="mt-1 text-sm text-text">{formatTimestamp(effective.last_reminder_at)}</p>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Channel</p>
+          <p className="data-label">Channel</p>
           <p className="mt-1 text-sm text-text">{channelLabel(effective.channel)}</p>
         </div>
       </div>
 
       {effective.status === "stopped" ? (
-        <div className="mt-4 rounded-xl border border-border bg-surface px-3 py-3">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Why it stopped</p>
+        <div className="mt-4 rounded-[1.2rem] border border-border/70 bg-bg/50 px-3 py-3">
+          <p className="data-label">Why it stopped</p>
           <p className="mt-1 text-sm text-text">{stopReasonText(effective.stop_reason)}</p>
           {effective.stopped_at ? (
             <p className="mt-1 text-xs text-muted">Stopped {formatTimestamp(effective.stopped_at)}</p>

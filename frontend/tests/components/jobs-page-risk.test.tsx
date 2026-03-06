@@ -61,10 +61,9 @@ describe("JobsPage risk view", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Offline (cached jobs)")).toBeInTheDocument();
-    expect(screen.getByText("Risk Radar")).toBeInTheDocument();
-    expect(screen.getByText("Blocked Jobs")).toBeInTheDocument();
-    expect(screen.getByText("Action Required")).toBeInTheDocument();
+    expect(screen.getByText("Offline")).toBeInTheDocument();
+    expect(screen.getByText("Risk radar")).toBeInTheDocument();
+    expect(screen.getByText("Where jobs are drifting")).toBeInTheDocument();
+    expect(screen.getByText("Operational list")).toBeInTheDocument();
   });
 });
-

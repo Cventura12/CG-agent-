@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserButton, useAuth, useClerk } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 
@@ -8,6 +8,8 @@ import { approveAll, approveDraft, discardDraft, editDraft } from "../api/queue"
 import { BriefingPanel } from "../components/BriefingPanel";
 import { DraftCard } from "../components/DraftCard";
 import { JobSidebar } from "../components/JobSidebar";
+import { PageHeader } from "../components/PageHeader";
+import { SurfaceCard } from "../components/SurfaceCard";
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
@@ -55,7 +57,6 @@ export function QueuePage() {
 
   const { userId } = useAuth();
   const currentUserId = userId ?? null;
-  const { signOut } = useClerk();
   const isOnline = useOnlineStatus();
   const scope = currentUserId ?? "anonymous";
 
@@ -255,130 +256,70 @@ export function QueuePage() {
   };
 
   return (
-    <main className="min-h-screen bg-bg px-3 pb-6 pt-3 text-text sm:px-4">
-      <div className="mx-auto max-w-6xl">
-        <header className="sticky top-0 z-20 rounded-lg border border-border bg-surface/95 p-4 backdrop-blur-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="font-mono text-sm uppercase tracking-[0.18em] text-orange">GC AGENT</h1>
-              <p className="mt-1 text-sm text-muted">
-                {queueQuery.isLoading ? "Loading queue..." : `${pendingCount} pending draft(s)`}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                to="/quote"
-                className="rounded-md border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-              >
-                New Quote
+    <main className="page-wrap">
+      <div className="section-stack">
+        <PageHeader
+          eyebrow="Queue"
+          title="Fast draft triage"
+          description="Approve, adjust, or discard queued communications and follow-ups without losing job context."
+          actions={
+            <>
+              <Link to="/quote" className="action-button-secondary">
+                New quote
               </Link>
-              <button
-                type="button"
-                onClick={() => void signOut({ redirectUrl: "/onboarding" })}
-                className="rounded-md border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-              >
-                Sign Out
-              </button>
-              <UserButton afterSignOutUrl="/onboarding" />
-            </div>
+              {pendingCount > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => approveAllMutation.mutate()}
+                  disabled={approveAllMutation.isPending}
+                  className="action-button-primary disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {approveAllMutation.isPending ? "Approving..." : "Approve all"}
+                </button>
+              ) : null}
+            </>
+          }
+          stats={[
+            { label: "Queue", value: pendingCount, tone: pendingCount > 0 ? "warning" : "default" },
+            { label: "Runtime", value: isOnline ? "Live" : "Offline", tone: isOnline ? "success" : "warning" },
+            { label: "Blocked jobs", value: riskSummary.blockedJobs, tone: riskSummary.blockedJobs > 0 ? "danger" : "default" },
+            { label: "Stale items", value: riskSummary.staleOpenItems, tone: riskSummary.staleOpenItems > 0 ? "warning" : "default" },
+          ]}
+        />
+
+        <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+          <div className="space-y-4">
+            <SurfaceCard eyebrow="Jobs" title="Filter the queue" description="Focus approvals by active job. Mobile stays chip-based for fast thumb scanning.">
+              <JobSidebar
+                jobs={jobs}
+                selectedJobId={selectedJobId}
+                onJobSelect={setSelectedJobId}
+                draftCounts={draftCounts}
+              />
+            </SurfaceCard>
+
+            <SurfaceCard eyebrow="Briefing" title="Keep the day in view">
+              <BriefingPanel gcId={userId ?? null} />
+            </SurfaceCard>
           </div>
 
-          <div className="mt-3 flex items-center gap-3">
-            <span
-              className={clsx(
-                "inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider",
-                isOnline
-                  ? "border-green/50 bg-green/10 text-green"
-                  : "border-yellow/70 bg-yellow/10 text-yellow"
-              )}
-            >
-              {isOnline ? "Online" : "Offline (cached queue)"}
-            </span>
-            <span className="inline-flex min-w-10 items-center justify-center rounded-full border border-border bg-bg px-3 py-1 font-mono text-xs text-text">
-              {pendingCount}
-            </span>
-            {pendingCount > 1 ? (
-              <button
-                type="button"
-                onClick={() => approveAllMutation.mutate()}
-                disabled={approveAllMutation.isPending}
-                className={clsx(
-                  "rounded-md bg-green px-4 py-2 text-sm font-medium text-bg transition-all duration-200",
-                  "hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                )}
-              >
-                {approveAllMutation.isPending ? "Approving..." : "Approve All"}
-              </button>
-            ) : null}
-          </div>
-        </header>
-
-        <section
-          className={clsx(
-            "mt-4 rounded-lg border p-4",
-            riskSummary.hasCriticalRisk
-              ? "border-red-400/50 bg-red-400/10"
-              : "border-border bg-surface"
-          )}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Risk Radar</p>
-              <p className="mt-1 text-sm text-muted">Handle blocked jobs and stale items before routine drafts.</p>
-            </div>
-            <span
-              className={clsx(
-                "rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em]",
-                riskSummary.hasCriticalRisk
-                  ? "border-red-400/60 bg-red-400/20 text-red-200"
-                  : "border-green/50 bg-green/10 text-green"
-              )}
-            >
-              {riskSummary.hasCriticalRisk ? "Action Required" : "Stable"}
-            </span>
-          </div>
-
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Blocked Jobs</p>
-              <p className="mt-1 text-xl font-semibold text-red-200">{riskSummary.blockedJobs}</p>
-            </article>
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">At-Risk Jobs</p>
-              <p className="mt-1 text-xl font-semibold text-yellow">{riskSummary.atRiskJobs}</p>
-            </article>
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Stale Open Items</p>
-              <p className="mt-1 text-xl font-semibold text-text">{riskSummary.staleOpenItems}</p>
-            </article>
-          </div>
-        </section>
-
-        <div className="mt-4 flex flex-col gap-4 md:grid md:grid-cols-[240px_minmax(0,1fr)]">
-          <JobSidebar
-            jobs={jobs}
-            selectedJobId={selectedJobId}
-            onJobSelect={setSelectedJobId}
-            draftCounts={draftCounts}
-          />
-
-          <section className="space-y-5">
-            <BriefingPanel gcId={userId ?? null} />
-            
-
+          <div className="space-y-4">
             {errorMessage ? (
-              <div className="rounded-md border border-red-400/50 bg-red-400/10 px-3 py-2 text-sm text-red-200">
+              <div className="rounded-[1.2rem] border border-red-400/50 bg-red-400/10 px-4 py-3 text-sm text-red-200">
                 {errorMessage}
               </div>
             ) : null}
 
             {queueQuery.isError ? (
-              <p className="text-sm text-muted">Queue unavailable. Try again shortly.</p>
+              <div className="rounded-[1.2rem] border border-red-400/50 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                Queue unavailable. Try again shortly.
+              </div>
             ) : null}
 
             {!queueQuery.isLoading && visibleGroups.length === 0 ? (
-              <p className="text-sm text-muted">Queue is clear.</p>
+              <SurfaceCard eyebrow="All clear" title="Queue is empty">
+                <p className="text-sm text-muted">No queued drafts are waiting on a decision right now.</p>
+              </SurfaceCard>
             ) : null}
 
             {visibleGroups.map((group) => {
@@ -386,12 +327,18 @@ export function QueuePage() {
               const health = job?.health ?? "on-track";
 
               return (
-                <section key={group.job_id} className="space-y-3">
-                  <div className="flex items-center gap-2 px-1">
-                    <span className={clsx("inline-block h-2.5 w-2.5 rounded-full", healthDotClass(health))} />
-                    <h2 className="text-sm font-semibold tracking-wide text-text">{group.job_name}</h2>
-                  </div>
-
+                <SurfaceCard
+                  key={group.job_id}
+                  eyebrow="Queued work"
+                  title={group.job_name}
+                  description={`${group.drafts.length} draft${group.drafts.length === 1 ? "" : "s"} waiting. Move the highest-leverage messages first.`}
+                  actions={
+                    <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg/55 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                      <span className={clsx("inline-block h-2.5 w-2.5 rounded-full", healthDotClass(health))} />
+                      {health}
+                    </span>
+                  }
+                >
                   <div className="space-y-3">
                     {group.drafts.map((draft) => (
                       <DraftCard
@@ -407,10 +354,10 @@ export function QueuePage() {
                       />
                     ))}
                   </div>
-                </section>
+                </SurfaceCard>
               );
             })}
-          </section>
+          </div>
         </div>
       </div>
     </main>

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import { useAuth, useClerk, UserButton } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 
+import { PageHeader } from "../components/PageHeader";
+import { SurfaceCard } from "../components/SurfaceCard";
 import { useMultiJobInsights } from "../hooks/useMultiJobInsights";
 
 function formatCurrency(value: number): string {
@@ -16,7 +18,6 @@ function formatCurrency(value: number): string {
 
 export function InsightsPage() {
   const { userId } = useAuth();
-  const { signOut } = useClerk();
   const currentUserId = userId ?? null;
   const [horizonDays, setHorizonDays] = useState<7 | 14 | 30>(14);
 
@@ -33,56 +34,42 @@ export function InsightsPage() {
   }, [data]);
 
   return (
-    <main className="min-h-screen bg-bg px-3 pb-6 pt-3 text-text sm:px-4">
-      <div className="mx-auto max-w-5xl space-y-4">
-        <header className="rounded-2xl border border-border bg-surface/95 p-4 backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Multi-Job Insights</p>
-              <h1 className="mt-1 text-xl font-semibold text-text">Combined material order opportunities</h1>
-              <p className="mt-1 text-sm text-muted">
-                Find jobs with similar scope and place one supplier order to reduce cost and delivery churn.
-              </p>
+    <main className="page-wrap">
+      <div className="section-stack">
+        <PageHeader
+          eyebrow="Insights"
+          title="Cross-job leverage"
+          description="Find jobs with similar scope and place one supplier order to reduce cost, delivery churn, and coordination waste."
+          actions={
+            <div className="flex gap-2">
+              {[7, 14, 30].map((window) => (
+                <button
+                  key={window}
+                  type="button"
+                  onClick={() => setHorizonDays(window as 7 | 14 | 30)}
+                  className={`rounded-2xl px-3 py-2 font-mono text-[11px] uppercase tracking-wider ${
+                    horizonDays === window
+                      ? "border border-orange/50 bg-orange/10 text-orange"
+                      : "border border-border bg-bg/55 text-muted hover:border-orange hover:text-orange"
+                  }`}
+                >
+                  {window} day window
+                </button>
+              ))}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void signOut({ redirectUrl: "/onboarding" })}
-                className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-              >
-                Sign Out
-              </button>
-              <UserButton afterSignOutUrl="/onboarding" />
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            {[7, 14, 30].map((window) => (
-              <button
-                key={window}
-                type="button"
-                onClick={() => setHorizonDays(window as 7 | 14 | 30)}
-                className={`rounded-md px-3 py-2 font-mono text-[11px] uppercase tracking-wider ${
-                  horizonDays === window
-                    ? "border border-orange/50 bg-orange/10 text-orange"
-                    : "border border-border text-muted hover:border-orange hover:text-orange"
-                }`}
-              >
-                {window} day window
-              </button>
-            ))}
-          </div>
-        </header>
+          }
+        />
 
         {insightsQuery.isLoading ? (
-          <section className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
-            Loading multi-job insights...
-          </section>
+          <SurfaceCard eyebrow="Loading" title="Pulling insights">
+            <p className="text-sm text-muted">Loading multi-job insights...</p>
+          </SurfaceCard>
         ) : null}
 
         {insightsQuery.isError ? (
-          <section className="rounded-2xl border border-red-400/40 bg-red-400/10 p-4 text-sm text-red-200">
-            Could not load insights. Check backend connectivity and auth.
-          </section>
+          <SurfaceCard eyebrow="Unavailable" title="Insights not available">
+            <p className="text-sm text-red-200">Could not load insights. Check backend connectivity and auth.</p>
+          </SurfaceCard>
         ) : null}
 
         {data ? (
@@ -106,12 +93,12 @@ export function InsightsPage() {
 
             <section className="space-y-3">
               {sorted.length === 0 ? (
-                <article className="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
-                  No grouped order opportunities found in this horizon.
-                </article>
+                <SurfaceCard eyebrow="No opportunities" title="Nothing grouped in this horizon">
+                  <p className="text-sm text-muted">No grouped order opportunities found in this horizon.</p>
+                </SurfaceCard>
               ) : (
                 sorted.map((opportunity) => (
-                  <article key={opportunity.group_key} className="rounded-2xl border border-border bg-surface p-4">
+                  <article key={opportunity.group_key} className="surface-panel px-4 py-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">

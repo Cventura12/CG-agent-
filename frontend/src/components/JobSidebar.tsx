@@ -88,9 +88,9 @@ function handleArrowNavigation(
 
 export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: JobSidebarProps) {
   return (
-    <aside className="w-full md:w-64 md:shrink-0">
+    <aside className="w-full md:w-72 md:shrink-0">
       <div
-        className="flex gap-2 overflow-x-auto pb-2 md:hidden"
+        className="no-scrollbar flex gap-2 overflow-x-auto pb-2 md:hidden"
         role="tablist"
         aria-label="Job filters"
         onKeyDown={(event) => handleArrowNavigation(event, onJobSelect)}
@@ -101,9 +101,11 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
           data-job-id="__all__"
           onClick={() => onJobSelect(null)}
           className={clsx(
-            "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition",
+            "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs transition",
             "whitespace-nowrap",
-            selectedJobId === null ? "border-orange bg-surface text-text" : "border-border text-muted"
+            selectedJobId === null
+              ? "border-orange bg-orange/10 text-text"
+              : "border-border bg-surface/60 text-muted"
           )}
         >
           <span className="font-medium">All Jobs</span>
@@ -119,9 +121,11 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
               data-job-id={optionId(job.id)}
               onClick={() => onJobSelect(job.id)}
               className={clsx(
-                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition",
+                "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs transition",
                 "whitespace-nowrap",
-                selectedJobId === job.id ? "border-orange bg-surface text-text" : "border-border text-muted"
+                selectedJobId === job.id
+                  ? "border-orange bg-orange/10 text-text"
+                  : "border-border bg-surface/60 text-muted"
               )}
               title={job.name}
             >
@@ -138,7 +142,7 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
       </div>
 
       <div
-        className="hidden space-y-2 md:block"
+        className="hidden space-y-3 md:block"
         role="listbox"
         aria-label="Job filters"
         onKeyDown={(event) => handleArrowNavigation(event, onJobSelect)}
@@ -149,9 +153,10 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
           data-job-id="__all__"
           onClick={() => onJobSelect(null)}
           className={clsx(
-            "w-full rounded-md border border-border px-3 py-2 text-left text-sm transition",
-            "border-l-4",
-            selectedJobId === null ? "border-l-orange bg-surface" : "border-l-transparent"
+            "w-full rounded-[1.35rem] border px-4 py-3 text-left text-sm transition",
+            selectedJobId === null
+              ? "border-orange/55 bg-orange/10"
+              : "border-border/80 bg-surface/72 hover:border-orange/35"
           )}
         >
           <p className="font-medium text-text">All Jobs</p>
@@ -170,9 +175,10 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
               data-job-id={optionId(job.id)}
               onClick={() => onJobSelect(job.id)}
               className={clsx(
-                "w-full rounded-md border border-border px-3 py-2 text-left text-sm transition",
-                "border-l-4",
-                selectedJobId === job.id ? "border-l-orange bg-surface" : "border-l-transparent"
+                "w-full rounded-[1.35rem] border px-4 py-3 text-left text-sm transition",
+                selectedJobId === job.id
+                  ? "border-orange/55 bg-orange/10"
+                  : "border-border/80 bg-surface/72 hover:border-orange/35"
               )}
               title={job.name}
             >

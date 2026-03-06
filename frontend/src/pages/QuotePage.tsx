@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { UserButton, useClerk } from "@clerk/clerk-react";
 import { Link, useLocation } from "react-router-dom";
 import { Loader2, Mic, Send, Square, TriangleAlert } from "lucide-react";
 
@@ -19,6 +18,8 @@ import {
   submitQuoteUpload,
 } from "../api/quote";
 import { FollowupStatusCard } from "../components/FollowupStatusCard";
+import { PageHeader } from "../components/PageHeader";
+import { SurfaceCard } from "../components/SurfaceCard";
 import type {
   QuoteApprovalStatus,
   QuoteDeliveryAttempt,
@@ -482,8 +483,6 @@ export function QuotePage() {
   const [followupState, setFollowupState] = useState<QuoteFollowupState | null>(null);
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
   const [followupMessage, setFollowupMessage] = useState<string | null>(null);
-
-  const { signOut } = useClerk();
   const location = useLocation();
   const apiReady = hasBetaApiCredentials();
   const firstSessionMode = useMemo(() => {
@@ -1021,564 +1020,564 @@ export function QuotePage() {
   };
 
   return (
-    <main className="min-h-screen bg-bg px-3 pb-10 pt-3 text-text sm:px-4">
-      <div className="mx-auto max-w-2xl">
-        <header className="sticky top-0 z-20 rounded-2xl border border-border bg-surface/95 p-4 backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-orange">New Quote</p>
-              <h1 className="mt-1 text-lg font-semibold text-text">Voice to quote</h1>
-              <p className="mt-1 text-xs text-muted">
-                Contractor ID: <span className="font-mono text-text/90">{getBetaContractorId()}</span>
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {bypassAuth ? (
-                <span className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted">
-                  Demo Mode
-                </span>
-              ) : (
-                <>
-                  <Link
-                    to="/queue"
-                    className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-                  >
-                    Queue
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void signOut({ redirectUrl: "/onboarding" })}
-                    className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-                  >
-                    Sign Out
-                  </button>
-                  <UserButton afterSignOutUrl="/onboarding" />
-                </>
-              )}
-            </div>
-          </div>
-        </header>
+    <main className="page-wrap">
+      <div className="section-stack">
+        <PageHeader
+          eyebrow="Estimate workspace"
+          title="Build the next quote"
+          description="Capture messy field input, review assumptions and confidence, then send a clean customer-facing quote without leaving the workflow."
+          actions={
+            !bypassAuth ? (
+              <Link to="/queue" className="action-button-secondary">
+                Open queue
+              </Link>
+            ) : (
+              <span className="inline-flex rounded-full border border-yellow/55 bg-yellow/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-yellow">
+                Demo mode
+              </span>
+            )
+          }
+          stats={[
+            { label: "Runtime", value: isOnline ? "Live" : "Offline", tone: isOnline ? "success" : "warning" },
+            { label: "Offline queue", value: offlineQueue.length, tone: offlineQueue.length > 0 ? "warning" : "default" },
+            { label: "Voice input", value: voiceSupported ? "Ready" : "Unavailable", tone: voiceSupported ? "success" : "warning" },
+            { label: "Contractor", value: apiReady ? getBetaContractorId() : "Set beta API env" },
+          ]}
+        />
 
         {firstSessionMode ? (
-          <section className="mt-4 rounded-2xl border border-green/40 bg-green/10 p-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-green">First session</p>
-            <p className="mt-1 text-sm text-text/90">
-              Goal: get your first approved draft in under 10 minutes. Send one real field note, review assumptions,
-              then approve or edit so memory can learn your style.
+          <div className="rounded-[1.4rem] border border-green/40 bg-green/10 px-5 py-4">
+            <p className="kicker text-green">First session</p>
+            <p className="mt-2 text-sm leading-6 text-text/90">
+              Goal: get your first approved draft in under 10 minutes. Send one real field note, review assumptions, then approve or edit so memory can learn your style.
             </p>
-          </section>
+          </div>
         ) : null}
 
-        <section className="mt-4 rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl border border-border bg-bg p-3">
-              {apiReady ? (
-                <Mic className="h-5 w-5 text-orange" aria-hidden="true" />
-              ) : (
-                <TriangleAlert className="h-5 w-5 text-yellow" aria-hidden="true" />
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-text">{helperText}</p>
-              <p className="mt-1 text-sm text-muted">
-                {apiReady
-                  ? "Designed for a phone screen: hold the big mic button, talk, and release."
-                  : "Set VITE_BETA_API_KEY and VITE_BETA_CONTRACTOR_ID in frontend/.env before sending quotes."}
-              </p>
-            </div>
-          </div>
-
-          <div
-            className={`mt-4 rounded-xl border px-3 py-3 ${
-              isOnline
-                ? "border-green/40 bg-green/10"
-                : "border-yellow/40 bg-yellow/10"
-            }`}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text">
-                {isOnline ? "Online" : "Offline"} | queued {offlineQueue.length}
-              </p>
-
-              <button
-                type="button"
-                onClick={() => void syncQueuedNotes()}
-                disabled={
-                  !apiReady ||
-                  !isOnline ||
-                  offlineQueue.length === 0 ||
-                  isQueueSyncing ||
-                  quoteMutation.isPending
-                }
-                className="inline-flex min-h-9 items-center justify-center rounded-lg border border-border bg-bg px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isQueueSyncing ? "Syncing..." : "Sync queued notes"}
-              </button>
-            </div>
-            <p className="mt-2 text-xs text-muted">
-              If you lose signal on-site, notes are saved locally and synced after reconnect.
-            </p>
-          </div>
-
-          {queueMessage ? (
-            <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-              {queueMessage}
-            </div>
-          ) : null}
-
-          {offlineQueue.length > 0 ? (
-            <div className="mt-3 rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-                Queued note preview
-              </p>
-              <div className="mt-2 space-y-2">
-                {offlineQueue.slice(0, 3).map((queued) => (
-                  <p
-                    key={queued.id}
-                    className="rounded-lg border border-border bg-surface px-3 py-2 text-xs text-text/90"
-                  >
-                    {queued.input.length > 120
-                      ? `${queued.input.slice(0, 120)}...`
-                      : queued.input}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <div className="mt-5">
-            <button
-              type="button"
-              onPointerDown={beginRecording}
-              onPointerUp={stopRecordingAndSend}
-              onPointerLeave={stopRecordingAndSend}
-              onPointerCancel={stopRecordingAndSend}
-              disabled={
-                !voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing
+        <div className="grid gap-4 xl:grid-cols-[0.94fr_1.06fr]">
+          <div className="space-y-4">
+            <SurfaceCard
+              eyebrow="Capture"
+              title="Field input"
+              description={
+                apiReady
+                  ? "Built for jobsite capture: hold to record, type if needed, and attach one PDF or photo when it helps the scope."
+                  : "Set VITE_BETA_API_KEY and VITE_BETA_CONTRACTOR_ID in frontend/.env before sending quotes."
               }
-              className="flex min-h-28 w-full items-center justify-center gap-3 rounded-2xl border border-orange/50 bg-orange/10 px-5 py-6 text-left transition hover:border-orange hover:bg-orange/15 disabled:cursor-not-allowed disabled:border-border disabled:bg-bg disabled:text-muted"
-              style={{ touchAction: "none" }}
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-orange text-bg">
-                {isRecording ? <Square className="h-5 w-5" aria-hidden="true" /> : <Mic className="h-5 w-5" aria-hidden="true" />}
-              </span>
-              <span>
-                <span className="block font-mono text-xs uppercase tracking-[0.2em] text-orange">
-                  {isRecording ? "Recording" : "Hold to record"}
-                </span>
-                <span className="mt-1 block text-base font-medium text-text">
-                  {isRecording ? "Release to send transcript" : "Press, talk, release"}
-                </span>
-              </span>
-            </button>
-          </div>
+              <div className="flex items-start gap-3 rounded-[1.2rem] border border-border bg-bg/50 px-4 py-4">
+                <div className="rounded-xl border border-border bg-surface/80 p-3">
+                  {apiReady ? (
+                    <Mic className="h-5 w-5 text-orange" aria-hidden="true" />
+                  ) : (
+                    <TriangleAlert className="h-5 w-5 text-yellow" aria-hidden="true" />
+                  )}
+                </div>
 
-          <div className="mt-4">
-            <label htmlFor="quote-notes" className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
-              Transcript / field notes
-            </label>
-            <textarea
-              id="quote-notes"
-              value={notes}
-              onChange={(event) => {
-                const value = event.target.value;
-                latestTranscriptRef.current = value;
-                setNotes(value);
-              }}
-              rows={6}
-              placeholder="If voice capture is unavailable, type field notes here."
-              className="mt-2 w-full rounded-2xl border border-border bg-bg px-4 py-3 text-sm leading-6 text-text outline-none transition focus:border-orange"
-            />
-          </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text">{helperText}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted">
+                    {apiReady
+                      ? "Designed for field speed: capture one clean input, then move immediately into review and delivery."
+                      : "Public quote credentials are required before the agent can generate a draft."}
+                  </p>
+                </div>
+              </div>
 
-          <div className="mt-4 rounded-2xl border border-border bg-bg/80 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Optional file</p>
-                <p className="mt-1 text-sm text-muted">
-                  Add one PDF or jobsite photo. The agent will read it together with your notes.
+              <div
+                className={`mt-4 rounded-[1.2rem] border px-4 py-4 ${
+                  isOnline ? "border-green/40 bg-green/10" : "border-yellow/40 bg-yellow/10"
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text">
+                    {isOnline ? "Online" : "Offline"} | queued {offlineQueue.length}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => void syncQueuedNotes()}
+                    disabled={!apiReady || !isOnline || offlineQueue.length === 0 || isQueueSyncing || quoteMutation.isPending}
+                    className="action-button-secondary min-h-9 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isQueueSyncing ? "Syncing..." : "Sync queued notes"}
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  If you lose signal on-site, notes are saved locally and synced after reconnect.
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <label
-                  htmlFor="quote-upload"
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:border-orange hover:text-orange"
-                >
-                  {selectedUploadFile ? "Replace file" : "Choose PDF or photo"}
-                </label>
-                {selectedUploadFile ? (
-                  <button
-                    type="button"
-                    onClick={clearSelectedUpload}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 py-2 text-sm text-muted transition hover:border-orange hover:text-orange"
-                  >
-                    Remove
-                  </button>
-                ) : null}
-              </div>
-            </div>
-
-            <input
-              ref={uploadInputRef}
-              id="quote-upload"
-              type="file"
-              accept=".pdf,image/png,image/jpeg,application/pdf"
-              onChange={handleUploadSelection}
-              className="sr-only"
-            />
-
-            {selectedUploadFile ? (
-              <p className="mt-3 rounded-xl border border-orange/40 bg-orange/10 px-3 py-2 text-sm text-text">
-                Attached: {selectedUploadFile.name}
-              </p>
-            ) : (
-              <p className="mt-3 text-sm text-muted">No file attached. Notes-only quotes still work.</p>
-            )}
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
-              type="button"
-              onClick={handleManualSubmit}
-              disabled={
-                !apiReady ||
-                (!notes.trim() && !selectedUploadFile) ||
-                (!isOnline && Boolean(selectedUploadFile)) ||
-                quoteMutation.isPending ||
-                isQueueSyncing
-              }
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {quoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-              <span>
-                  {quoteMutation.isPending
-                    ? "Running agent..."
-                    : !isOnline && selectedUploadFile
-                    ? "Upload needs connection"
-                    : selectedUploadFile
-                    ? "Upload & run agent"
-                    : !isOnline
-                    ? "Save Offline"
-                    : "Send Notes"}
-              </span>
-            </button>
-
-            <p className="text-sm text-muted">
-              Mobile-first target: large tap zones and a single primary action from a 390px screen.
-            </p>
-          </div>
-
-          {captureError ? (
-            <div className="mt-4 rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-              {captureError}
-            </div>
-          ) : null}
-        </section>
-
-        {activeQuote ? (
-          <section className="mt-5 space-y-4">
-            <ConfidenceBadge confidence={activeQuote.estimate_confidence} />
-            <AssumptionsCard
-              assumptions={activeQuote.assumptions ?? []}
-              clarificationQuestions={activeQuote.clarification_questions ?? []}
-              coldStart={
-                activeQuote.cold_start ?? {
-                  active: false,
-                  primary_trade: "general_construction",
-                }
-              }
-            />
-            <QuotePreviewCard quote={activeQuote.quote_draft} />
-
-            <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Review & learn</p>
-              <p className="mt-1 text-sm text-muted">
-                Approve as-is, approve with edits, or discard. Approve/edit actions feed estimating memory.
-              </p>
-
-              <div className="mt-4 grid gap-3">
-                <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="edited-scope">
-                  Scope edits
-                </label>
-                <textarea
-                  id="edited-scope"
-                  value={editedScopeOfWork}
-                  onChange={(event) => setEditedScopeOfWork(event.target.value)}
-                  rows={5}
-                  className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm leading-6 text-text outline-none transition focus:border-orange"
-                />
-              </div>
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="edited-total">
-                    Final total price
-                  </label>
-                  <input
-                    id="edited-total"
-                    type="number"
-                    value={editedTotalPrice}
-                    onChange={(event) => setEditedTotalPrice(event.target.value)}
-                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="feedback-note">
-                    Feedback note (optional)
-                  </label>
-                  <input
-                    id="feedback-note"
-                    type="text"
-                    value={feedbackNote}
-                    onChange={(event) => setFeedbackNote(event.target.value)}
-                    placeholder="Why you edited or discarded"
-                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => decisionMutation.mutate("approve")}
-                  disabled={decisionMutation.isPending || !apiReady}
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Approve as-is
-                </button>
-                <button
-                  type="button"
-                  onClick={() => decisionMutation.mutate("edit")}
-                  disabled={decisionMutation.isPending || !apiReady}
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-orange px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Save edits + approve
-                </button>
-                <button
-                  type="button"
-                  onClick={() => decisionMutation.mutate("discard")}
-                  disabled={decisionMutation.isPending || !apiReady}
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Discard quote
-                </button>
-              </div>
-
-              {decisionStatus ? (
-                <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                  {decisionMessage ?? `Quote ${decisionStatus}.`}
+              {queueMessage ? (
+                <div className="mt-3 rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                  {queueMessage}
                 </div>
               ) : null}
-            </div>
 
-            <div className="space-y-3">
-              <FollowupStatusCard
-                followup={followupState}
-                isLoading={isFollowupLoading}
-                title="Follow-up"
-                onStop={() => stopFollowupMutation.mutate()}
-                isStopping={stopFollowupMutation.isPending}
-              />
-              {followupMessage ? (
-                <div className="rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                  {followupMessage}
+              {offlineQueue.length > 0 ? (
+                <div className="mt-3 rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                  <p className="data-label">Queued note preview</p>
+                  <div className="mt-3 space-y-2">
+                    {offlineQueue.slice(0, 3).map((queued) => (
+                      <p
+                        key={queued.id}
+                        className="rounded-xl border border-border bg-surface/70 px-3 py-2 text-xs leading-5 text-text/90"
+                      >
+                        {queued.input.length > 120 ? `${queued.input.slice(0, 120)}...` : queued.input}
+                      </p>
+                    ))}
+                  </div>
                 </div>
               ) : null}
-            </div>
 
-            <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Send Quote</p>
-                  <p className="mt-1 text-sm text-muted">
-                    Generate a customer-facing PDF, then send it by text or email from the device share sheet.
-                  </p>
-                </div>
-
+              <div className="mt-5">
                 <button
                   type="button"
-                  onClick={() => sendMutation.mutate(activeQuote)}
-                  disabled={sendMutation.isPending || !apiReady}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  onPointerDown={beginRecording}
+                  onPointerUp={stopRecordingAndSend}
+                  onPointerLeave={stopRecordingAndSend}
+                  onPointerCancel={stopRecordingAndSend}
+                  disabled={!voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing}
+                  className="flex min-h-32 w-full items-center justify-center gap-4 rounded-[1.7rem] border border-orange/45 bg-orange/10 px-5 py-6 text-left transition hover:border-orange hover:bg-orange/15 disabled:cursor-not-allowed disabled:border-border disabled:bg-bg/60 disabled:text-muted"
+                  style={{ touchAction: "none" }}
                 >
-                  {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-                  <span>{sendMutation.isPending ? "Generating PDF..." : "Send PDF"}</span>
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-orange text-bg">
+                    {isRecording ? (
+                      <Square className="h-5 w-5" aria-hidden="true" />
+                    ) : (
+                      <Mic className="h-5 w-5" aria-hidden="true" />
+                    )}
+                  </span>
+                  <span>
+                    <span className="block font-mono text-xs uppercase tracking-[0.2em] text-orange">
+                      {isRecording ? "Recording" : "Hold to record"}
+                    </span>
+                    <span className="mt-2 block font-display text-2xl uppercase tracking-[0.06em] text-text">
+                      {isRecording ? "Release to send" : "Press, talk, release"}
+                    </span>
+                  </span>
                 </button>
-              </div>
-
-              {shareMessage ? (
-                <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                  {shareMessage}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Send to client (one tap)</p>
-                  <p className="mt-1 text-sm text-muted">
-                    Deliver the quote directly from GC Agent via WhatsApp, SMS, or email.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => activeQuote && void loadDeliveryHistory(activeQuote.quote_id)}
-                  disabled={isDeliveryHistoryLoading || !apiReady}
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-bg px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isDeliveryHistoryLoading ? "Refreshing..." : "Refresh status"}
-                </button>
-              </div>
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-channel">
-                    Channel
-                  </label>
-                  <select
-                    id="delivery-channel"
-                    value={deliveryChannel}
-                    onChange={(event) =>
-                      setDeliveryChannel(event.target.value as "whatsapp" | "sms" | "email")
-                    }
-                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="sms">SMS</option>
-                    <option value="email">Email</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-destination">
-                    {deliveryDestinationLabel}
-                  </label>
-                  <input
-                    id="delivery-destination"
-                    type={deliveryChannel === "email" ? "email" : "text"}
-                    value={deliveryDestination}
-                    onChange={(event) => setDeliveryDestination(event.target.value)}
-                    placeholder={deliveryDestinationPlaceholder}
-                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-name">
-                    Client name (optional)
-                  </label>
-                  <input
-                    id="delivery-name"
-                    type="text"
-                    value={deliveryRecipientName}
-                    onChange={(event) => setDeliveryRecipientName(event.target.value)}
-                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-override">
-                    Custom message (optional)
-                  </label>
-                  <input
-                    id="delivery-override"
-                    type="text"
-                    value={deliveryMessageOverride}
-                    onChange={(event) => setDeliveryMessageOverride(event.target.value)}
-                    placeholder="Leave blank to use default quote message"
-                    className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
-                  />
-                </div>
               </div>
 
               <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => directDeliveryMutation.mutate()}
-                  disabled={directDeliveryMutation.isPending || !apiReady}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {directDeliveryMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Send className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  <span>{directDeliveryMutation.isPending ? "Sending..." : "Send to client now"}</span>
-                </button>
+                <label htmlFor="quote-notes" className="data-label">
+                  Transcript / field notes
+                </label>
+                <textarea
+                  id="quote-notes"
+                  value={notes}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    latestTranscriptRef.current = value;
+                    setNotes(value);
+                  }}
+                  rows={7}
+                  placeholder="If voice capture is unavailable, type field notes here."
+                  className="field-textarea"
+                />
               </div>
 
-              {deliveryMessage ? (
-                <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
-                  {deliveryMessage}
-                </div>
-              ) : null}
+              <div className="mt-4 rounded-[1.45rem] border border-border bg-bg/60 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="data-label">Optional file</p>
+                    <p className="mt-1 text-sm text-muted">
+                      Add one PDF or jobsite photo. The agent will read it together with your notes.
+                    </p>
+                  </div>
 
-              <div className="mt-4 rounded-xl border border-border bg-bg px-3 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Delivery status</p>
-                  <p className="text-xs text-muted">
-                    {deliveryHistory.length > 0 ? `${deliveryHistory.length} attempt(s)` : "No sends yet"}
-                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <label
+                      htmlFor="quote-upload"
+                      className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:border-orange hover:text-orange"
+                    >
+                      {selectedUploadFile ? "Replace file" : "Choose PDF or photo"}
+                    </label>
+                    {selectedUploadFile ? (
+                      <button
+                        type="button"
+                        onClick={clearSelectedUpload}
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 py-2 text-sm text-muted transition hover:border-orange hover:text-orange"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
-                {isDeliveryHistoryLoading ? (
-                  <p className="mt-3 text-sm text-muted">Refreshing latest delivery state...</p>
-                ) : deliveryHistory.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted">
-                    No delivery attempts recorded yet. Once you send the quote, status will show here.
+                <input
+                  ref={uploadInputRef}
+                  id="quote-upload"
+                  type="file"
+                  accept=".pdf,image/png,image/jpeg,application/pdf"
+                  onChange={handleUploadSelection}
+                  className="sr-only"
+                />
+
+                {selectedUploadFile ? (
+                  <p className="mt-3 rounded-xl border border-orange/40 bg-orange/10 px-3 py-2 text-sm text-text">
+                    Attached: {selectedUploadFile.name}
                   </p>
                 ) : (
-                  <div className="mt-3 space-y-2">
-                    {deliveryHistory.map((attempt) => (
-                      <div
-                        key={attempt.delivery_id}
-                        className="rounded-xl border border-border bg-surface px-3 py-3"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium text-text">
-                              {attempt.channel.toUpperCase()} to {attempt.recipient || attempt.destination}
-                            </p>
-                            <p className="mt-1 text-xs text-muted">
-                              {attempt.destination} • {formatDeliveryTimestamp(attempt.sent_at)}
-                            </p>
-                          </div>
-                          <span
-                            className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] ${deliveryStatusTone(attempt.status)}`}
-                          >
-                            {attempt.status}
-                          </span>
-                        </div>
-
-                        {attempt.error_message ? (
-                          <p className="mt-2 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs text-red-100">
-                            {attempt.error_message}
-                          </p>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
+                  <p className="mt-3 text-sm text-muted">No file attached. Notes-only quotes still work.</p>
                 )}
               </div>
-            </div>
 
-            {activeQuote.rendered_quote ? (
-              <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Rendered preview</p>
-                <pre className="mt-3 whitespace-pre-wrap font-mono text-xs leading-6 text-text/90">
-                  {activeQuote.rendered_quote}
-                </pre>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  onClick={handleManualSubmit}
+                  disabled={!apiReady || (!notes.trim() && !selectedUploadFile) || (!isOnline && Boolean(selectedUploadFile)) || quoteMutation.isPending || isQueueSyncing}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {quoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                  <span>
+                    {quoteMutation.isPending
+                      ? "Running agent..."
+                      : !isOnline && selectedUploadFile
+                        ? "Upload needs connection"
+                        : selectedUploadFile
+                          ? "Upload & run agent"
+                          : !isOnline
+                            ? "Save Offline"
+                            : "Send Notes"}
+                  </span>
+                </button>
+
+                <p className="text-sm text-muted">
+                  Mobile-first target: large tap zones and one obvious primary action from the field.
+                </p>
               </div>
+
+              {captureError ? (
+                <div className="mt-4 rounded-[1.2rem] border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                  {captureError}
+                </div>
+              ) : null}
+            </SurfaceCard>
+
+            {activeQuote ? (
+              <>
+                <ConfidenceBadge confidence={activeQuote.estimate_confidence} />
+                <AssumptionsCard
+                  assumptions={activeQuote.assumptions ?? []}
+                  clarificationQuestions={activeQuote.clarification_questions ?? []}
+                  coldStart={
+                    activeQuote.cold_start ?? {
+                      active: false,
+                      primary_trade: "general_construction",
+                    }
+                  }
+                />
+              </>
             ) : null}
-          </section>
-        ) : null}
+          </div>
+
+          <div className="space-y-4">
+            {activeQuote ? (
+              <>
+                <QuotePreviewCard quote={activeQuote.quote_draft} />
+
+                <SurfaceCard
+                  eyebrow="Review and learn"
+                  title="Final contractor decision"
+                  description="Approve as-is, approve with edits, or discard. Approve and edit actions feed estimating memory."
+                >
+                  <div className="grid gap-3">
+                    <label className="data-label" htmlFor="edited-scope">
+                      Scope edits
+                    </label>
+                    <textarea
+                      id="edited-scope"
+                      value={editedScopeOfWork}
+                      onChange={(event) => setEditedScopeOfWork(event.target.value)}
+                      rows={6}
+                      className="field-textarea"
+                    />
+                  </div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="data-label" htmlFor="edited-total">
+                        Final total price
+                      </label>
+                      <input
+                        id="edited-total"
+                        type="number"
+                        value={editedTotalPrice}
+                        onChange={(event) => setEditedTotalPrice(event.target.value)}
+                        className="field-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="data-label" htmlFor="feedback-note">
+                        Feedback note (optional)
+                      </label>
+                      <input
+                        id="feedback-note"
+                        type="text"
+                        value={feedbackNote}
+                        onChange={(event) => setFeedbackNote(event.target.value)}
+                        placeholder="Why you edited or discarded"
+                        className="field-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => decisionMutation.mutate("approve")}
+                      disabled={decisionMutation.isPending || !apiReady}
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Approve as-is
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => decisionMutation.mutate("edit")}
+                      disabled={decisionMutation.isPending || !apiReady}
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-orange px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Save edits + approve
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => decisionMutation.mutate("discard")}
+                      disabled={decisionMutation.isPending || !apiReady}
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Discard quote
+                    </button>
+                  </div>
+
+                  {decisionStatus ? (
+                    <div className="mt-3 rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                      {decisionMessage ?? `Quote ${decisionStatus}.`}
+                    </div>
+                  ) : null}
+                </SurfaceCard>
+
+                <div className="space-y-3">
+                  <FollowupStatusCard
+                    followup={followupState}
+                    isLoading={isFollowupLoading}
+                    title="Follow-up"
+                    onStop={() => stopFollowupMutation.mutate()}
+                    isStopping={stopFollowupMutation.isPending}
+                  />
+                  {followupMessage ? (
+                    <div className="rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                      {followupMessage}
+                    </div>
+                  ) : null}
+                </div>
+
+                <SurfaceCard
+                  eyebrow="PDF handoff"
+                  title="Share or download"
+                  description="Generate the customer-facing PDF and hand it off through the device share sheet when you want a manual send."
+                  actions={
+                    <button
+                      type="button"
+                      onClick={() => sendMutation.mutate(activeQuote)}
+                      disabled={sendMutation.isPending || !apiReady}
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {sendMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Send className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      <span>{sendMutation.isPending ? "Generating PDF..." : "Send PDF"}</span>
+                    </button>
+                  }
+                >
+                  {shareMessage ? (
+                    <div className="rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                      {shareMessage}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted">Use this when you want manual control over the final delivery channel.</p>
+                  )}
+                </SurfaceCard>
+
+                <SurfaceCard
+                  eyebrow="Client delivery"
+                  title="Send directly from GC Agent"
+                  description="Deliver the quote directly by WhatsApp, SMS, or email and keep the status visible here."
+                  actions={
+                    <button
+                      type="button"
+                      onClick={() => activeQuote && void loadDeliveryHistory(activeQuote.quote_id)}
+                      disabled={isDeliveryHistoryLoading || !apiReady}
+                      className="action-button-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isDeliveryHistoryLoading ? "Refreshing..." : "Refresh status"}
+                    </button>
+                  }
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="data-label" htmlFor="delivery-channel">
+                        Channel
+                      </label>
+                      <select
+                        id="delivery-channel"
+                        value={deliveryChannel}
+                        onChange={(event) =>
+                          setDeliveryChannel(event.target.value as "whatsapp" | "sms" | "email")
+                        }
+                        className="field-input"
+                      >
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="sms">SMS</option>
+                        <option value="email">Email</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="data-label" htmlFor="delivery-destination">
+                        {deliveryDestinationLabel}
+                      </label>
+                      <input
+                        id="delivery-destination"
+                        type={deliveryChannel === "email" ? "email" : "text"}
+                        value={deliveryDestination}
+                        onChange={(event) => setDeliveryDestination(event.target.value)}
+                        placeholder={deliveryDestinationPlaceholder}
+                        className="field-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="data-label" htmlFor="delivery-name">
+                        Client name (optional)
+                      </label>
+                      <input
+                        id="delivery-name"
+                        type="text"
+                        value={deliveryRecipientName}
+                        onChange={(event) => setDeliveryRecipientName(event.target.value)}
+                        className="field-input"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="data-label" htmlFor="delivery-override">
+                        Custom message (optional)
+                      </label>
+                      <input
+                        id="delivery-override"
+                        type="text"
+                        value={deliveryMessageOverride}
+                        onChange={(event) => setDeliveryMessageOverride(event.target.value)}
+                        placeholder="Leave blank to use default quote message"
+                        className="field-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => directDeliveryMutation.mutate()}
+                      disabled={directDeliveryMutation.isPending || !apiReady}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green px-4 py-2 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {directDeliveryMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Send className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      <span>{directDeliveryMutation.isPending ? "Sending..." : "Send to client now"}</span>
+                    </button>
+                  </div>
+
+                  {deliveryMessage ? (
+                    <div className="mt-3 rounded-[1.2rem] border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                      {deliveryMessage}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="data-label">Delivery status</p>
+                      <p className="text-xs text-muted">
+                        {deliveryHistory.length > 0 ? `${deliveryHistory.length} attempt(s)` : "No sends yet"}
+                      </p>
+                    </div>
+
+                    {isDeliveryHistoryLoading ? (
+                      <p className="mt-3 text-sm text-muted">Refreshing latest delivery state...</p>
+                    ) : deliveryHistory.length === 0 ? (
+                      <p className="mt-3 text-sm text-muted">
+                        No delivery attempts recorded yet. Once you send the quote, status will show here.
+                      </p>
+                    ) : (
+                      <div className="mt-3 space-y-2">
+                        {deliveryHistory.map((attempt) => (
+                          <div
+                            key={attempt.delivery_id}
+                            className="rounded-[1.1rem] border border-border bg-surface/80 px-3 py-3"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-medium text-text">
+                                  {attempt.channel.toUpperCase()} to {attempt.recipient || attempt.destination}
+                                </p>
+                                <p className="mt-1 text-xs text-muted">
+                                  {attempt.destination} • {formatDeliveryTimestamp(attempt.sent_at)}
+                                </p>
+                              </div>
+                              <span
+                                className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] ${deliveryStatusTone(attempt.status)}`}
+                              >
+                                {attempt.status}
+                              </span>
+                            </div>
+
+                            {attempt.error_message ? (
+                              <p className="mt-2 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs text-red-100">
+                                {attempt.error_message}
+                              </p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </SurfaceCard>
+
+                {activeQuote.rendered_quote ? (
+                  <SurfaceCard eyebrow="Rendered preview" title="Plain-text output">
+                    <pre className="whitespace-pre-wrap rounded-[1.2rem] border border-border bg-bg/55 p-4 font-mono text-xs leading-6 text-text/90">
+                      {activeQuote.rendered_quote}
+                    </pre>
+                  </SurfaceCard>
+                ) : null}
+              </>
+            ) : (
+              <SurfaceCard
+                eyebrow="Output"
+                title="Quote review workspace"
+                description="Once the agent returns a draft, this side becomes your review, approval, delivery, and follow-up workspace."
+              >
+                <div className="rounded-[1.4rem] border border-dashed border-border bg-bg/45 px-5 py-10 text-center">
+                  <p className="font-display text-2xl uppercase tracking-[0.06em] text-text">No active draft yet</p>
+                  <p className="mt-3 text-sm leading-6 text-muted">
+                    Capture notes or upload a file on the left. Confidence, assumptions, final review, delivery status, and follow-up will show here after the quote is generated.
+                  </p>
+                </div>
+              </SurfaceCard>
+            )}
+          </div>
+        </div>
       </div>
     </main>
   );
 }
+
+

@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { UserButton, useAuth, useClerk } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 
 import { fetchContractorBriefing, hasContractorApiCredentials } from "../api/contractor";
+import { PageHeader } from "../components/PageHeader";
+import { SurfaceCard } from "../components/SurfaceCard";
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
@@ -51,7 +53,6 @@ function formatTimestamp(value: string): string {
 
 export function BriefingPage() {
   const { userId } = useAuth();
-  const { signOut } = useClerk();
   const isOnline = useOnlineStatus();
   const currentUserId = userId ?? null;
 
@@ -128,218 +129,192 @@ export function BriefingPage() {
   }, [jobsQuery.data]);
 
   return (
-    <main className="min-h-screen bg-bg px-3 pb-6 pt-3 text-text sm:px-4">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <header className="rounded-2xl border border-border bg-surface/95 p-4 backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Morning Briefing</p>
-              <h1 className="mt-1 text-xl font-semibold text-text">{formatToday()}</h1>
-              <p className="mt-1 text-sm text-muted">Start here, then move into the queue.</p>
-            </div>
+    <main className="page-wrap">
+      <div className="section-stack">
+        <PageHeader
+          eyebrow="Command center"
+          title={formatToday()}
+          description="Start here. Review the live morning briefing, clear the queue, and move straight into the jobs that need attention first."
+          actions={
+            <>
+              <Link to="/queue" className="action-button-primary">
+                Open queue
+              </Link>
+              <Link to="/quote" className="action-button-secondary">
+                New quote
+              </Link>
+              <Link to="/analytics" className="action-button-secondary">
+                Analytics
+              </Link>
+            </>
+          }
+          stats={[
+            {
+              label: isOnline ? "Runtime" : "Runtime",
+              value: isOnline ? "Live" : "Offline",
+              tone: isOnline ? "success" : "warning",
+            },
+            { label: "Queued drafts", value: queueCount, tone: queueCount > 0 ? "warning" : "default" },
+            {
+              label: "Blocked jobs",
+              value: riskSummary.blockedJobs,
+              tone: riskSummary.blockedJobs > 0 ? "danger" : "default",
+            },
+            {
+              label: "Stale open items",
+              value: riskSummary.staleOpenItems,
+              tone: riskSummary.staleOpenItems > 0 ? "warning" : "default",
+            },
+          ]}
+        />
 
-            <div className="flex items-center gap-2">
+        <div className="grid gap-4 xl:grid-cols-[1.3fr_0.9fr]">
+          <SurfaceCard
+            eyebrow="Urgent now"
+            title="Live briefing"
+            description="Pulled from the contractor-facing briefing endpoint. This is the fastest view of what needs movement today."
+            actions={
               <button
                 type="button"
-                onClick={() => void signOut({ redirectUrl: "/onboarding" })}
-                className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
+                onClick={() => void briefingQuery.refetch()}
+                disabled={!hasContractorApiCredentials() || briefingQuery.isFetching}
+                className="action-button-secondary disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Sign Out
+                {briefingQuery.isFetching ? "Refreshing..." : "Refresh"}
               </button>
-              <UserButton afterSignOutUrl="/onboarding" />
+            }
+          >
+            {!hasContractorApiCredentials() ? (
+              <p className="rounded-[1.2rem] border border-yellow/40 bg-yellow/10 px-4 py-3 text-sm text-yellow">
+                Set `VITE_BETA_API_KEY` and `VITE_BETA_CONTRACTOR_ID` in `frontend/.env` to load live public briefing data.
+              </p>
+            ) : null}
+
+            {briefingQuery.isLoading ? <p className="text-sm text-muted">Loading briefing...</p> : null}
+
+            {!briefingQuery.isLoading && briefingQuery.isError ? (
+              <p className="rounded-[1.2rem] border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                Briefing unavailable from network. Cached data is shown when present.
+              </p>
+            ) : null}
+
+            {!briefingQuery.isLoading && !briefingQuery.isError ? (
+              <div className="space-y-3">
+                {urgentLines.length === 0 ? (
+                  <p className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-3 text-sm text-muted">
+                    No urgent briefing items right now.
+                  </p>
+                ) : (
+                  urgentLines.map((line) => (
+                    <article
+                      key={line}
+                      className={clsx("rounded-[1.2rem] border px-4 py-3 text-sm leading-6", lineTone(line))}
+                    >
+                      {line}
+                    </article>
+                  ))
+                )}
+              </div>
+            ) : null}
+          </SurfaceCard>
+
+          <SurfaceCard eyebrow="Risk radar" title="Where attention is stacking up">
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <article className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                <p className="data-label">Blocked jobs</p>
+                <p className="mt-2 text-3xl font-semibold text-red-200">{riskSummary.blockedJobs}</p>
+                <p className="mt-2 text-sm text-muted">Jobs currently blocked by missing decisions or unresolved field issues.</p>
+              </article>
+              <article className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                <p className="data-label">At-risk jobs</p>
+                <p className="mt-2 text-3xl font-semibold text-yellow">{riskSummary.atRiskJobs}</p>
+                <p className="mt-2 text-sm text-muted">Jobs trending toward delay or additional coordination load.</p>
+              </article>
+              <article className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-4">
+                <p className="data-label">Stale open items</p>
+                <p className="mt-2 text-3xl font-semibold text-text">{riskSummary.staleOpenItems}</p>
+                <p className="mt-2 text-sm text-muted">Open items untouched for 5+ days and likely to create downstream friction.</p>
+              </article>
             </div>
-          </div>
+          </SurfaceCard>
+        </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <span
-              className={clsx(
-                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wider",
-                isOnline
-                  ? "border-green/50 bg-green/10 text-green"
-                  : "border-yellow/70 bg-yellow/10 text-yellow"
-              )}
-            >
-              {isOnline ? "Online" : "Offline (cached mode)"}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-orange/50 bg-orange/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-orange">
-              <span className="text-text">{queueCount}</span>
-              <span>Queued</span>
-            </span>
-            <Link
-              to="/queue"
-              className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-            >
-              Open Queue
-            </Link>
-            <Link
-              to="/quote"
-              className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-            >
-              New Quote
-            </Link>
-            <Link
-              to="/analytics"
-              className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-            >
-              Analytics
-            </Link>
-          </div>
-        </header>
+        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <SurfaceCard
+            eyebrow="Needs action"
+            title="Jobs to move today"
+            description="Blocked or active jobs with open items. Use this list to decide where your next call or approval should go."
+            actions={
+              <Link to="/jobs" className="action-button-secondary">
+                View all jobs
+              </Link>
+            }
+          >
+            {jobsQuery.isLoading ? <p className="text-sm text-muted">Loading jobs...</p> : null}
 
-        <section
-          className={clsx(
-            "rounded-2xl border p-4",
-            riskSummary.hasCriticalRisk
-              ? "border-red-400/50 bg-red-400/10"
-              : "border-border bg-surface"
-          )}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">Risk Radar</p>
-              <p className="mt-1 text-sm text-muted">Prioritize blocked jobs and stale open items first.</p>
+            {!jobsQuery.isLoading && urgentJobs.length === 0 ? (
+              <p className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-3 text-sm text-muted">
+                No urgent jobs. Everything is currently on track.
+              </p>
+            ) : null}
+
+            <div className="space-y-3">
+              {urgentJobs.map((job) => (
+                <Link
+                  key={job.id}
+                  to={`/jobs/${job.id}`}
+                  className="block rounded-[1.3rem] border border-border bg-bg/55 px-4 py-4 transition hover:border-orange hover:bg-bg/70"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-display text-xl uppercase tracking-[0.04em] text-text">{job.name}</p>
+                      <p className="mt-2 text-sm text-muted">{job.address}</p>
+                    </div>
+                    <span
+                      className={clsx(
+                        "rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
+                        job.health === "blocked"
+                          ? "border-red-400/50 bg-red-400/10 text-red-300"
+                          : "border-yellow/60 bg-yellow/10 text-yellow"
+                      )}
+                    >
+                      {job.health}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border/70 bg-surface/70 px-3 py-3">
+                      <p className="data-label">Open items</p>
+                      <p className="mt-2 text-lg font-semibold text-text">{job.open_items.length}</p>
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-surface/70 px-3 py-3">
+                      <p className="data-label">Last update</p>
+                      <p className="mt-2 text-sm text-text">{formatTimestamp(job.last_updated)}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
-            {riskSummary.hasCriticalRisk ? (
-              <span className="rounded-full border border-red-400/60 bg-red-400/20 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-red-200">
-                Action Required
-              </span>
-            ) : (
-              <span className="rounded-full border border-green/50 bg-green/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-green">
-                Stable
-              </span>
-            )}
-          </div>
+          </SurfaceCard>
 
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Blocked Jobs</p>
-              <p className="mt-1 text-xl font-semibold text-red-200">{riskSummary.blockedJobs}</p>
-            </article>
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">At-Risk Jobs</p>
-              <p className="mt-1 text-xl font-semibold text-yellow">{riskSummary.atRiskJobs}</p>
-            </article>
-            <article className="rounded-xl border border-border bg-bg px-3 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Stale Open Items</p>
-              <p className="mt-1 text-xl font-semibold text-text">{riskSummary.staleOpenItems}</p>
-            </article>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-border bg-surface p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Urgent Now</p>
-              <p className="mt-1 text-sm text-muted">Pulled from the live morning briefing endpoint.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void briefingQuery.refetch()}
-              disabled={!hasContractorApiCredentials() || briefingQuery.isFetching}
-              className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {briefingQuery.isFetching ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-
-          {!hasContractorApiCredentials() ? (
-            <p className="mt-4 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-3 text-sm text-yellow">
-              Set `VITE_BETA_API_KEY` and `VITE_BETA_CONTRACTOR_ID` in `frontend/.env` to load `GET /briefing`.
-            </p>
-          ) : null}
-
-          {briefingQuery.isLoading ? <p className="mt-4 text-sm text-muted">Loading briefing...</p> : null}
-
-          {!briefingQuery.isLoading && briefingQuery.isError ? (
-            <p className="mt-4 rounded-xl border border-red-400/40 bg-red-400/10 px-3 py-3 text-sm text-red-200">
-              Briefing unavailable from network. Showing cached data when available.
-            </p>
-          ) : null}
-
-          {!briefingQuery.isLoading && !briefingQuery.isError ? (
-            <div className="mt-4 space-y-3">
-              {urgentLines.length === 0 ? (
-                <p className="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-muted">
-                  No urgent briefing items right now.
+          <SurfaceCard eyebrow="Background" title="Secondary notes">
+            <div className="space-y-3">
+              {fyiLines.length === 0 ? (
+                <p className="rounded-[1.2rem] border border-border bg-bg/55 px-4 py-3 text-sm text-muted">
+                  No additional briefing notes.
                 </p>
               ) : (
-                urgentLines.map((line) => (
-                  <article key={line} className={clsx("rounded-xl border px-3 py-3 text-sm", lineTone(line))}>
+                fyiLines.map((line) => (
+                  <article
+                    key={line}
+                    className={clsx("rounded-[1.2rem] border px-4 py-3 text-sm leading-6", lineTone(line))}
+                  >
                     {line}
                   </article>
                 ))
               )}
             </div>
-          ) : null}
-        </section>
-
-        <section className="rounded-2xl border border-border bg-surface p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Jobs Needing Attention</p>
-              <p className="mt-1 text-sm text-muted">Blocked or active jobs with open items.</p>
-            </div>
-            <Link
-              to="/jobs"
-              className="rounded-md border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted transition hover:border-orange hover:text-orange"
-            >
-              View Jobs
-            </Link>
-          </div>
-
-          {jobsQuery.isLoading ? <p className="mt-4 text-sm text-muted">Loading jobs...</p> : null}
-
-          {!jobsQuery.isLoading && urgentJobs.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-border bg-bg px-3 py-3 text-sm text-muted">
-              No urgent jobs. Everything is currently on track.
-            </p>
-          ) : null}
-
-          <div className="mt-4 space-y-3">
-            {urgentJobs.map((job) => (
-              <Link
-                key={job.id}
-                to={`/jobs/${job.id}`}
-                className="block rounded-xl border border-border bg-bg px-3 py-3 transition hover:border-orange"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-text">{job.name}</p>
-                    <p className="mt-1 text-xs text-muted">{job.open_items.length} open item(s)</p>
-                  </div>
-                  <span
-                    className={clsx(
-                      "rounded-full border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider",
-                      job.health === "blocked"
-                        ? "border-red-400/50 bg-red-400/10 text-red-300"
-                        : "border-yellow/60 bg-yellow/10 text-yellow"
-                    )}
-                  >
-                    {job.health}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-muted">Last update: {formatTimestamp(job.last_updated)}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-border bg-surface p-4">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">FYI</p>
-          <div className="mt-3 space-y-3">
-            {fyiLines.length === 0 ? (
-              <p className="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-muted">
-                No additional briefing notes.
-              </p>
-            ) : (
-              fyiLines.map((line) => (
-                <article key={line} className={clsx("rounded-xl border px-3 py-3 text-sm", lineTone(line))}>
-                  {line}
-                </article>
-              ))
-            )}
-          </div>
-        </section>
+          </SurfaceCard>
+        </div>
       </div>
     </main>
   );

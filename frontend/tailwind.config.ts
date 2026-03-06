@@ -6,19 +6,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#0F0F0E",
-        surface: "#1A1A18",
-        border: "#2E2E2A",
-        text: "#E8E6DF",
-        muted: "#9A9890",
-        orange: "#E8722A",
-        green: "#4CAF7D",
-        steel: "#5B8DB8",
-        yellow: "#D4A843"
+        bg: "#0A0F11",
+        surface: "#12191B",
+        border: "#283235",
+        text: "#EEE8DE",
+        muted: "#93A0A4",
+        orange: "#D9772B",
+        green: "#5BB983",
+        steel: "#6F93AD",
+        yellow: "#D2A04B",
+        panel: "#182124",
+        ember: "#C96B30",
       },
       fontFamily: {
-        sans: ["DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "monospace"]
+        sans: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ["Barlow Condensed", "Archivo Narrow", "ui-sans-serif", "sans-serif"],
       }
     }
   },

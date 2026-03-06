@@ -1,3 +1,116 @@
-﻿@tailwind base;
+﻿@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    @apply bg-bg font-sans text-text;
+  }
+
+  body {
+    @apply min-h-screen bg-bg text-text antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(217, 119, 43, 0.1), transparent 26rem),
+      radial-gradient(circle at 85% 20%, rgba(111, 147, 173, 0.12), transparent 24rem),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 20rem);
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(217, 119, 43, 0.28);
+    color: #fff8ef;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(111, 147, 173, 0.4) rgba(10, 15, 17, 0.3);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgba(10, 15, 17, 0.4);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgba(111, 147, 173, 0.38);
+    border: 2px solid rgba(10, 15, 17, 0.55);
+  }
+}
+
+@layer components {
+  .app-shell-bg {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 16rem),
+      linear-gradient(135deg, #091012 0%, #0b1113 42%, #0f1719 100%);
+  }
+
+  .page-wrap {
+    @apply mx-auto max-w-7xl px-3 py-5 sm:px-4 lg:px-8 lg:py-6;
+  }
+
+  .surface-panel {
+    @apply rounded-[1.75rem] border border-border/80 bg-surface/88 shadow-[0_22px_60px_rgba(0,0,0,0.34)] backdrop-blur-xl;
+  }
+
+  .surface-panel-subtle {
+    @apply rounded-[1.45rem] border border-border/70 bg-surface/62 shadow-[0_12px_34px_rgba(0,0,0,0.2)] backdrop-blur-lg;
+  }
+
+  .page-hero {
+    background-image:
+      linear-gradient(135deg, rgba(217, 119, 43, 0.1), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.012), transparent 60%);
+  }
+
+  .kicker {
+    @apply font-mono text-[11px] uppercase tracking-[0.22em] text-orange;
+  }
+
+  .data-label {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-muted;
+  }
+
+  .action-button-primary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-2xl bg-orange px-4 py-2 text-sm font-semibold text-bg transition hover:brightness-110;
+  }
+
+  .action-button-secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-bg/55 px-4 py-2 text-sm font-medium text-text transition hover:border-orange hover:text-orange;
+  }
+
+  .field-input {
+    @apply mt-2 w-full rounded-2xl border border-border bg-bg/75 px-4 py-3 text-sm text-text outline-none transition focus:border-orange focus:bg-bg;
+  }
+
+  .field-textarea {
+    @apply mt-2 w-full rounded-[1.4rem] border border-border bg-bg/75 px-4 py-3 text-sm leading-6 text-text outline-none transition focus:border-orange focus:bg-bg;
+  }
+
+  .section-stack {
+    @apply grid gap-4 lg:gap-5;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+

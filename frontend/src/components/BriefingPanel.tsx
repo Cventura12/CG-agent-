@@ -42,15 +42,18 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
     : "Not generated";
 
   return (
-    <section className="rounded-md border border-border bg-surface/80">
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
+    <section className="surface-panel overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-5">
         <button
           type="button"
           onClick={() => setIsExpandedMobile((value) => !value)}
           className="min-w-0 flex-1 text-left sm:cursor-default"
         >
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-muted">MORNING BRIEFING</p>
-          <p className="mt-1 text-xs text-muted">{generatedAt}</p>
+          <p className="kicker">Morning briefing</p>
+          <p className="mt-2 font-display text-[1.45rem] uppercase leading-none tracking-[0.06em] text-text">
+            Daily pulse
+          </p>
+          <p className="mt-2 text-xs text-muted">{generatedAt}</p>
         </button>
 
         <div className="flex items-center gap-2">
@@ -59,7 +62,7 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
             onClick={() => void briefingQuery.refetch()}
             disabled={briefingQuery.isFetching || !gcId}
             className={clsx(
-              "rounded-sm border border-border px-3 py-1 font-mono text-xs uppercase tracking-wider text-text",
+              "rounded-xl border border-border bg-bg/55 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text",
               "transition-colors hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-60"
             )}
           >
@@ -68,7 +71,7 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
           <button
             type="button"
             onClick={() => setIsExpandedMobile((value) => !value)}
-            className="rounded-sm border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-muted sm:hidden"
+            className="rounded-xl border border-border bg-bg/55 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted sm:hidden"
           >
             {isExpandedMobile ? "Hide" : "Show"}
           </button>
@@ -77,7 +80,7 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
 
       <div
         className={clsx(
-          "border-t border-border px-4 pb-4 pt-3",
+          "border-t border-border/80 px-4 pb-4 pt-4 sm:px-5",
           isExpandedMobile ? "block" : "hidden",
           "sm:block"
         )}
@@ -87,11 +90,13 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
         ) : null}
 
         {!briefingQuery.isLoading && briefingQuery.isError ? (
-          <p className="font-mono text-sm text-muted">Briefing unavailable - check back later</p>
+          <p className="rounded-[1.2rem] border border-red-400/30 bg-red-400/10 px-3 py-3 font-mono text-sm text-red-200">
+            Briefing unavailable. Check back after the next refresh.
+          </p>
         ) : null}
 
         {!briefingQuery.isLoading && !briefingQuery.isError ? (
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-6">
+          <pre className="rounded-[1.2rem] border border-border/70 bg-bg/55 p-4 whitespace-pre-wrap font-mono text-sm leading-7">
             {lines.map((line: string, index: number) => (
               <span key={`${index}-${line}`} className={lineColorClass(line)}>
                 {line}

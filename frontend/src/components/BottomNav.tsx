@@ -1,60 +1,15 @@
 import clsx from "clsx";
-import { FileAudio2, ListChecks, MessageSquareText, BriefcaseBusiness, ChartColumn, Boxes } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: typeof MessageSquareText;
-  match: (pathname: string) => boolean;
-};
-
-const navItems: NavItem[] = [
-  {
-    label: "Briefing",
-    href: "/",
-    icon: MessageSquareText,
-    match: (pathname) => pathname === "/",
-  },
-  {
-    label: "New Quote",
-    href: "/quote",
-    icon: FileAudio2,
-    match: (pathname) => pathname.startsWith("/quote"),
-  },
-  {
-    label: "Queue",
-    href: "/queue",
-    icon: ListChecks,
-    match: (pathname) => pathname.startsWith("/queue"),
-  },
-  {
-    label: "Jobs",
-    href: "/jobs",
-    icon: BriefcaseBusiness,
-    match: (pathname) => pathname.startsWith("/jobs"),
-  },
-  {
-    label: "Analytics",
-    href: "/analytics",
-    icon: ChartColumn,
-    match: (pathname) => pathname.startsWith("/analytics"),
-  },
-  {
-    label: "Insights",
-    href: "/insights",
-    icon: Boxes,
-    match: (pathname) => pathname.startsWith("/insights"),
-  },
-];
+import { APP_NAV_ITEMS } from "../navigation";
 
 export function BottomNav() {
   const location = useLocation();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur-md">
-      <div className="mx-auto grid max-w-6xl grid-cols-6">
-        {navItems.map((item) => {
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-bg/90 backdrop-blur-xl lg:hidden">
+      <div className="no-scrollbar mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-2 py-2">
+        {APP_NAV_ITEMS.map((item) => {
           const isActive = item.match(location.pathname);
           const Icon = item.icon;
 
@@ -63,12 +18,14 @@ export function BottomNav() {
               key={item.href}
               to={item.href}
               className={clsx(
-                "flex min-h-16 flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] font-medium transition-colors",
-                isActive ? "text-orange" : "text-muted hover:text-text"
+                "flex min-h-[4.2rem] min-w-[4.6rem] flex-col items-center justify-center gap-1 rounded-2xl border px-3 py-2 text-[11px] font-medium transition",
+                isActive
+                  ? "border-orange/60 bg-orange/10 text-orange"
+                  : "border-transparent text-muted hover:border-border hover:bg-surface/80 hover:text-text"
               )}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
-              <span className="font-mono uppercase tracking-[0.14em]">{item.label}</span>
+              <span className="font-mono uppercase tracking-[0.12em]">{item.shortLabel}</span>
             </Link>
           );
         })}

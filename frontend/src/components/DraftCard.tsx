@@ -123,8 +123,7 @@ export function DraftCard({
   return (
     <article
       className={clsx(
-        "w-full max-w-xl rounded-xl border border-border bg-surface p-4 shadow-sm transition-all duration-200",
-        "mx-auto",
+        "mx-auto w-full max-w-none rounded-[1.5rem] border border-border/80 bg-surface/88 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-all duration-200",
         isApproved && "opacity-60",
         isDiscarded && "opacity-30",
         isExiting && "translate-y-2 scale-[0.98] opacity-0"
@@ -163,7 +162,7 @@ export function DraftCard({
             value={editValue}
             onChange={(event) => setEditValue(event.target.value)}
             rows={8}
-            className="w-full rounded-md border border-border bg-bg px-3 py-2 font-mono text-sm text-text outline-none transition-all duration-200 focus:border-orange"
+            className="field-textarea w-full font-mono"
           />
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
@@ -171,7 +170,7 @@ export function DraftCard({
               aria-label="Save draft edits"
               onClick={handleSaveEdit}
               disabled={isLoading}
-              className="rounded-md bg-green px-3 py-2 text-sm font-medium text-bg transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-green px-3 py-2 text-sm font-medium text-bg transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Save Changes
             </button>
@@ -183,7 +182,7 @@ export function DraftCard({
                 setEditValue(draft.content);
               }}
               disabled={isLoading}
-              className="rounded-md border border-border px-3 py-2 text-sm font-medium text-text transition-all duration-200 hover:border-steel disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border border-border px-3 py-2 text-sm font-medium text-text transition-all duration-200 hover:border-steel disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
@@ -192,7 +191,7 @@ export function DraftCard({
       ) : (
         <div className="mb-4">
           {wasEdited ? (
-            <div className="mb-3 rounded-md border border-steel/40 bg-steel/10 px-3 py-2 text-xs text-steel">
+            <div className="mb-3 rounded-xl border border-steel/40 bg-steel/10 px-3 py-2 text-xs text-steel">
               Edits saved. Review and approve when ready.
             </div>
           ) : null}
@@ -213,14 +212,14 @@ export function DraftCard({
       )}
 
       {isApproved ? (
-        <div className="inline-flex items-center gap-2 rounded-md border border-green/50 bg-green/10 px-3 py-2 text-sm text-green">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-green/50 bg-green/10 px-3 py-2 text-sm text-green">
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           <span>Approved</span>
         </div>
       ) : null}
 
       {isDiscarded ? (
-        <div className="inline-flex items-center gap-2 rounded-md border border-red-400/40 bg-red-400/10 px-3 py-2 text-sm text-red-300">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-red-400/40 bg-red-400/10 px-3 py-2 text-sm text-red-300">
           <Trash2 className="h-4 w-4" aria-hidden="true" />
           <span>Discarded</span>
         </div>
@@ -233,7 +232,7 @@ export function DraftCard({
             aria-label="Approve draft"
             onClick={handleApprove}
             disabled={isLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-green px-3 py-2 text-sm font-medium text-bg transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-green px-3 py-2 text-sm font-medium text-bg transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {showApproveSpinner ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
             <span>Approve</span>
@@ -244,7 +243,7 @@ export function DraftCard({
             aria-label="Edit draft"
             onClick={() => setIsEditing(true)}
             disabled={isLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-text transition-all duration-200 hover:border-steel disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text transition-all duration-200 hover:border-steel disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Pencil className="h-4 w-4" aria-hidden="true" />
             <span>Edit</span>
@@ -255,7 +254,7 @@ export function DraftCard({
             aria-label="Discard draft"
             onClick={handleDiscard}
             disabled={isLoading}
-            className="inline-flex items-center justify-center rounded-md border border-transparent p-2 text-muted transition-all duration-200 hover:border-border hover:text-text disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-xl border border-transparent p-2 text-muted transition-all duration-200 hover:border-border hover:text-text disabled:cursor-not-allowed disabled:opacity-60"
           >
             {showDiscardSpinner ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

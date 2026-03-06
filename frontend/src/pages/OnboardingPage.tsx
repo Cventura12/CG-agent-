@@ -4,6 +4,8 @@ import { SignIn, SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 
 import { fetchOnboardingProfile, registerGc, saveOnboardingProfile } from "../api/auth";
+import { PageHeader } from "../components/PageHeader";
+import { SurfaceCard } from "../components/SurfaceCard";
 
 const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
 
@@ -217,52 +219,70 @@ export function OnboardingPage() {
   }, [onboardingQuery.data, user, navigate]);
 
   return (
-    <main className="min-h-screen bg-bg px-3 py-6 text-text sm:px-4">
-      <div className="mx-auto max-w-2xl rounded-lg border border-border bg-surface p-5">
-        <h1 className="font-mono text-sm uppercase tracking-[0.16em] text-orange">GC Agent Onboarding</h1>
+    <main className="page-wrap">
+      <div className="mx-auto max-w-5xl section-stack">
+        <PageHeader
+          eyebrow="Onboarding"
+          title="Set the operating baseline"
+          description="Get the first quote running fast. Start with company basics, trade context, and default pricing so GC Agent has usable assumptions on day one."
+          stats={[
+            { label: "Target", value: "Under 10 min" },
+            { label: "Result", value: "First send-ready quote" },
+            { label: "Mode", value: bypassAuth ? "Demo" : "Live", tone: bypassAuth ? "warning" : "success" },
+          ]}
+        />
 
-        {bypassAuth ? (
-          <p className="mt-3 text-sm text-muted">
-            Demo mode is enabled locally. Authentication is bypassed and the app redirects straight to the quote
-            screen.
-          </p>
-        ) : null}
-
-        <SignedOut>
-          {bypassAuth ? null : (
-            <>
-              <p className="mt-3 text-sm text-muted">
-                Continue with Clerk sign-in. If Google is the only enabled provider in Clerk, this screen will show
-                Google only.
+        <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+          <SurfaceCard eyebrow="Why this matters" title="What the setup unlocks">
+            <div className="space-y-3 text-sm leading-7 text-muted">
+              <p>
+                GC Agent is strongest when the first quote already reflects your trade, your pricing posture, and the materials you actually buy.
               </p>
-
-              <div className="mt-4">
-                <SignIn
-                  routing="path"
-                  path="/onboarding"
-                  forceRedirectUrl="/onboarding"
-                  fallbackRedirectUrl="/onboarding"
-                />
-              </div>
-            </>
-          )}
-        </SignedOut>
-
-        <SignedIn>
-          {bypassAuth ? null : (
-            <>
-              <p className="mt-3 text-sm text-muted">
-                Fast start takes about 2 minutes: company + trade + service area, then GC Agent applies recommended
-                pricing defaults for your first quote.
+              <p>
+                The fast path is simple: company name, trade, service area, then recommended defaults. Advanced pricing is there if you want tighter control before the first estimate.
               </p>
+              {bypassAuth ? (
+                <div className="rounded-[1.2rem] border border-yellow/40 bg-yellow/10 px-4 py-3 text-yellow">
+                  Demo mode is enabled locally. Authentication is bypassed and the app redirects straight to the quote screen.
+                </div>
+              ) : null}
+            </div>
+          </SurfaceCard>
 
-              <form
-                className="mt-4 space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  saveMutation.mutate();
-                }}
-              >
+          <SurfaceCard eyebrow="Setup" title="Contractor profile">
+            <SignedOut>
+              {bypassAuth ? null : (
+                <>
+                  <p className="text-sm text-muted">
+                    Continue with Clerk sign-in. If Google is the only enabled provider in Clerk, this screen will show Google only.
+                  </p>
+
+                  <div className="mt-4">
+                    <SignIn
+                      routing="path"
+                      path="/onboarding"
+                      forceRedirectUrl="/onboarding"
+                      fallbackRedirectUrl="/onboarding"
+                    />
+                  </div>
+                </>
+              )}
+            </SignedOut>
+
+            <SignedIn>
+              {bypassAuth ? null : (
+                <>
+                  <p className="text-sm text-muted">
+                    Fast start takes about 2 minutes: company + trade + service area, then GC Agent applies recommended pricing defaults for your first quote.
+                  </p>
+
+                  <form
+                    className="mt-4 space-y-4"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      saveMutation.mutate();
+                    }}
+                  >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-muted" htmlFor="phone_number">
@@ -483,12 +503,13 @@ export function OnboardingPage() {
                 ) : null}
 
                 {errorMessage ? <p className="text-sm text-red-300">{errorMessage}</p> : null}
-              </form>
-            </>
-          )}
-        </SignedIn>
+                  </form>
+                </>
+              )}
+            </SignedIn>
+          </SurfaceCard>
+        </div>
       </div>
     </main>
   );
 }
-
