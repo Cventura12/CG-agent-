@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from importlib import import_module
+import logging
+import asyncio
 from typing import Any
 from uuid import uuid4
 
@@ -13,13 +15,17 @@ from gc_agent.api.auth import DEFAULT_ESTIMATE_GC_ID, require_api_key
 from gc_agent.api.quote_pdf import render_quote_pdf
 from gc_agent.db import queries
 from gc_agent.db.queries import DatabaseError
+from gc_agent.email_delivery import send_email_message
+from gc_agent.nodes.followup_trigger import ensure_quote_followup
 from gc_agent.nodes.send_and_track import send_and_track
 from gc_agent.nodes.update_memory import build_prompt_tuning_signals, update_memory
 from gc_agent.state import AgentState, Draft
+from gc_agent.telemetry import write_agent_trace
 
 open_router = APIRouter()
 router = APIRouter(dependencies=[Depends(require_api_key)])
 APP_VERSION = "0.1"
+LOGGER = logging.getLogger(__name__)
 
 
 class _GraphProxy:
@@ -172,12 +178,57 @@ def _apply_quote_edits(
 
 
 def _quote_for_delivery(record: dict[str, Any]) -> dict[str, Any]:
-    """Use final edited quote when present, otherwise generated quote."""
+    """Select the safest quote payload for downstream customer-facing output."""
+    return _select_quote_source(record, context="delivery")
+
+
+def _is_valid_quote_source(candidate: Any) -> bool:
+    """Return True when a quote payload is complete enough for PDF/send output."""
+    if not isinstance(candidate, dict) or not candidate:
+        return False
+    if not str(candidate.get("scope_of_work", "")).strip():
+        return False
+    if "total_price" not in candidate:
+        return False
+
+    line_items = candidate.get("line_items")
+    if line_items is not None and not isinstance(line_items, list):
+        return False
+
+    exclusions = candidate.get("exclusions")
+    if exclusions is not None and not isinstance(exclusions, list):
+        return False
+    return True
+
+
+def _select_quote_source(record: dict[str, Any], *, context: str) -> dict[str, Any]:
+    """Use final edited quote when safe, otherwise fall back to the generated draft."""
+    original_quote = record.get("quote_draft")
+    fallback = dict(original_quote) if isinstance(original_quote, dict) else {}
     final_quote = record.get("final_quote_draft")
     if isinstance(final_quote, dict) and final_quote:
-        return dict(final_quote)
-    quote = record.get("quote_draft")
-    return dict(quote) if isinstance(quote, dict) else {}
+        if _is_valid_quote_source(final_quote):
+            return dict(final_quote)
+
+        error_text = f"{context}: final_quote_draft malformed; falling back to quote_draft"
+        LOGGER.warning(error_text)
+        write_agent_trace(
+            trace_id=str(record.get("trace_id", "")).strip(),
+            gc_id=str(record.get("gc_id", "")).strip(),
+            job_id=str(record.get("job_id", "")).strip(),
+            input_surface="api",
+            flow="estimate",
+            node_name="quote_source_select",
+            status="error",
+            error_text=error_text,
+            input_preview={
+                "quote_id": str(record.get("id", "")).strip(),
+                "context": context,
+                "final_quote_keys": sorted(final_quote.keys()),
+            },
+            output_preview={"fallback_keys": sorted(fallback.keys())},
+        )
+    return fallback
 
 
 def _build_delivery_message(
@@ -204,6 +255,13 @@ def _build_delivery_message(
         f"Scope: {scope_preview}\n"
         f"Reference: {quote_id}"
     ).strip()
+
+
+def _build_delivery_subject(*, quote_id: str, quote: dict[str, Any]) -> str:
+    """Format a concise email subject for an outbound quote."""
+    company = str(quote.get("company_name", "GC Agent")).strip() or "GC Agent"
+    address = str(quote.get("project_address", "your project")).strip() or "your project"
+    return f"{company} quote for {address} ({quote_id})"
 
 
 def _estimate_confidence(state: AgentState) -> dict[str, Any]:
@@ -266,6 +324,26 @@ async def _deliver_quote_message(channel: str, destination: str, body: str) -> s
     else:
         sender = getattr(twilio_module, "send_sms_message")
     return await sender(destination, body)
+
+
+async def _deliver_quote_email(
+    destination: str,
+    subject: str,
+    body: str,
+    *,
+    pdf_bytes: bytes,
+    quote_id: str,
+) -> str:
+    """Send quote email through SMTP and return the Message-ID."""
+    filename = f"gc-agent-quote-{quote_id}.pdf"
+    return await asyncio.to_thread(
+        send_email_message,
+        destination,
+        subject,
+        body,
+        pdf_bytes=pdf_bytes,
+        pdf_filename=filename,
+    )
 
 
 @router.post("/quote")
@@ -369,7 +447,7 @@ async def get_quote_pdf(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="quote does not belong to contractor")
 
     try:
-        pdf_bytes = render_quote_pdf(quote_id, dict(record.get("quote_draft") or {}))
+        pdf_bytes = render_quote_pdf(quote_id, _select_quote_source(record, context="pdf"))
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -386,6 +464,52 @@ async def get_quote_pdf(
             "X-GC-Trace-Id": str(record.get("trace_id", "")).strip(),
         },
     )
+
+
+@router.get("/quote/{quote_id}/delivery")
+async def get_quote_delivery(
+    quote_id: str,
+    contractor_id: str = Query(..., min_length=1),
+) -> dict[str, Any]:
+    """Return all known outbound delivery attempts for a quote."""
+    try:
+        record = await queries.get_quote_draft_record(quote_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="quote_id not found")
+    if str(record.get("gc_id", "")).strip() != contractor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="quote does not belong to contractor")
+
+    try:
+        deliveries = await queries.get_quote_delivery_attempts(quote_id, contractor_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "quote_id": quote_id,
+        "trace_id": str(record.get("trace_id", "")).strip(),
+        "deliveries": [
+            {
+                "delivery_id": str(row.get("id", "")).strip(),
+                "channel": str(row.get("channel", "")).strip().lower(),
+                "recipient": str(row.get("recipient_name", "")).strip(),
+                "destination": str(row.get("destination", "")).strip(),
+                "status": str(row.get("delivery_status", "")).strip().lower() or "pending",
+                "sent_at": row.get("created_at"),
+                "external_id": str(row.get("provider_message_id", "")).strip(),
+                "error_message": str(row.get("error_message", "")).strip(),
+            }
+            for row in deliveries
+        ],
+    }
 
 
 @router.post("/quote/{quote_id}/send")
@@ -408,10 +532,10 @@ async def send_quote_to_client(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="quote does not belong to contractor")
 
     channel = payload.channel.strip().lower()
-    if channel not in {"whatsapp", "sms"}:
+    if channel not in {"whatsapp", "sms", "email"}:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="channel must be 'whatsapp' or 'sms'",
+            detail="channel must be 'whatsapp', 'sms', or 'email'",
         )
 
     quote = _quote_for_delivery(record)
@@ -421,12 +545,23 @@ async def send_quote_to_client(
         recipient_name=payload.recipient_name,
         message_override=payload.message_override,
     )
+    subject = _build_delivery_subject(quote_id=quote_id, quote=quote)
 
     provider_message_id = ""
     delivery_status = "sent"
     error_message = ""
     try:
-        provider_message_id = await _deliver_quote_message(channel, payload.destination, message_body)
+        if channel == "email":
+            pdf_bytes = render_quote_pdf(quote_id, quote)
+            provider_message_id = await _deliver_quote_email(
+                payload.destination,
+                subject,
+                message_body,
+                pdf_bytes=pdf_bytes,
+                quote_id=quote_id,
+            )
+        else:
+            provider_message_id = await _deliver_quote_message(channel, payload.destination, message_body)
     except Exception as exc:
         delivery_status = "failed"
         error_message = str(exc)
@@ -527,6 +662,34 @@ async def approve_quote(
             detail=str(exc),
         ) from exc
 
+    followup_result = {
+        "created": False,
+        "open_item_id": "",
+        "reason": "not_attempted",
+    }
+    try:
+        followup_result = await ensure_quote_followup(
+            payload.contractor_id,
+            str(record.get("job_id", "")).strip(),
+            quote_id,
+            str(record.get("trace_id", "")).strip(),
+            final_quote=final_quote,
+        )
+    except Exception as exc:
+        LOGGER.warning("quote approve follow-up failed: %s", exc)
+        write_agent_trace(
+            trace_id=str(record.get("trace_id", "")).strip(),
+            gc_id=payload.contractor_id,
+            job_id=str(record.get("job_id", "")).strip(),
+            input_surface="api",
+            flow="estimate",
+            node_name="quote_followup",
+            status="error",
+            error_text=f"approve follow-up failed: {exc}",
+            input_preview={"quote_id": quote_id, "approval_status": "approved"},
+            output_preview={},
+        )
+
     return {
         "quote_id": quote_id,
         "trace_id": str(record.get("trace_id", "")).strip(),
@@ -535,6 +698,8 @@ async def approve_quote(
         "quote_draft": final_quote,
         "quote_delta": quote_delta,
         "memory_updated": memory_updated,
+        "followup_created": bool(followup_result.get("created")),
+        "followup_open_item_id": str(followup_result.get("open_item_id", "")).strip(),
     }
 
 
@@ -599,6 +764,34 @@ async def edit_quote(
             detail=str(exc),
         ) from exc
 
+    followup_result = {
+        "created": False,
+        "open_item_id": "",
+        "reason": "not_attempted",
+    }
+    try:
+        followup_result = await ensure_quote_followup(
+            payload.contractor_id,
+            str(record.get("job_id", "")).strip(),
+            quote_id,
+            str(record.get("trace_id", "")).strip(),
+            final_quote=final_quote,
+        )
+    except Exception as exc:
+        LOGGER.warning("quote edit follow-up failed: %s", exc)
+        write_agent_trace(
+            trace_id=str(record.get("trace_id", "")).strip(),
+            gc_id=payload.contractor_id,
+            job_id=str(record.get("job_id", "")).strip(),
+            input_surface="api",
+            flow="estimate",
+            node_name="quote_followup",
+            status="error",
+            error_text=f"edit follow-up failed: {exc}",
+            input_preview={"quote_id": quote_id, "approval_status": approval_status},
+            output_preview={},
+        )
+
     return {
         "quote_id": quote_id,
         "trace_id": str(record.get("trace_id", "")).strip(),
@@ -607,6 +800,8 @@ async def edit_quote(
         "quote_draft": final_quote,
         "quote_delta": quote_delta,
         "memory_updated": memory_updated,
+        "followup_created": bool(followup_result.get("created")),
+        "followup_open_item_id": str(followup_result.get("open_item_id", "")).strip(),
     }
 
 
@@ -893,6 +1088,7 @@ __all__ = [
     "get_briefing",
     "get_jobs",
     "get_queue",
+    "get_quote_delivery",
     "get_quote_pdf",
     "graph",
     "health",

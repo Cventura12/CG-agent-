@@ -84,10 +84,10 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _due_date_iso(now: datetime | None = None) -> str:
-    """Return the next follow-up due date, 48 hours out, in ISO format."""
+def _due_date_iso(now: datetime | None = None, *, due_in_hours: int = 48) -> str:
+    """Return the next follow-up due date in ISO format."""
     current = now or _utc_now()
-    return (current + timedelta(hours=48)).date().isoformat()
+    return (current + timedelta(hours=max(int(due_in_hours or 48), 1))).date().isoformat()
 
 
 def _parse_due_date(raw: Any) -> Optional[date]:
@@ -172,12 +172,109 @@ async def _generate_followup_message(
         return _fallback_followup_message(job_name, address, attempt_number)
 
 
-def _build_open_item_description(final_quote: dict[str, object], address: str) -> str:
+def _quote_followup_marker(quote_id: str) -> str:
+    """Return the stable description marker used to identify quote follow-ups."""
+    quote_value = quote_id.strip()
+    return f"Quote ID: {quote_value}" if quote_value else ""
+
+
+def _matches_quote_followup(row: dict[str, Any], quote_id: str, trace_id: str) -> bool:
+    """Return True when an active follow-up row already belongs to the same quote."""
+    if not _is_active_followup_item(row):
+        return False
+    quote_marker = _quote_followup_marker(quote_id)
+    description = str(row.get("description", "")).strip()
+    row_trace_id = str(row.get("trace_id", "")).strip()
+    if quote_marker and quote_marker in description:
+        return True
+    return bool(trace_id.strip() and row_trace_id == trace_id.strip())
+
+
+def _build_open_item_description(final_quote: dict[str, object], address: str, quote_id: str) -> str:
     """Build the reminder description for the stored open item."""
+    quote_marker = _quote_followup_marker(quote_id)
     total_price = final_quote.get("total_price")
     if total_price:
-        return f"Quote follow-up due for {address or 'recent estimate'} at total {total_price}."
-    return f"Quote follow-up due for {address or 'recent estimate'}."
+        summary = f"Quote follow-up due for {address or 'recent estimate'} at total {total_price}."
+    else:
+        summary = f"Quote follow-up due for {address or 'recent estimate'}."
+    return f"{summary} {quote_marker}".strip()
+
+
+async def ensure_quote_followup(
+    contractor_id: str,
+    job_id: str,
+    quote_id: str,
+    trace_id: str,
+    *,
+    final_quote: dict[str, object] | None = None,
+    due_in_hours: int = 48,
+) -> dict[str, object]:
+    """Create or reuse the quote follow-up open item for an approved quote."""
+    from gc_agent.tools import supabase
+
+    contractor_value = contractor_id.strip()
+    job_value = job_id.strip()
+    quote_value = quote_id.strip()
+    trace_value = trace_id.strip()
+    if not contractor_value or not job_value:
+        return {
+            "created": False,
+            "open_item_id": "",
+            "quote_id": quote_value,
+            "reason": "missing identifiers",
+        }
+
+    existing_items = await asyncio.to_thread(
+        supabase.list_open_items,
+        contractor_value,
+        job_value,
+    )
+    normalized_items = [dict(row) for row in existing_items]
+    matching_items = [
+        row for row in normalized_items if _matches_quote_followup(row, quote_value, trace_value)
+    ]
+    if matching_items:
+        existing = matching_items[0]
+        return {
+            "created": False,
+            "open_item_id": str(existing.get("id", "")).strip(),
+            "quote_id": quote_value,
+            "reason": "already_exists",
+        }
+
+    active_items = [row for row in normalized_items if _is_active_followup_item(row)]
+    if active_items:
+        existing = active_items[0]
+        return {
+            "created": False,
+            "open_item_id": str(existing.get("id", "")).strip(),
+            "quote_id": quote_value,
+            "reason": "active_followup_exists",
+        }
+
+    final_quote_payload = dict(final_quote or {})
+    address = str(final_quote_payload.get("project_address") or "").strip()
+    open_item_id = f"followup-{uuid4().hex[:12]}"
+    payload = {
+        "id": open_item_id,
+        "job_id": job_value,
+        "gc_id": contractor_value,
+        "type": "followup",
+        "description": _build_open_item_description(final_quote_payload, address, quote_value),
+        "owner": "GC Agent",
+        "status": "open",
+        "days_silent": 0,
+        "due_date": _due_date_iso(due_in_hours=due_in_hours),
+        "trace_id": trace_value or None,
+    }
+    await asyncio.to_thread(supabase.insert_open_item, payload)
+    return {
+        "created": True,
+        "open_item_id": open_item_id,
+        "quote_id": quote_value,
+        "reason": "created",
+    }
 
 
 async def followup_trigger(state: AgentState) -> dict[str, object]:
@@ -197,59 +294,33 @@ async def followup_trigger(state: AgentState) -> dict[str, object]:
         errors.append("followup_trigger skipped: gc_id and active_job_id are required")
         return {"errors": errors}
 
-    existing_items = await asyncio.to_thread(
-        supabase.list_open_items,
-        state.gc_id,
-        state.active_job_id,
-    )
-    active_items = [row for row in existing_items if _is_active_followup_item(dict(row))]
-
     all_drafts = await asyncio.to_thread(supabase.list_draft_queue, state.gc_id)
     followup_count = _followup_draft_count([dict(row) for row in all_drafts], state.active_job_id)
 
-    memory_context = dict(state.memory_context)
-    if active_items:
-        open_item_id = str(active_items[0].get("id", "")).strip()
-        memory_context["followup_open_item_id"] = open_item_id
-        memory_context["followup_open_item_created"] = True
-        return {
-            "followup_count": followup_count,
-            "stop_following_up": followup_count >= 2 or state.stop_following_up,
-            "memory_context": memory_context,
-        }
-
     final_quote = dict(state.final_quote_draft) or dict(state.quote_draft)
-    address = (
-        str(final_quote.get("project_address") or state.job_scope.get("address") or "").strip()
-    )
-
-    open_item_id = f"followup-{uuid4().hex[:12]}"
-    payload = {
-        "id": open_item_id,
-        "job_id": state.active_job_id,
-        "gc_id": state.gc_id,
-        "type": "followup",
-        "description": _build_open_item_description(final_quote, address),
-        "owner": "GC Agent",
-        "status": "open",
-        "days_silent": 0,
-        "due_date": _due_date_iso(),
-        "trace_id": state.trace_id,
-    }
+    quote_id = str(state.memory_context.get("quote_id", "")).strip()
 
     try:
-        await asyncio.to_thread(supabase.insert_open_item, payload)
+        followup_result = await ensure_quote_followup(
+            state.gc_id,
+            state.active_job_id,
+            quote_id,
+            state.trace_id,
+            final_quote=final_quote,
+        )
     except Exception as exc:
         LOGGER.warning("followup_trigger open item write failed: %s", exc)
         errors = list(state.errors)
         errors.append(f"followup_trigger open item write failed: {exc}")
         return {"errors": errors}
 
+    memory_context = dict(state.memory_context)
+    open_item_id = str(followup_result.get("open_item_id", "")).strip()
     memory_context["followup_open_item_id"] = open_item_id
-    memory_context["followup_open_item_created"] = True
+    memory_context["followup_open_item_created"] = bool(followup_result.get("created"))
     return {
         "followup_count": followup_count,
-        "stop_following_up": False,
+        "stop_following_up": followup_count >= 2 or state.stop_following_up,
         "memory_context": memory_context,
     }
 
@@ -351,4 +422,4 @@ async def check_due_followups(
     }
 
 
-__all__ = ["followup_trigger", "check_due_followups", "_call_claude"]
+__all__ = ["followup_trigger", "check_due_followups", "ensure_quote_followup", "_call_claude"]

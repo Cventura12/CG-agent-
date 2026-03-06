@@ -115,6 +115,34 @@ async def test_followup_trigger_creates_open_item_after_approved_quote(
 
 
 @pytest.mark.asyncio
+async def test_ensure_quote_followup_avoids_duplicate_open_items_for_same_quote(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    open_items, _drafts, _jobs = _install_followup_store(monkeypatch)
+
+    first = await followup_module.ensure_quote_followup(
+        "00000000-0000-0000-0000-000000000001",
+        "estimate-job-001",
+        "quote-dup-1",
+        "trace-dup-1",
+        final_quote={"project_address": "500 Oak Meadow", "total_price": 1450.0},
+    )
+    second = await followup_module.ensure_quote_followup(
+        "00000000-0000-0000-0000-000000000001",
+        "estimate-job-001",
+        "quote-dup-1",
+        "trace-dup-1",
+        final_quote={"project_address": "500 Oak Meadow", "total_price": 1450.0},
+    )
+
+    assert len(open_items) == 1
+    assert first["created"] is True
+    assert second["created"] is False
+    assert second["reason"] == "already_exists"
+    assert "Quote ID: quote-dup-1" in str(open_items[0]["description"])
+
+
+@pytest.mark.asyncio
 async def test_check_due_followups_creates_pending_drafts_and_stops_after_second_attempt(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

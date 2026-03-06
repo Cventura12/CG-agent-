@@ -50,6 +50,8 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
     def _fake_render_quote_pdf(quote_id: str, quote_draft: dict[str, object]) -> bytes:
         assert quote_id
         assert quote_draft["project_address"] == "14 Oak Lane"
+        assert quote_draft["scope_of_work"] == "Replace shingles and chimney flashing at 14 Oak Lane."
+        assert quote_draft["total_price"] == 14975.0
         return b"%PDF-1.4 test quote pdf"
 
     async def _fake_upsert_quote_draft(
@@ -68,6 +70,7 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
             "job_id": job_id,
             "trace_id": trace_id,
             "quote_draft": quote_draft,
+            "final_quote_draft": {},
             "rendered_quote": rendered_quote,
             "estimate_confidence": estimate_confidence or {},
         }
@@ -75,10 +78,26 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
     async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
         return stored_quotes.get(quote_id)
 
+    async def _fake_finalize_quote_draft_feedback(**kwargs: object) -> None:
+        quote_id = str(kwargs["quote_id"])
+        record = stored_quotes[quote_id]
+        record["final_quote_draft"] = kwargs["final_quote_draft"]
+        record["approval_status"] = kwargs["approval_status"]
+
+    async def _fake_update_memory(_: AgentState) -> dict[str, object]:
+        return {"memory_context": {"memory_updated": False, "last_change_summary": ""}}
+
+    async def _fake_ensure_quote_followup(*args: object, **kwargs: object) -> dict[str, object]:
+        _ = (args, kwargs)
+        return {"created": True, "open_item_id": "followup-1", "reason": "created"}
+
     monkeypatch.setattr(api_module, "run_single_estimate", _fake_run_single_estimate)
     monkeypatch.setattr(api_module, "render_quote_pdf", _fake_render_quote_pdf)
     monkeypatch.setattr(api_module.queries, "upsert_quote_draft", _fake_upsert_quote_draft)
     monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
+    monkeypatch.setattr(api_module.queries, "finalize_quote_draft_feedback", _fake_finalize_quote_draft_feedback)
+    monkeypatch.setattr(api_module, "update_memory", _fake_update_memory)
+    monkeypatch.setattr(api_module, "ensure_quote_followup", _fake_ensure_quote_followup)
 
     async with _client() as client:
         quote_response = await client.post(
@@ -90,6 +109,18 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
         assert quote_response.status_code == 200
         quote_id = quote_response.json()["quote_id"]
 
+        edit_response = await client.post(
+            f"/quote/{quote_id}/edit",
+            json={
+                "contractor_id": "gc-demo",
+                "edited_scope_of_work": "Replace shingles and chimney flashing at 14 Oak Lane.",
+                "edited_total_price": 14975.0,
+            },
+            headers={"X-API-Key": "test-key"},
+        )
+
+        assert edit_response.status_code == 200
+
         pdf_response = await client.get(
             f"/quote/{quote_id}/pdf",
             params={"contractor_id": "gc-demo"},
@@ -99,6 +130,58 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
     assert pdf_response.status_code == 200
     assert pdf_response.headers["content-type"] == "application/pdf"
     assert pdf_response.content.startswith(b"%PDF-1.4")
+
+
+@pytest.mark.asyncio
+async def test_quote_pdf_falls_back_to_original_when_final_quote_is_malformed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
+    trace_rows: list[dict[str, object]] = []
+
+    async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
+        if quote_id != "quote-bad-final":
+            return None
+        return {
+            "id": "quote-bad-final",
+            "gc_id": "gc-demo",
+            "trace_id": "trace-bad-final",
+            "quote_draft": {
+                "company_name": "GC Agent Roofing",
+                "project_address": "14 Oak Lane",
+                "scope_of_work": "Original scope",
+                "total_price": 14250.0,
+                "line_items": [],
+                "exclusions": [],
+            },
+            "final_quote_draft": {
+                "company_name": "GC Agent Roofing",
+                "line_items": "bad-shape",
+            },
+        }
+
+    def _fake_render_quote_pdf(_: str, quote_draft: dict[str, object]) -> bytes:
+        assert quote_draft["scope_of_work"] == "Original scope"
+        return b"%PDF-1.4 fallback quote pdf"
+
+    def _fake_write_agent_trace(**kwargs: object) -> None:
+        trace_rows.append(dict(kwargs))
+
+    monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
+    monkeypatch.setattr(api_module, "render_quote_pdf", _fake_render_quote_pdf)
+    monkeypatch.setattr(api_module, "write_agent_trace", _fake_write_agent_trace)
+
+    async with _client() as client:
+        response = await client.get(
+            "/quote/quote-bad-final/pdf",
+            params={"contractor_id": "gc-demo"},
+            headers={"X-API-Key": "test-key"},
+        )
+
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF-1.4")
+    assert len(trace_rows) == 1
+    assert trace_rows[0]["node_name"] == "quote_source_select"
 
 
 @pytest.mark.asyncio

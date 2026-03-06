@@ -8,13 +8,20 @@ import {
   approveQuote,
   discardQuote,
   editQuote,
+  fetchQuoteDelivery,
   fetchQuotePdf,
   getBetaContractorId,
   hasBetaApiCredentials,
   sendQuoteToClient,
   submitQuote,
 } from "../api/quote";
-import type { QuoteApprovalStatus, QuoteDraft, QuoteLineItem, QuoteResponse } from "../types";
+import type {
+  QuoteApprovalStatus,
+  QuoteDeliveryAttempt,
+  QuoteDraft,
+  QuoteLineItem,
+  QuoteResponse,
+} from "../types";
 
 const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
 
@@ -71,6 +78,7 @@ type QuoteSubmissionRequest = {
 
 const QUOTE_NOTES_STORAGE_KEY = "gc-agent:quote:notes:v1";
 const QUOTE_OFFLINE_QUEUE_STORAGE_KEY = "gc-agent:quote:offline-queue:v1";
+const ACTIVE_QUOTE_STORAGE_KEY = "gc-agent:quote:active:v1";
 
 function hasLocalStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -156,6 +164,49 @@ function saveOfflineQueue(queue: OfflineQueuedQuote[]): void {
   }
 }
 
+function loadStoredActiveQuote(): QuoteResponse | null {
+  if (!hasLocalStorage()) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(ACTIVE_QUOTE_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    const candidate = parsed as Record<string, unknown>;
+    if (typeof candidate.quote_id !== "string" || !candidate.quote_id.trim()) {
+      return null;
+    }
+    if (!candidate.quote_draft || typeof candidate.quote_draft !== "object") {
+      return null;
+    }
+    return candidate as unknown as QuoteResponse;
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredActiveQuote(value: QuoteResponse | null): void {
+  if (!hasLocalStorage()) {
+    return;
+  }
+
+  try {
+    if (value) {
+      window.localStorage.setItem(ACTIVE_QUOTE_STORAGE_KEY, JSON.stringify(value));
+    } else {
+      window.localStorage.removeItem(ACTIVE_QUOTE_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore localStorage errors so quote flow still works.
+  }
+}
+
 function buildOfflineQueueId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -175,6 +226,38 @@ function formatCurrency(value: number | undefined): string {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(normalized);
+}
+
+function formatDeliveryTimestamp(value: string | null): string {
+  if (!value) {
+    return "Timestamp pending";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+function deliveryStatusTone(status: string): string {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "delivered") {
+    return "border-green/40 bg-green/10 text-green";
+  }
+  if (normalized === "sent" || normalized === "queued" || normalized === "accepted") {
+    return "border-orange/40 bg-orange/10 text-orange";
+  }
+  if (normalized === "pending" || normalized === "scheduled") {
+    return "border-yellow/50 bg-yellow/10 text-yellow";
+  }
+  return "border-red-400/40 bg-red-400/10 text-red-200";
 }
 
 function lineItemLabel(item: QuoteLineItem): string {
@@ -374,17 +457,19 @@ export function QuotePage() {
   const [voiceSupported] = useState(() => Boolean(getSpeechRecognitionConstructor()));
   const [captureError, setCaptureError] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
-  const [activeQuote, setActiveQuote] = useState<QuoteResponse | null>(null);
+  const [activeQuote, setActiveQuote] = useState<QuoteResponse | null>(() => loadStoredActiveQuote());
   const [editedScopeOfWork, setEditedScopeOfWork] = useState("");
   const [editedTotalPrice, setEditedTotalPrice] = useState("");
   const [feedbackNote, setFeedbackNote] = useState("");
   const [decisionStatus, setDecisionStatus] = useState<QuoteApprovalStatus | null>(null);
   const [decisionMessage, setDecisionMessage] = useState<string | null>(null);
-  const [deliveryChannel, setDeliveryChannel] = useState<"whatsapp" | "sms">("whatsapp");
+  const [deliveryChannel, setDeliveryChannel] = useState<"whatsapp" | "sms" | "email">("whatsapp");
   const [deliveryDestination, setDeliveryDestination] = useState("");
   const [deliveryRecipientName, setDeliveryRecipientName] = useState("");
   const [deliveryMessageOverride, setDeliveryMessageOverride] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState<string | null>(null);
+  const [deliveryHistory, setDeliveryHistory] = useState<QuoteDeliveryAttempt[]>([]);
+  const [isDeliveryHistoryLoading, setIsDeliveryHistoryLoading] = useState(false);
 
   const { signOut } = useClerk();
   const location = useLocation();
@@ -405,6 +490,7 @@ export function QuotePage() {
     setDeliveryRecipientName(payload.quote_draft.customer_name ?? "");
     setDeliveryMessageOverride("");
     setDeliveryMessage(null);
+    setDeliveryHistory([]);
     setShareMessage(null);
     setQueueMessage(null);
     if (payload.errors.length > 0) {
@@ -437,8 +523,30 @@ export function QuotePage() {
     setDeliveryMessage(null);
     setQueueMessage(
       "Offline mode: notes saved locally and queued. They will sync when you reconnect."
-    );
+      );
   }, []);
+
+  const loadDeliveryHistory = useCallback(
+    async (quoteId: string) => {
+      if (!apiReady || !quoteId.trim()) {
+        setDeliveryHistory([]);
+        return;
+      }
+
+      setIsDeliveryHistoryLoading(true);
+      try {
+        const payload = await fetchQuoteDelivery(quoteId);
+        setDeliveryHistory(Array.isArray(payload.deliveries) ? payload.deliveries : []);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not refresh quote delivery status.";
+        setCaptureError(message);
+      } finally {
+        setIsDeliveryHistoryLoading(false);
+      }
+    },
+    [apiReady]
+  );
 
   const quoteMutation = useMutation({
     mutationFn: async ({ input }: QuoteSubmissionRequest) => submitQuote(input),
@@ -527,10 +635,11 @@ export function QuotePage() {
       setCaptureError(null);
       setShareMessage(null);
       setDecisionStatus(null);
-      setDecisionMessage(null);
-      setDeliveryMessage(null);
-      setQueueMessage(null);
-      latestTranscriptRef.current = trimmed;
+    setDecisionMessage(null);
+    setDeliveryMessage(null);
+    setDeliveryHistory([]);
+    setQueueMessage(null);
+    latestTranscriptRef.current = trimmed;
 
       if (!isOnline) {
         enqueueOfflineQuote(trimmed, source);
@@ -544,11 +653,27 @@ export function QuotePage() {
 
   useEffect(() => {
     if (!activeQuote) {
+      saveStoredActiveQuote(null);
       return;
     }
+    saveStoredActiveQuote(activeQuote);
     setEditedScopeOfWork(activeQuote.quote_draft.scope_of_work ?? "");
     setEditedTotalPrice(String(activeQuote.quote_draft.total_price ?? ""));
+    setDeliveryRecipientName(
+      (current) => current || (activeQuote.quote_draft.customer_name ?? "")
+    );
   }, [activeQuote]);
+
+  useEffect(() => {
+    if (!activeQuote?.quote_id) {
+      setDeliveryHistory([]);
+      return;
+    }
+    if (!apiReady) {
+      return;
+    }
+    void loadDeliveryHistory(activeQuote.quote_id);
+  }, [activeQuote?.quote_id, apiReady, loadDeliveryHistory]);
 
   useEffect(() => {
     saveStoredNotes(notes);
@@ -644,6 +769,7 @@ export function QuotePage() {
         `Quote sent via ${payload.channel.toUpperCase()} to ${payload.destination}.`
       );
       setCaptureError(null);
+      void loadDeliveryHistory(payload.quote_id);
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : "Could not send quote to customer.";
@@ -704,6 +830,10 @@ export function QuotePage() {
       ? "Listening now. Release to send the transcript."
       : "Press and hold to capture a voice note. Release to send.";
   }, [isRecording, voiceSupported]);
+
+  const deliveryDestinationLabel = deliveryChannel === "email" ? "Client email" : "Client phone";
+  const deliveryDestinationPlaceholder =
+    deliveryChannel === "email" ? "customer@example.com" : "+14235551234";
 
   const beginRecording = () => {
     const Recognition = getSpeechRecognitionConstructor();
@@ -1106,10 +1236,22 @@ export function QuotePage() {
             </div>
 
             <div className="rounded-2xl border border-border bg-surface p-4 shadow-lg shadow-black/20">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Send to client (one tap)</p>
-              <p className="mt-1 text-sm text-muted">
-                Deliver the quote directly from GC Agent via WhatsApp or SMS.
-              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Send to client (one tap)</p>
+                  <p className="mt-1 text-sm text-muted">
+                    Deliver the quote directly from GC Agent via WhatsApp, SMS, or email.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => activeQuote && void loadDeliveryHistory(activeQuote.quote_id)}
+                  disabled={isDeliveryHistoryLoading || !apiReady}
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-bg px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted transition hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isDeliveryHistoryLoading ? "Refreshing..." : "Refresh status"}
+                </button>
+              </div>
 
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
@@ -1119,24 +1261,27 @@ export function QuotePage() {
                   <select
                     id="delivery-channel"
                     value={deliveryChannel}
-                    onChange={(event) => setDeliveryChannel(event.target.value as "whatsapp" | "sms")}
+                    onChange={(event) =>
+                      setDeliveryChannel(event.target.value as "whatsapp" | "sms" | "email")
+                    }
                     className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
                   >
                     <option value="whatsapp">WhatsApp</option>
                     <option value="sms">SMS</option>
+                    <option value="email">Email</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-xs uppercase tracking-[0.16em] text-muted" htmlFor="delivery-destination">
-                    Client phone
+                    {deliveryDestinationLabel}
                   </label>
                   <input
                     id="delivery-destination"
-                    type="text"
+                    type={deliveryChannel === "email" ? "email" : "text"}
                     value={deliveryDestination}
                     onChange={(event) => setDeliveryDestination(event.target.value)}
-                    placeholder="+14235551234"
+                    placeholder={deliveryDestinationPlaceholder}
                     className="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition focus:border-orange"
                   />
                 </div>
@@ -1192,6 +1337,54 @@ export function QuotePage() {
                   {deliveryMessage}
                 </div>
               ) : null}
+
+              <div className="mt-4 rounded-xl border border-border bg-bg px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Delivery status</p>
+                  <p className="text-xs text-muted">
+                    {deliveryHistory.length > 0 ? `${deliveryHistory.length} attempt(s)` : "No sends yet"}
+                  </p>
+                </div>
+
+                {isDeliveryHistoryLoading ? (
+                  <p className="mt-3 text-sm text-muted">Refreshing latest delivery state...</p>
+                ) : deliveryHistory.length === 0 ? (
+                  <p className="mt-3 text-sm text-muted">
+                    No delivery attempts recorded yet. Once you send the quote, status will show here.
+                  </p>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {deliveryHistory.map((attempt) => (
+                      <div
+                        key={attempt.delivery_id}
+                        className="rounded-xl border border-border bg-surface px-3 py-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-text">
+                              {attempt.channel.toUpperCase()} to {attempt.recipient || attempt.destination}
+                            </p>
+                            <p className="mt-1 text-xs text-muted">
+                              {attempt.destination} • {formatDeliveryTimestamp(attempt.sent_at)}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] ${deliveryStatusTone(attempt.status)}`}
+                          >
+                            {attempt.status}
+                          </span>
+                        </div>
+
+                        {attempt.error_message ? (
+                          <p className="mt-2 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs text-red-100">
+                            {attempt.error_message}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {activeQuote.rendered_quote ? (

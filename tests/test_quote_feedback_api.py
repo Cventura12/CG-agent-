@@ -24,6 +24,7 @@ async def test_quote_approve_persists_feedback_and_updates_memory(
     monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
     finalized: list[dict[str, Any]] = []
     memory_calls: list[AgentState] = []
+    followup_calls: list[dict[str, Any]] = []
 
     async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
         if quote_id != "quote-1":
@@ -53,9 +54,31 @@ async def test_quote_approve_persists_feedback_and_updates_memory(
     async def _fake_finalize_quote_draft_feedback(**kwargs: Any) -> None:
         finalized.append(dict(kwargs))
 
+    async def _fake_ensure_quote_followup(
+        contractor_id: str,
+        job_id: str,
+        quote_id: str,
+        trace_id: str,
+        *,
+        final_quote: dict[str, Any] | None = None,
+        due_in_hours: int = 48,
+    ) -> dict[str, Any]:
+        followup_calls.append(
+            {
+                "contractor_id": contractor_id,
+                "job_id": job_id,
+                "quote_id": quote_id,
+                "trace_id": trace_id,
+                "final_quote": dict(final_quote or {}),
+                "due_in_hours": due_in_hours,
+            }
+        )
+        return {"created": True, "open_item_id": "followup-quote-1", "reason": "created"}
+
     monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
     monkeypatch.setattr(api_module, "update_memory", _fake_update_memory)
     monkeypatch.setattr(api_module.queries, "finalize_quote_draft_feedback", _fake_finalize_quote_draft_feedback)
+    monkeypatch.setattr(api_module, "ensure_quote_followup", _fake_ensure_quote_followup)
 
     async with _client() as client:
         response = await client.post(
@@ -75,6 +98,11 @@ async def test_quote_approve_persists_feedback_and_updates_memory(
     assert len(finalized) == 1
     assert finalized[0]["approval_status"] == "approved"
     assert finalized[0]["feedback_note"] == "Looks good"
+    assert payload["followup_created"] is True
+    assert payload["followup_open_item_id"] == "followup-quote-1"
+    assert len(followup_calls) == 1
+    assert followup_calls[0]["job_id"] == "job-11"
+    assert followup_calls[0]["quote_id"] == "quote-1"
 
 
 @pytest.mark.asyncio
@@ -84,6 +112,7 @@ async def test_quote_edit_persists_delta_and_updates_memory(
     monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
     finalized: list[dict[str, Any]] = []
     memory_calls: list[AgentState] = []
+    followup_calls: list[dict[str, Any]] = []
 
     async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
         if quote_id != "quote-2":
@@ -113,9 +142,31 @@ async def test_quote_edit_persists_delta_and_updates_memory(
     async def _fake_finalize_quote_draft_feedback(**kwargs: Any) -> None:
         finalized.append(dict(kwargs))
 
+    async def _fake_ensure_quote_followup(
+        contractor_id: str,
+        job_id: str,
+        quote_id: str,
+        trace_id: str,
+        *,
+        final_quote: dict[str, Any] | None = None,
+        due_in_hours: int = 48,
+    ) -> dict[str, Any]:
+        followup_calls.append(
+            {
+                "contractor_id": contractor_id,
+                "job_id": job_id,
+                "quote_id": quote_id,
+                "trace_id": trace_id,
+                "final_quote": dict(final_quote or {}),
+                "due_in_hours": due_in_hours,
+            }
+        )
+        return {"created": True, "open_item_id": "followup-quote-2", "reason": "created"}
+
     monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
     monkeypatch.setattr(api_module, "update_memory", _fake_update_memory)
     monkeypatch.setattr(api_module.queries, "finalize_quote_draft_feedback", _fake_finalize_quote_draft_feedback)
+    monkeypatch.setattr(api_module, "ensure_quote_followup", _fake_ensure_quote_followup)
 
     async with _client() as client:
         response = await client.post(
@@ -142,6 +193,10 @@ async def test_quote_edit_persists_delta_and_updates_memory(
     assert len(finalized) == 1
     assert finalized[0]["was_edited"] is True
     assert finalized[0]["approval_status"] == "edited"
+    assert payload["followup_created"] is True
+    assert payload["followup_open_item_id"] == "followup-quote-2"
+    assert len(followup_calls) == 1
+    assert followup_calls[0]["final_quote"]["total_price"] == 16500.0
 
 
 @pytest.mark.asyncio

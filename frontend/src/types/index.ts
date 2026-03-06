@@ -267,6 +267,8 @@ export interface QuoteDecisionResponse {
   quote_draft?: QuoteDraft;
   quote_delta: Record<string, unknown>;
   memory_updated: boolean;
+  followup_created?: boolean;
+  followup_open_item_id?: string;
 }
 
 export interface QuoteSendResponse {
@@ -277,4 +279,21 @@ export interface QuoteSendResponse {
   destination: string;
   provider_message_id: string;
   status: string;
+}
+
+export interface QuoteDeliveryAttempt {
+  delivery_id: string;
+  channel: string;
+  recipient: string;
+  destination: string;
+  status: string;
+  sent_at: string | null;
+  external_id: string;
+  error_message: string;
+}
+
+export interface QuoteDeliveryResponse {
+  quote_id: string;
+  trace_id: string;
+  deliveries: QuoteDeliveryAttempt[];
 }

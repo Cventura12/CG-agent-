@@ -1,5 +1,10 @@
 import { publicApiClient } from "./client";
-import type { QuoteDecisionResponse, QuoteResponse, QuoteSendResponse } from "../types";
+import type {
+  QuoteDecisionResponse,
+  QuoteDeliveryResponse,
+  QuoteResponse,
+  QuoteSendResponse,
+} from "../types";
 
 const betaContractorId =
   (import.meta.env.VITE_BETA_CONTRACTOR_ID as string | undefined)?.trim() ??
@@ -52,6 +57,23 @@ export async function fetchQuotePdf(quoteId: string): Promise<Blob> {
   });
 
   return new Blob([response.data], { type: "application/pdf" });
+}
+
+export async function fetchQuoteDelivery(quoteId: string): Promise<QuoteDeliveryResponse> {
+  if (!betaApiKey) {
+    throw new Error("VITE_BETA_API_KEY is required for quote delivery history");
+  }
+
+  const response = await publicApiClient.get<QuoteDeliveryResponse>(`/quote/${quoteId}/delivery`, {
+    params: {
+      contractor_id: betaContractorId,
+    },
+    headers: {
+      "X-API-Key": betaApiKey,
+    },
+  });
+
+  return response.data;
 }
 
 export async function approveQuote(quoteId: string, feedbackNote = ""): Promise<QuoteDecisionResponse> {
@@ -129,7 +151,7 @@ export async function discardQuote(quoteId: string, feedbackNote = ""): Promise<
 export async function sendQuoteToClient(
   quoteId: string,
   payload: {
-    channel: "whatsapp" | "sms";
+    channel: "whatsapp" | "sms" | "email";
     destination: string;
     recipient_name?: string;
     message_override?: string;

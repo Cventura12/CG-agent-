@@ -801,7 +801,7 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
             for row in list(delivery_response.data or []):
                 delivery_status = str(row.get("delivery_status", "")).strip().lower()
                 channel = str(row.get("channel", "")).strip().lower()
-                status_text = "sent" if delivery_status == "sent" else "failed"
+                status_text = delivery_status or "pending"
                 events.append(
                     {
                         "id": f"delivery-{str(row.get('id', '')).strip()}",
@@ -1126,6 +1126,51 @@ async def get_quote_draft_record(quote_id: str) -> Optional[dict[str, Any]]:
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
     }
+
+
+async def get_quote_delivery_attempts(quote_id: str, gc_id: str) -> list[dict[str, Any]]:
+    """Fetch stored delivery attempts for one quote in newest-first order."""
+    client = get_client()
+    quote_value = quote_id.strip()
+    gc_value = gc_id.strip()
+    if not quote_value or not gc_value:
+        return []
+
+    def _query() -> list[dict[str, Any]]:
+        response = (
+            client.table("quote_delivery_log")
+            .select(
+                "id,quote_id,gc_id,job_id,trace_id,channel,destination,recipient_name,"
+                "message_preview,delivery_status,provider_message_id,error_message,created_at"
+            )
+            .eq("quote_id", quote_value)
+            .eq("gc_id", gc_value)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return list(response.data or [])
+
+    rows = await _run_db("get_quote_delivery_attempts", _query)
+    attempts: list[dict[str, Any]] = []
+    for row in rows:
+        attempts.append(
+            {
+                "id": str(row.get("id", "")).strip(),
+                "quote_id": str(row.get("quote_id", "")).strip(),
+                "gc_id": str(row.get("gc_id", "")).strip(),
+                "job_id": str(row.get("job_id", "")).strip(),
+                "trace_id": str(row.get("trace_id", "")).strip(),
+                "channel": str(row.get("channel", "")).strip().lower(),
+                "destination": str(row.get("destination", "")).strip(),
+                "recipient_name": str(row.get("recipient_name", "")).strip(),
+                "message_preview": str(row.get("message_preview", "")).strip(),
+                "delivery_status": str(row.get("delivery_status", "")).strip().lower() or "pending",
+                "provider_message_id": str(row.get("provider_message_id", "")).strip(),
+                "error_message": str(row.get("error_message", "")).strip(),
+                "created_at": row.get("created_at"),
+            }
+        )
+    return attempts
 
 
 async def finalize_quote_draft_feedback(
@@ -1943,6 +1988,7 @@ __all__ = [
     "get_usage_analytics",
     "upsert_quote_draft",
     "get_quote_draft_record",
+    "get_quote_delivery_attempts",
     "finalize_quote_draft_feedback",
     "insert_quote_delivery_log",
     "apply_twilio_delivery_status",
