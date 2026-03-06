@@ -63,11 +63,15 @@
   }
 
   .surface-panel {
-    @apply rounded-[1.75rem] border border-border/80 bg-surface/88 shadow-[0_22px_60px_rgba(0,0,0,0.34)] backdrop-blur-xl;
+    @apply rounded-[1.75rem] border border-border shadow-[0_22px_60px_rgba(0,0,0,0.34)] backdrop-blur-xl;
+    border-color: rgba(40, 50, 53, 0.8);
+    background-color: rgba(18, 25, 27, 0.88);
   }
 
   .surface-panel-subtle {
-    @apply rounded-[1.45rem] border border-border/70 bg-surface/62 shadow-[0_12px_34px_rgba(0,0,0,0.2)] backdrop-blur-lg;
+    @apply rounded-[1.45rem] border border-border shadow-[0_12px_34px_rgba(0,0,0,0.2)] backdrop-blur-lg;
+    border-color: rgba(40, 50, 53, 0.7);
+    background-color: rgba(18, 25, 27, 0.62);
   }
 
   .page-hero {
@@ -89,15 +93,18 @@
   }
 
   .action-button-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-bg/55 px-4 py-2 text-sm font-medium text-text transition hover:border-orange hover:text-orange;
+    @apply inline-flex min-h-11 items-center justify-center rounded-2xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:border-orange hover:text-orange;
+    background-color: rgba(10, 15, 17, 0.55);
   }
 
   .field-input {
-    @apply mt-2 w-full rounded-2xl border border-border bg-bg/75 px-4 py-3 text-sm text-text outline-none transition focus:border-orange focus:bg-bg;
+    @apply mt-2 w-full rounded-2xl border border-border px-4 py-3 text-sm text-text outline-none transition focus:border-orange focus:bg-bg;
+    background-color: rgba(10, 15, 17, 0.75);
   }
 
   .field-textarea {
-    @apply mt-2 w-full rounded-[1.4rem] border border-border bg-bg/75 px-4 py-3 text-sm leading-6 text-text outline-none transition focus:border-orange focus:bg-bg;
+    @apply mt-2 w-full rounded-[1.4rem] border border-border px-4 py-3 text-sm leading-6 text-text outline-none transition focus:border-orange focus:bg-bg;
+    background-color: rgba(10, 15, 17, 0.75);
   }
 
   .section-stack {
