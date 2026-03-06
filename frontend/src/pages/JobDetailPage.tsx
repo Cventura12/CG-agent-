@@ -6,6 +6,7 @@ import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import { fetchJobDetail } from "../api/jobs";
+import { FollowupStatusCard } from "../components/FollowupStatusCard";
 import { approveDraft, discardDraft, editDraft } from "../api/queue";
 import { DraftCard } from "../components/DraftCard";
 import { useQueue } from "../hooks/useQueue";
@@ -134,6 +135,7 @@ export function JobDetailPage() {
   const auditTimeline = useMemo(() => {
     return (detailQuery.data?.audit_timeline ?? []).slice(0, 20);
   }, [detailQuery.data]);
+  const followupState = detailQuery.data?.followup_state ?? null;
 
   const pendingDrafts = useMemo(() => {
     const groups = queueQuery.data?.jobs ?? [];
@@ -328,6 +330,10 @@ export function JobDetailPage() {
                 </div>
               )}
             </section>
+
+            {followupState && followupState.status !== "none" ? (
+              <FollowupStatusCard followup={followupState} title="Customer follow-up" />
+            ) : null}
 
             <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">

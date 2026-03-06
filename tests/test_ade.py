@@ -113,6 +113,22 @@ def test_ade_parses_jobsite_photo_jpeg(monkeypatch: pytest.MonkeyPatch, tmp_path
     assert "chimney cricket" in result.prompt_text
 
 
+def test_ade_parses_supabase_storage_pdf_ref(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stored upload references should resolve through Supabase Storage before ADE parsing."""
+    monkeypatch.setenv("VISION_AGENT_API_KEY", "test-key")
+    _install_fake_landingai_module(
+        monkeypatch,
+        ".pdf",
+        markdown="# Uploaded Scope\n24 squares full tear-off",
+    )
+    monkeypatch.setattr(ade, "download_quote_source_file", lambda _: b"%PDF")
+
+    result = ade.parse_document("supabase://quote-intake/quotes/gc-demo/source.pdf")
+
+    assert "24 squares" in result.prompt_text
+    assert ade.is_supported_document("supabase://quote-intake/quotes/gc-demo/source.pdf") is True
+
+
 @pytest.mark.asyncio
 async def test_ingest_routes_pdf_through_ade_before_claude(
     monkeypatch: pytest.MonkeyPatch,

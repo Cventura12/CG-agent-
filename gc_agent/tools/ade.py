@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+
+from gc_agent.tools.upload_storage import download_quote_source_file, is_storage_ref, parse_storage_ref
 
 load_dotenv()
 
@@ -42,8 +45,16 @@ class ADEParseResult:
 
 
 def is_supported_document(value: str) -> bool:
-    """Return True when the input points to a supported local document/image path."""
-    path = Path(value.strip())
+    """Return True when the input points to a supported local or stored document/image."""
+    candidate = value.strip()
+    if is_storage_ref(candidate):
+        try:
+            _, object_path = parse_storage_ref(candidate)
+        except ValueError:
+            return False
+        return Path(object_path).suffix.lower() in DOCUMENT_EXTENSIONS
+
+    path = Path(candidate)
     return path.is_file() and path.suffix.lower() in DOCUMENT_EXTENSIONS
 
 
@@ -70,9 +81,8 @@ def _extract_markdown(result: Any) -> str:
     return ""
 
 
-def parse_document(document: str | Path, model: str = DEFAULT_ADE_MODEL) -> ADEParseResult:
-    """Parse a PDF/image through LandingAI ADE and return normalized content."""
-    document_path = Path(document).expanduser()
+def _parse_local_document(document_path: Path, model: str) -> ADEParseResult:
+    """Parse a local PDF/image through LandingAI ADE and return normalized content."""
     if not document_path.is_file():
         raise FileNotFoundError(f"ADE document not found: {document_path}")
     if document_path.suffix.lower() not in DOCUMENT_EXTENSIONS:
@@ -97,6 +107,34 @@ def parse_document(document: str | Path, model: str = DEFAULT_ADE_MODEL) -> ADEP
         chunks=chunks,
         raw=result,
     )
+
+
+def parse_document(document: str | Path, model: str = DEFAULT_ADE_MODEL) -> ADEParseResult:
+    """Parse a PDF/image through LandingAI ADE and return normalized content."""
+    if isinstance(document, Path):
+        return _parse_local_document(document.expanduser(), model)
+
+    candidate = str(document).strip()
+    if is_storage_ref(candidate):
+        _, object_path = parse_storage_ref(candidate)
+        suffix = Path(object_path).suffix.lower()
+        if suffix not in DOCUMENT_EXTENSIONS:
+            raise ValueError(f"Unsupported ADE document type: {suffix}")
+        payload = download_quote_source_file(candidate)
+        temp_path = Path()
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+                temp_file.write(payload)
+                temp_path = Path(temp_file.name)
+            return _parse_local_document(temp_path, model)
+        finally:
+            if temp_path and temp_path.exists():
+                try:
+                    temp_path.unlink()
+                except OSError:
+                    pass
+
+    return _parse_local_document(Path(candidate).expanduser(), model)
 
 
 __all__ = [

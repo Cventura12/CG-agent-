@@ -92,6 +92,7 @@ def _bootstrap_estimate_state(
     raw_input: str,
     session_id: str,
     gc_id: str,
+    uploaded_files: list[dict[str, object]] | None,
     checkpoint_state: AgentState | None,
 ) -> AgentState:
     """Create or enrich the estimate state used by the CLI."""
@@ -103,6 +104,7 @@ def _bootstrap_estimate_state(
             gc_id=gc_id,
             thread_id=session_id,
             trace_id=session_id.strip() or uuid4().hex,
+            uploaded_files=[item for item in (uploaded_files or []) if isinstance(item, dict)],
         )
 
     update_payload: dict[str, object] = {}
@@ -118,6 +120,8 @@ def _bootstrap_estimate_state(
         update_payload["mode"] = "estimate"
     if not checkpoint_state.trace_id.strip():
         update_payload["trace_id"] = session_id.strip() or uuid4().hex
+    if uploaded_files:
+        update_payload["uploaded_files"] = [item for item in uploaded_files if isinstance(item, dict)]
 
     if not update_payload:
         return checkpoint_state
@@ -269,7 +273,7 @@ async def run_single_input(
     requested_status = approval_status.strip().lower()
 
     if state.mode == "estimate":
-        estimate_state = _bootstrap_estimate_state(raw_input, session_id, gc_id, state)
+        estimate_state = _bootstrap_estimate_state(raw_input, session_id, gc_id, None, state)
         return await _run_estimate_path(
             estimate_state,
             session_id,
@@ -294,6 +298,7 @@ async def run_single_estimate(
     approval_status: str = "pending",
     edited_scope_of_work: str = "",
     edited_total_price: float | None = None,
+    uploaded_files: list[dict[str, object]] | None = None,
 ) -> AgentState:
     """Run the Day 9 estimating loop and return final state."""
     checkpoint_state = (
@@ -301,12 +306,13 @@ async def run_single_estimate(
         if session_id
         else None
     )
-    state = _bootstrap_estimate_state(raw_input, session_id, gc_id, checkpoint_state)
+    state = _bootstrap_estimate_state(raw_input, session_id, gc_id, uploaded_files, checkpoint_state)
     log_ingress_trace(
         state,
         input_surface=state.input_type if state.input_type else "typed_note",
         payload={
             "raw_input": raw_input,
+            "uploaded_files": uploaded_files or [],
             "session_id": session_id,
             "requested_mode": "estimate",
         },
@@ -366,8 +372,11 @@ async def _run_check_followups_command(contractor_id: str) -> int:
     """Process due follow-up reminders for one contractor."""
     result = await check_due_followups(contractor_id)
     print(
-        "Processed {processed_items} item(s); created {created_drafts} draft(s); "
-        "followup_count={followup_count}; stop_following_up={stop_following_up}".format(**result)
+        "Processed {processed_items} item(s); sent {sent_reminders} reminder(s); "
+        "failed={failed_attempts}; stopped={stopped_items}; "
+        "skipped_recent={skipped_recent}; skipped_missing_destination={skipped_missing_destination}".format(
+            **result
+        )
     )
     return 0
 

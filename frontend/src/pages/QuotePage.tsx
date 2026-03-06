@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { UserButton, useClerk } from "@clerk/clerk-react";
 import { Link, useLocation } from "react-router-dom";
@@ -9,16 +9,21 @@ import {
   discardQuote,
   editQuote,
   fetchQuoteDelivery,
+  fetchQuoteFollowup,
   fetchQuotePdf,
   getBetaContractorId,
   hasBetaApiCredentials,
   sendQuoteToClient,
+  stopQuoteFollowup,
   submitQuote,
+  submitQuoteUpload,
 } from "../api/quote";
+import { FollowupStatusCard } from "../components/FollowupStatusCard";
 import type {
   QuoteApprovalStatus,
   QuoteDeliveryAttempt,
   QuoteDraft,
+  QuoteFollowupState,
   QuoteLineItem,
   QuoteResponse,
 } from "../types";
@@ -74,11 +79,13 @@ type OfflineQueuedQuote = {
 type QuoteSubmissionRequest = {
   input: string;
   source: QuoteInputSource;
+  file: File | null;
 };
 
 const QUOTE_NOTES_STORAGE_KEY = "gc-agent:quote:notes:v1";
 const QUOTE_OFFLINE_QUEUE_STORAGE_KEY = "gc-agent:quote:offline-queue:v1";
 const ACTIVE_QUOTE_STORAGE_KEY = "gc-agent:quote:active:v1";
+const ACCEPTED_UPLOAD_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
 
 function hasLocalStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -439,12 +446,14 @@ function AssumptionsCard({
 export function QuotePage() {
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const autoSubmitRef = useRef(false);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const latestTranscriptRef = useRef("");
   const wasOnlineRef = useRef(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
 
   const [notes, setNotes] = useState(() => loadStoredNotes());
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
@@ -470,6 +479,9 @@ export function QuotePage() {
   const [deliveryMessage, setDeliveryMessage] = useState<string | null>(null);
   const [deliveryHistory, setDeliveryHistory] = useState<QuoteDeliveryAttempt[]>([]);
   const [isDeliveryHistoryLoading, setIsDeliveryHistoryLoading] = useState(false);
+  const [followupState, setFollowupState] = useState<QuoteFollowupState | null>(null);
+  const [isFollowupLoading, setIsFollowupLoading] = useState(false);
+  const [followupMessage, setFollowupMessage] = useState<string | null>(null);
 
   const { signOut } = useClerk();
   const location = useLocation();
@@ -481,6 +493,10 @@ export function QuotePage() {
 
   const applyQuoteSuccess = useCallback((payload: QuoteResponse) => {
     setActiveQuote(payload);
+    setSelectedUploadFile(null);
+    if (uploadInputRef.current) {
+      uploadInputRef.current.value = "";
+    }
     setEditedScopeOfWork(payload.quote_draft.scope_of_work ?? "");
     setEditedTotalPrice(String(payload.quote_draft.total_price ?? ""));
     setFeedbackNote("");
@@ -491,6 +507,8 @@ export function QuotePage() {
     setDeliveryMessageOverride("");
     setDeliveryMessage(null);
     setDeliveryHistory([]);
+    setFollowupState(null);
+    setFollowupMessage(null);
     setShareMessage(null);
     setQueueMessage(null);
     if (payload.errors.length > 0) {
@@ -548,13 +566,36 @@ export function QuotePage() {
     [apiReady]
   );
 
+  const loadFollowupState = useCallback(
+    async (quoteId: string) => {
+      if (!apiReady || !quoteId.trim()) {
+        setFollowupState(null);
+        return;
+      }
+
+      setIsFollowupLoading(true);
+      try {
+        const payload = await fetchQuoteFollowup(quoteId);
+        setFollowupState(payload.followup ?? null);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not refresh follow-up status.";
+        setCaptureError(message);
+      } finally {
+        setIsFollowupLoading(false);
+      }
+    },
+    [apiReady]
+  );
+
   const quoteMutation = useMutation({
-    mutationFn: async ({ input }: QuoteSubmissionRequest) => submitQuote(input),
+    mutationFn: async ({ input, file }: QuoteSubmissionRequest) =>
+      file ? submitQuoteUpload(input, file) : submitQuote(input),
     onSuccess: applyQuoteSuccess,
     onError: (error, variables) => {
       const currentlyOnline =
         typeof navigator === "undefined" ? true : navigator.onLine;
-      if (!currentlyOnline) {
+      if (!currentlyOnline && !variables.file) {
         enqueueOfflineQuote(variables.input, variables.source);
         return;
       }
@@ -625,9 +666,10 @@ export function QuotePage() {
   ]);
 
   const submitInput = useCallback(
-    (input: string, source: QuoteInputSource) => {
+    (input: string, source: QuoteInputSource, file: File | null = null) => {
       const trimmed = input.trim();
-      if (!trimmed || quoteMutation.isPending || isQueueSyncing) {
+      const hasFile = Boolean(file);
+      if ((!trimmed && !hasFile) || quoteMutation.isPending || isQueueSyncing) {
         return;
       }
 
@@ -635,18 +677,24 @@ export function QuotePage() {
       setCaptureError(null);
       setShareMessage(null);
       setDecisionStatus(null);
-    setDecisionMessage(null);
-    setDeliveryMessage(null);
-    setDeliveryHistory([]);
-    setQueueMessage(null);
-    latestTranscriptRef.current = trimmed;
+      setDecisionMessage(null);
+      setDeliveryMessage(null);
+      setDeliveryHistory([]);
+      setFollowupState(null);
+      setFollowupMessage(null);
+      setQueueMessage(null);
+      latestTranscriptRef.current = trimmed;
 
       if (!isOnline) {
+        if (hasFile) {
+          setCaptureError("Uploads need a connection before the agent can read the file.");
+          return;
+        }
         enqueueOfflineQuote(trimmed, source);
         return;
       }
 
-      quoteMutation.mutate({ input: trimmed, source });
+      quoteMutation.mutate({ input: trimmed, source, file });
     },
     [enqueueOfflineQuote, isOnline, isQueueSyncing, quoteMutation]
   );
@@ -654,6 +702,7 @@ export function QuotePage() {
   useEffect(() => {
     if (!activeQuote) {
       saveStoredActiveQuote(null);
+      setFollowupState(null);
       return;
     }
     saveStoredActiveQuote(activeQuote);
@@ -674,6 +723,17 @@ export function QuotePage() {
     }
     void loadDeliveryHistory(activeQuote.quote_id);
   }, [activeQuote?.quote_id, apiReady, loadDeliveryHistory]);
+
+  useEffect(() => {
+    if (!activeQuote?.quote_id) {
+      setFollowupState(null);
+      return;
+    }
+    if (!apiReady) {
+      return;
+    }
+    void loadFollowupState(activeQuote.quote_id);
+  }, [activeQuote?.quote_id, apiReady, loadFollowupState]);
 
   useEffect(() => {
     saveStoredNotes(notes);
@@ -770,6 +830,7 @@ export function QuotePage() {
       );
       setCaptureError(null);
       void loadDeliveryHistory(payload.quote_id);
+      void loadFollowupState(payload.quote_id);
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : "Could not send quote to customer.";
@@ -813,12 +874,36 @@ export function QuotePage() {
         });
       }
       setCaptureError(null);
+      if (activeQuote) {
+        void loadFollowupState(activeQuote.quote_id);
+      }
+      setFollowupMessage(null);
     },
     onError: (error) => {
       const message =
         error instanceof Error ? error.message : "Could not save quote decision.";
       setCaptureError(message);
       setDecisionMessage(null);
+    },
+  });
+
+  const stopFollowupMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeQuote) {
+        throw new Error("No active quote to update.");
+      }
+      return stopQuoteFollowup(activeQuote.quote_id);
+    },
+    onSuccess: (payload) => {
+      setFollowupState(payload.followup ?? null);
+      setFollowupMessage("Automatic follow-up has been paused for this quote.");
+      setCaptureError(null);
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Could not stop automatic follow-up.";
+      setCaptureError(message);
+      setFollowupMessage(null);
     },
   });
 
@@ -906,8 +991,33 @@ export function QuotePage() {
     recognitionRef.current.stop();
   };
 
+  const handleUploadSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      setSelectedUploadFile(null);
+      return;
+    }
+
+    if (!ACCEPTED_UPLOAD_TYPES.has(file.type)) {
+      setCaptureError("Only PDF, JPG, and PNG uploads are supported.");
+      setSelectedUploadFile(null);
+      event.target.value = "";
+      return;
+    }
+
+    setCaptureError(null);
+    setSelectedUploadFile(file);
+  };
+
+  const clearSelectedUpload = () => {
+    setSelectedUploadFile(null);
+    if (uploadInputRef.current) {
+      uploadInputRef.current.value = "";
+    }
+  };
+
   const handleManualSubmit = () => {
-    submitInput(notes, "manual");
+    submitInput(notes, "manual", selectedUploadFile);
   };
 
   return (
@@ -1083,20 +1193,76 @@ export function QuotePage() {
             />
           </div>
 
+          <div className="mt-4 rounded-2xl border border-border bg-bg/80 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Optional file</p>
+                <p className="mt-1 text-sm text-muted">
+                  Add one PDF or jobsite photo. The agent will read it together with your notes.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <label
+                  htmlFor="quote-upload"
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:border-orange hover:text-orange"
+                >
+                  {selectedUploadFile ? "Replace file" : "Choose PDF or photo"}
+                </label>
+                {selectedUploadFile ? (
+                  <button
+                    type="button"
+                    onClick={clearSelectedUpload}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 py-2 text-sm text-muted transition hover:border-orange hover:text-orange"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <input
+              ref={uploadInputRef}
+              id="quote-upload"
+              type="file"
+              accept=".pdf,image/png,image/jpeg,application/pdf"
+              onChange={handleUploadSelection}
+              className="sr-only"
+            />
+
+            {selectedUploadFile ? (
+              <p className="mt-3 rounded-xl border border-orange/40 bg-orange/10 px-3 py-2 text-sm text-text">
+                Attached: {selectedUploadFile.name}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-muted">No file attached. Notes-only quotes still work.</p>
+            )}
+          </div>
+
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={handleManualSubmit}
-              disabled={!apiReady || !notes.trim() || quoteMutation.isPending || isQueueSyncing}
+              disabled={
+                !apiReady ||
+                (!notes.trim() && !selectedUploadFile) ||
+                (!isOnline && Boolean(selectedUploadFile)) ||
+                quoteMutation.isPending ||
+                isQueueSyncing
+              }
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green px-5 py-3 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {quoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
               <span>
-                {quoteMutation.isPending
-                  ? "Running agent..."
-                  : !isOnline
-                  ? "Save Offline"
-                  : "Send Notes"}
+                  {quoteMutation.isPending
+                    ? "Running agent..."
+                    : !isOnline && selectedUploadFile
+                    ? "Upload needs connection"
+                    : selectedUploadFile
+                    ? "Upload & run agent"
+                    : !isOnline
+                    ? "Save Offline"
+                    : "Send Notes"}
               </span>
             </button>
 
@@ -1204,6 +1370,21 @@ export function QuotePage() {
               {decisionStatus ? (
                 <div className="mt-3 rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
                   {decisionMessage ?? `Quote ${decisionStatus}.`}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-3">
+              <FollowupStatusCard
+                followup={followupState}
+                isLoading={isFollowupLoading}
+                title="Follow-up"
+                onStop={() => stopFollowupMutation.mutate()}
+                isStopping={stopFollowupMutation.isPending}
+              />
+              {followupMessage ? (
+                <div className="rounded-xl border border-green/40 bg-green/10 px-4 py-3 text-sm text-green">
+                  {followupMessage}
                 </div>
               ) : null}
             </div>

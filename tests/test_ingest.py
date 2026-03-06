@@ -45,5 +45,45 @@ async def test_ingest_normalizes_estimating_input(
     assert "  " not in result["cleaned_input"]
 
 
+@pytest.mark.asyncio
+async def test_ingest_combines_uploaded_document_with_notes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, str] = {}
+
+    async def _fake_call_claude(system: str, user: str, max_tokens: int = 600) -> str:
+        captured["system"] = system
+        captured["user"] = user
+        captured["max_tokens"] = str(max_tokens)
+        return "normalized upload notes"
+
+    async def _fake_extract_ade_content(raw_input: str) -> str:
+        assert raw_input == "supabase://quote-intake/quotes/gc-demo/source.pdf"
+        return "PDF scope content with 24 squares and ridge cap"
+
+    monkeypatch.setattr(ingest_module, "_call_claude", _fake_call_claude)
+    monkeypatch.setattr(ingest_module, "_extract_ade_content", _fake_extract_ade_content)
+
+    state = AgentState(
+        raw_input="Customer wants the premium shingle option.",
+        mode="estimate",
+        uploaded_files=[
+            {
+                "storage_ref": "supabase://quote-intake/quotes/gc-demo/source.pdf",
+                "filename": "source.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 128,
+            }
+        ],
+    )
+
+    result = await ingest_module.ingest(state)
+
+    assert result["cleaned_input"] == "normalized upload notes"
+    assert "Customer wants the premium shingle option." in captured["user"]
+    assert "Uploaded file (source.pdf):" in captured["user"]
+    assert "24 squares and ridge cap" in captured["user"]
+
+
 def test_ingest_fixture_count_is_thirty() -> None:
     assert len(TEST_INPUTS) == 30

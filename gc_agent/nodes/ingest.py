@@ -180,12 +180,12 @@ async def _sync_estimate_job_record(
 
 async def _run_estimate_ingest(state: AgentState) -> dict[str, object]:
     """Normalize estimating input into cleaned_input using the v5 ingest prompt."""
-    source_text = state.raw_input.strip()
     errors = list(state.errors)
+    source_text = await _build_estimate_source_text(state, errors)
     if not source_text:
         return {
             "mode": "estimate",
-            "raw_input": "",
+            "raw_input": state.raw_input.strip(),
             "cleaned_input": "",
             "thread_style": False,
             "active_job_id": state.active_job_id,
@@ -196,7 +196,7 @@ async def _run_estimate_ingest(state: AgentState) -> dict[str, object]:
         normalized = _normalize_cleaned_text(source_text, source_text)
         result: dict[str, object] = {
             "mode": "estimate",
-            "raw_input": source_text,
+            "raw_input": state.raw_input.strip(),
             "cleaned_input": normalized,
             "thread_style": False,
             "active_job_id": state.active_job_id,
@@ -219,7 +219,7 @@ async def _run_estimate_ingest(state: AgentState) -> dict[str, object]:
 
     result = {
         "mode": "estimate",
-        "raw_input": source_text,
+        "raw_input": state.raw_input.strip(),
         "cleaned_input": normalized,
         "thread_style": False,
         "active_job_id": state.active_job_id,
@@ -238,6 +238,40 @@ async def _extract_ade_content(raw_input: str) -> str:
     if not prompt_text:
         raise ValueError("ADE returned empty prompt text")
     return prompt_text
+
+
+async def _build_estimate_source_text(state: AgentState, errors: list[str]) -> str:
+    """Combine typed notes with uploaded quote source files into one ingest payload."""
+    from gc_agent.tools.ade import is_supported_document
+
+    parts: list[str] = []
+    if state.raw_input.strip():
+        parts.append(state.raw_input.strip())
+
+    uploaded_files = state.uploaded_files if isinstance(state.uploaded_files, list) else []
+    for item in uploaded_files:
+        if not isinstance(item, dict):
+            continue
+        storage_ref = str(item.get("storage_ref", "")).strip()
+        if not storage_ref:
+            continue
+
+        filename = str(item.get("filename", "")).strip() or "uploaded file"
+        if not is_supported_document(storage_ref):
+            parts.append(f"Uploaded file reference: {storage_ref}")
+            continue
+
+        try:
+            ade_text = await _extract_ade_content(storage_ref)
+        except Exception as exc:
+            LOGGER.warning("Uploaded quote source parse failed for %s: %s", filename, exc)
+            errors.append(f"uploaded file parse failed for {filename}: {exc}")
+            parts.append(f"Uploaded file reference: {storage_ref}")
+            continue
+
+        parts.append(f"Uploaded file ({filename}):\n{ade_text}")
+
+    return "\n\n".join(part.strip() for part in parts if str(part).strip())
 
 
 def _looks_like_thread_style(text: str) -> bool:

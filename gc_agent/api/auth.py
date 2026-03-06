@@ -69,13 +69,23 @@ async def require_api_key(
     if request.method.upper() == "GET":
         contractor_id = str(request.query_params.get("contractor_id", "")).strip()
     else:
-        try:
-            payload: Any = await request.json()
-        except Exception:
-            payload = {}
+        payload: Any = {}
+        content_type = str(request.headers.get("content-type", "")).lower()
+        if "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
+            try:
+                payload = dict(await request.form())
+            except Exception:
+                payload = {}
+        else:
+            try:
+                payload = await request.json()
+            except Exception:
+                payload = {}
         if isinstance(payload, dict):
             contractor_id = str(payload.get("contractor_id", "")).strip()
-        if not contractor_id and request.url.path.endswith("/quote"):
+        if not contractor_id and (
+            request.url.path.endswith("/quote") or request.url.path.endswith("/quote/upload")
+        ):
             contractor_id = DEFAULT_ESTIMATE_GC_ID
 
     if not contractor_id:

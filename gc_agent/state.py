@@ -106,6 +106,7 @@ class AgentState(BaseModel):
     from_number: str = ""
     mode: Optional[Literal["update", "briefing", "query", "estimate"]] = None
     thread_style: bool = False
+    uploaded_files: list[dict[str, object]] = Field(default_factory=list)
 
     # Phase 1 / v5 estimating loop fields
     cleaned_input: str = ""

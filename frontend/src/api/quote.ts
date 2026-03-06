@@ -2,6 +2,8 @@ import { publicApiClient } from "./client";
 import type {
   QuoteDecisionResponse,
   QuoteDeliveryResponse,
+  QuoteFollowupResponse,
+  QuoteFollowupStopResponse,
   QuoteResponse,
   QuoteSendResponse,
 } from "../types";
@@ -41,6 +43,37 @@ export async function submitQuote(input: string): Promise<QuoteResponse> {
   return response.data;
 }
 
+export async function submitQuoteUpload(input: string, file: File): Promise<QuoteResponse> {
+  if (!betaApiKey) {
+    throw new Error("VITE_BETA_API_KEY is required for quote submission");
+  }
+
+  const formData = new FormData();
+  formData.append("contractor_id", betaContractorId);
+  if (input.trim()) {
+    formData.append("input", input);
+  }
+  formData.append("file", file);
+
+  const response = await publicApiClient.post<QuoteResponse>("/quote/upload", formData, {
+    headers: {
+      "X-API-Key": betaApiKey,
+    },
+    transformRequest: [
+      (data, headers) => {
+        if (headers && typeof (headers as { delete?: (key: string) => void }).delete === "function") {
+          (headers as { delete: (key: string) => void }).delete("Content-Type");
+        } else if (headers && typeof headers === "object") {
+          delete (headers as Record<string, unknown>)["Content-Type"];
+        }
+        return data;
+      },
+    ],
+  });
+
+  return response.data;
+}
+
 export async function fetchQuotePdf(quoteId: string): Promise<Blob> {
   if (!betaApiKey) {
     throw new Error("VITE_BETA_API_KEY is required for quote PDF requests");
@@ -72,6 +105,43 @@ export async function fetchQuoteDelivery(quoteId: string): Promise<QuoteDelivery
       "X-API-Key": betaApiKey,
     },
   });
+
+  return response.data;
+}
+
+export async function fetchQuoteFollowup(quoteId: string): Promise<QuoteFollowupResponse> {
+  if (!betaApiKey) {
+    throw new Error("VITE_BETA_API_KEY is required for quote follow-up status");
+  }
+
+  const response = await publicApiClient.get<QuoteFollowupResponse>(`/quote/${quoteId}/followup`, {
+    params: {
+      contractor_id: betaContractorId,
+    },
+    headers: {
+      "X-API-Key": betaApiKey,
+    },
+  });
+
+  return response.data;
+}
+
+export async function stopQuoteFollowup(quoteId: string): Promise<QuoteFollowupStopResponse> {
+  if (!betaApiKey) {
+    throw new Error("VITE_BETA_API_KEY is required to stop quote follow-up");
+  }
+
+  const response = await publicApiClient.post<QuoteFollowupStopResponse>(
+    `/quote/${quoteId}/followup/stop`,
+    {
+      contractor_id: betaContractorId,
+    },
+    {
+      headers: {
+        "X-API-Key": betaApiKey,
+      },
+    }
+  );
 
   return response.data;
 }

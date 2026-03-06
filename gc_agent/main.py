@@ -27,6 +27,7 @@ except ModuleNotFoundError:
 from gc_agent import graph
 from gc_agent.api.router import open_router as public_open_router
 from gc_agent.api.router import router as public_router
+from gc_agent.nodes.followup_trigger import process_due_followups
 from gc_agent.routers.analytics import router as analytics_router
 from gc_agent.routers.auth import router as auth_router
 from gc_agent.routers.ingest import router as ingest_router
@@ -130,6 +131,30 @@ async def _fetch_active_gc_ids(app: FastAPI) -> list[str]:
         return await asyncio.to_thread(_query_gc_ids)
     except Exception:
         LOGGER.exception("Failed fetching active gc_ids")
+        return []
+
+
+async def _fetch_gc_ids_with_followups(app: FastAPI) -> list[str]:
+    """Fetch GC IDs that currently have active follow-up open items."""
+    supabase: Optional[SupabaseClient] = app.state.supabase_client
+    if supabase is None:
+        return []
+
+    def _query_gc_ids() -> list[str]:
+        response = (
+            supabase.table("open_items")
+            .select("gc_id")
+            .eq("type", "followup")
+            .in_("status", ["open", "in-progress", "overdue"])
+            .execute()
+        )
+        values = [str(row.get("gc_id", "")).strip() for row in response.data or []]
+        return [gc_id for gc_id in sorted(set(values)) if gc_id]
+
+    try:
+        return await asyncio.to_thread(_query_gc_ids)
+    except Exception:
+        LOGGER.exception("Failed fetching follow-up gc_ids")
         return []
 
 
@@ -461,6 +486,34 @@ async def send_daily_briefings() -> None:
             )
 
 
+async def run_due_followups() -> None:
+    """Execute due quote follow-up reminders across all contractors."""
+    if _APP is None:
+        LOGGER.warning("run_due_followups called before app startup")
+        return
+
+    app = _APP
+    gc_ids = await _fetch_gc_ids_with_followups(app)
+    if not gc_ids:
+        return
+
+    LOGGER.info("Scheduled follow-up run started for %s GC account(s)", len(gc_ids))
+    for gc_id in gc_ids:
+        try:
+            result = await process_due_followups(gc_id)
+            LOGGER.info(
+                "Follow-up run gc_id=%s processed=%s sent=%s failed=%s stopped=%s skipped_recent=%s",
+                gc_id,
+                result.get("processed_items", 0),
+                result.get("sent_reminders", 0),
+                result.get("failed_attempts", 0),
+                result.get("stopped_items", 0),
+                result.get("skipped_recent", 0),
+            )
+        except Exception:
+            LOGGER.exception("Scheduled follow-up execution failed gc_id=%s", gc_id)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle hooks for startup initialization and shutdown cleanup."""
@@ -497,6 +550,13 @@ async def lifespan(app: FastAPI):
         trigger="interval",
         minutes=max(settings.briefing_retry_interval_minutes, 5),
         id="retry_failed_briefings",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        run_due_followups,
+        trigger="interval",
+        hours=1,
+        id="process_due_followups",
         replace_existing=True,
     )
     scheduler.start()

@@ -251,3 +251,116 @@ async def test_quote_delivery_route_returns_delivery_attempts(monkeypatch: pytes
     assert payload["deliveries"][0]["delivery_id"] == "qdl-1"
     assert payload["deliveries"][0]["status"] == "delivered"
     assert payload["deliveries"][0]["channel"] == "sms"
+
+
+@pytest.mark.asyncio
+async def test_quote_followup_route_returns_runtime_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
+
+    async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
+        if quote_id != "quote-followup-1":
+            return None
+        return {
+            "id": quote_id,
+            "gc_id": "gc-demo",
+            "job_id": "job-88",
+            "trace_id": "trace-followup-1",
+            "quote_draft": {"scope_of_work": "Replace roof", "total_price": 14350.0},
+            "approval_status": "approved",
+        }
+
+    async def _fake_get_quote_followup_state(quote_id: str, gc_id: str) -> dict[str, object]:
+        assert quote_id == "quote-followup-1"
+        assert gc_id == "gc-demo"
+        return {
+            "open_item_id": "followup-1",
+            "quote_id": quote_id,
+            "job_id": "job-88",
+            "status": "scheduled",
+            "next_due_at": "2026-03-06T14:00:00+00:00",
+            "reminder_count": 1,
+            "last_reminder_at": "2026-03-05T14:00:00+00:00",
+            "stopped_at": None,
+            "stop_reason": None,
+            "channel": "sms",
+        }
+
+    monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
+    monkeypatch.setattr(api_module.queries, "get_quote_followup_state", _fake_get_quote_followup_state)
+
+    async with _client() as client:
+        response = await client.get(
+            "/quote/quote-followup-1/followup",
+            params={"contractor_id": "gc-demo"},
+            headers={"X-API-Key": "test-key"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["quote_id"] == "quote-followup-1"
+    assert payload["trace_id"] == "trace-followup-1"
+    assert payload["followup"]["status"] == "scheduled"
+    assert payload["followup"]["reminder_count"] == 1
+    assert payload["followup"]["channel"] == "sms"
+
+
+@pytest.mark.asyncio
+async def test_quote_followup_stop_route_returns_stopped_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
+
+    async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
+        if quote_id != "quote-followup-stop-1":
+            return None
+        return {
+            "id": quote_id,
+            "gc_id": "gc-demo",
+            "job_id": "job-88",
+            "trace_id": "trace-followup-stop-1",
+            "quote_draft": {"scope_of_work": "Replace roof", "total_price": 14350.0},
+            "approval_status": "approved",
+        }
+
+    async def _fake_stop_quote_followup(contractor_id: str, quote_id: str) -> dict[str, object]:
+        assert contractor_id == "gc-demo"
+        assert quote_id == "quote-followup-stop-1"
+        return {
+            "stopped": True,
+            "open_item_id": "followup-1",
+            "quote_id": quote_id,
+            "reason": "manual_stop",
+        }
+
+    async def _fake_get_quote_followup_state(quote_id: str, gc_id: str) -> dict[str, object]:
+        assert quote_id == "quote-followup-stop-1"
+        assert gc_id == "gc-demo"
+        return {
+            "open_item_id": "followup-1",
+            "quote_id": quote_id,
+            "job_id": "job-88",
+            "status": "stopped",
+            "next_due_at": None,
+            "reminder_count": 0,
+            "last_reminder_at": None,
+            "stopped_at": "2026-03-05T16:00:00+00:00",
+            "stop_reason": "manual_stop",
+            "channel": "sms",
+        }
+
+    monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
+    monkeypatch.setattr(api_module, "stop_quote_followup", _fake_stop_quote_followup)
+    monkeypatch.setattr(api_module.queries, "get_quote_followup_state", _fake_get_quote_followup_state)
+
+    async with _client() as client:
+        response = await client.post(
+            "/quote/quote-followup-stop-1/followup/stop",
+            json={"contractor_id": "gc-demo"},
+            headers={"X-API-Key": "test-key"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["quote_id"] == "quote-followup-stop-1"
+    assert payload["stopped"] is True
+    assert payload["reason"] == "manual_stop"
+    assert payload["followup"]["status"] == "stopped"
+    assert payload["followup"]["stop_reason"] == "manual_stop"

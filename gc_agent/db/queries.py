@@ -51,6 +51,25 @@ def _to_float(value: Any) -> float:
     return 0.0
 
 
+def _to_int(value: Any, default: int = 0) -> int:
+    """Normalize integer-like inputs for counters and summary payloads."""
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        candidate = value.strip()
+        if not candidate:
+            return default
+        try:
+            return int(candidate)
+        except ValueError:
+            return default
+    return default
+
+
 def _compute_days_silent(created_at: Any, fallback: Any = 0) -> int:
     """Compute days_silent from created_at, falling back to stored value when needed."""
     created_dt = _parse_datetime(created_at)
@@ -73,6 +92,17 @@ def _extract_job_name(jobs_ref: Any) -> str:
     if isinstance(jobs_ref, list) and jobs_ref and isinstance(jobs_ref[0], dict):
         return str(jobs_ref[0].get("name", "")).strip()
     return ""
+
+
+def _extract_quote_id_from_description(description: Any) -> str:
+    """Extract quote marker from legacy follow-up descriptions when quote_id is absent."""
+    if not isinstance(description, str) or not description.strip():
+        return ""
+    marker = "Quote ID:"
+    if marker not in description:
+        return ""
+    tail = description.split(marker, 1)[1].strip()
+    return tail.split()[0].strip(".,;:") if tail else ""
 
 
 def _build_open_item(row: dict[str, Any]) -> OpenItem:
@@ -1049,6 +1079,7 @@ async def upsert_quote_draft(
     quote_draft: dict[str, Any],
     rendered_quote: str,
     estimate_confidence: dict[str, Any] | None = None,
+    source_files: list[dict[str, Any]] | None = None,
 ) -> None:
     """Persist one generated quote draft so PDF rendering survives restarts."""
     client = get_client()
@@ -1067,27 +1098,37 @@ async def upsert_quote_draft(
         "memory_updated": False,
         "memory_summary": None,
         "estimate_confidence": estimate_confidence if isinstance(estimate_confidence, dict) else {},
+        "source_files": [item for item in (source_files or []) if isinstance(item, dict)],
         "rendered_quote": rendered_quote,
         "updated_at": _utcnow_iso(),
     }
 
-    def _query() -> None:
-        client.table("quote_drafts").upsert(payload, on_conflict="id").execute()
+    def _query(include_source_files: bool = True) -> None:
+        candidate = dict(payload)
+        if not include_source_files:
+            candidate.pop("source_files", None)
+        client.table("quote_drafts").upsert(candidate, on_conflict="id").execute()
 
-    await _run_db("upsert_quote_draft", _query)
+    try:
+        await _run_db("upsert_quote_draft", _query)
+    except DatabaseError as exc:
+        if not _is_missing_column_error(exc):
+            raise
+        await _run_db("upsert_quote_draft.legacy", lambda: _query(include_source_files=False))
 
 
 async def get_quote_draft_record(quote_id: str) -> Optional[dict[str, Any]]:
     """Fetch one stored quote draft by ID."""
     client = get_client()
 
-    def _query() -> list[dict[str, Any]]:
+    def _query(include_source_files: bool = True) -> list[dict[str, Any]]:
+        source_file_columns = ",source_files" if include_source_files else ""
         response = (
             client.table("quote_drafts")
             .select(
                 "id,gc_id,job_id,trace_id,quote_draft,final_quote_draft,rendered_quote,"
                 "approval_status,was_edited,feedback_note,quote_delta,actioned_at,memory_updated,"
-                "memory_summary,estimate_confidence,created_at,updated_at"
+                f"memory_summary,estimate_confidence{source_file_columns},created_at,updated_at"
             )
             .eq("id", quote_id)
             .limit(1)
@@ -1095,7 +1136,12 @@ async def get_quote_draft_record(quote_id: str) -> Optional[dict[str, Any]]:
         )
         return list(response.data or [])
 
-    rows = await _run_db("get_quote_draft_record", _query)
+    try:
+        rows = await _run_db("get_quote_draft_record", _query)
+    except DatabaseError as exc:
+        if not _is_missing_column_error(exc):
+            raise
+        rows = await _run_db("get_quote_draft_record.legacy", lambda: _query(include_source_files=False))
     if not rows:
         return None
     row = rows[0]
@@ -1123,6 +1169,11 @@ async def get_quote_draft_record(quote_id: str) -> Optional[dict[str, Any]]:
             if isinstance(row.get("estimate_confidence"), dict)
             else {}
         ),
+        "source_files": [
+            item
+            for item in (row.get("source_files") or [])
+            if isinstance(item, dict)
+        ],
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
     }
@@ -1171,6 +1222,159 @@ async def get_quote_delivery_attempts(quote_id: str, gc_id: str) -> list[dict[st
             }
         )
     return attempts
+
+
+def _build_followup_state_payload(
+    *,
+    quote_id: str,
+    job_id: str,
+    item: dict[str, Any] | None,
+    delivery_attempts: list[dict[str, Any]],
+    quote_approval_status: str = "",
+    quote_actioned_at: Any = None,
+) -> dict[str, Any]:
+    """Build a contractor-facing follow-up runtime summary from open item state."""
+    latest_attempt = delivery_attempts[0] if delivery_attempts else {}
+    channel = str(latest_attempt.get("channel", "")).strip().lower() or None
+    stop_statuses = {"discarded", "converted", "accepted", "closed", "expired"}
+    approval_status = quote_approval_status.strip().lower()
+
+    if item is None:
+        return {
+            "open_item_id": None,
+            "quote_id": quote_id.strip() or None,
+            "job_id": job_id.strip() or None,
+            "status": "none",
+            "next_due_at": None,
+            "reminder_count": 0,
+            "last_reminder_at": None,
+            "stopped_at": None,
+            "stop_reason": None,
+            "channel": channel,
+        }
+
+    raw_status = str(item.get("status", "")).strip().lower()
+    stop_reason = str(item.get("stop_reason", "")).strip().lower() or None
+    stopped_at = item.get("stopped_at") or item.get("resolved_at")
+    if approval_status in stop_statuses:
+        stop_reason = stop_reason or f"quote_{approval_status}"
+        stopped_at = stopped_at or quote_actioned_at
+
+    if stopped_at or raw_status == "resolved" or approval_status in stop_statuses:
+        status = "stopped"
+        next_due_at = None
+    elif channel:
+        status = "scheduled"
+        next_due_at = item.get("next_due_at") or item.get("due_date")
+    else:
+        status = "pending_destination"
+        next_due_at = item.get("next_due_at") or item.get("due_date")
+
+    return {
+        "open_item_id": str(item.get("id", "")).strip() or None,
+        "quote_id": str(item.get("quote_id", "")).strip() or quote_id.strip() or None,
+        "job_id": str(item.get("job_id", "")).strip() or job_id.strip() or None,
+        "status": status,
+        "next_due_at": next_due_at,
+        "reminder_count": max(_to_int(item.get("reminder_count"), 0), 0),
+        "last_reminder_at": item.get("last_reminder_at"),
+        "stopped_at": stopped_at,
+        "stop_reason": stop_reason,
+        "channel": channel,
+    }
+
+
+async def _get_followup_rows(gc_id: str, job_id: str | None = None) -> list[dict[str, Any]]:
+    """Fetch follow-up open items for a GC account, optionally scoped to one job."""
+    client = get_client()
+    gc_value = gc_id.strip()
+    if not gc_value:
+        return []
+
+    def _query() -> list[dict[str, Any]]:
+        query = (
+            client.table("open_items")
+            .select(
+                "id,job_id,gc_id,quote_id,type,description,status,due_date,created_at,"
+                "resolved_at,trace_id,reminder_count,last_reminder_at,next_due_at,stopped_at,stop_reason"
+            )
+            .eq("gc_id", gc_value)
+            .in_("type", ["followup", "follow-up"])
+            .order("created_at", desc=True)
+        )
+        if job_id and job_id.strip():
+            query = query.eq("job_id", job_id.strip())
+        response = query.execute()
+        return list(response.data or [])
+
+    rows = await _run_db("_get_followup_rows", _query)
+    normalized: list[dict[str, Any]] = []
+    for row in rows:
+        payload = dict(row)
+        payload["quote_id"] = str(row.get("quote_id", "")).strip() or _extract_quote_id_from_description(
+            row.get("description", "")
+        )
+        normalized.append(payload)
+    return normalized
+
+
+async def get_quote_followup_state(quote_id: str, gc_id: str) -> dict[str, Any]:
+    """Return the latest follow-up runtime state for one quote."""
+    quote_value = quote_id.strip()
+    gc_value = gc_id.strip()
+    if not quote_value or not gc_value:
+        return _build_followup_state_payload(
+            quote_id=quote_value,
+            job_id="",
+            item=None,
+            delivery_attempts=[],
+        )
+
+    quote_record = await get_quote_draft_record(quote_value)
+    rows = await _get_followup_rows(gc_value)
+    item = next((row for row in rows if str(row.get("quote_id", "")).strip() == quote_value), None)
+    delivery_attempts = await get_quote_delivery_attempts(quote_value, gc_value)
+    return _build_followup_state_payload(
+        quote_id=quote_value,
+        job_id=str((quote_record or {}).get("job_id", "")).strip(),
+        item=item,
+        delivery_attempts=delivery_attempts,
+        quote_approval_status=str((quote_record or {}).get("approval_status", "")).strip(),
+        quote_actioned_at=(quote_record or {}).get("actioned_at"),
+    )
+
+
+async def get_job_followup_state(gc_id: str, job_id: str) -> dict[str, Any] | None:
+    """Return the latest follow-up runtime state for a job's active quote, when present."""
+    job_value = job_id.strip()
+    gc_value = gc_id.strip()
+    if not job_value or not gc_value:
+        return None
+
+    rows = await _get_followup_rows(gc_value, job_value)
+    if not rows:
+        return None
+
+    active_item = next(
+        (
+            row
+            for row in rows
+            if str(row.get("status", "")).strip().lower() in {"open", "in-progress", "overdue", ""}
+        ),
+        None,
+    )
+    item = active_item or rows[0]
+    quote_value = str(item.get("quote_id", "")).strip()
+    quote_record = await get_quote_draft_record(quote_value) if quote_value else None
+    delivery_attempts = await get_quote_delivery_attempts(quote_value, gc_value) if quote_value else []
+    return _build_followup_state_payload(
+        quote_id=quote_value,
+        job_id=job_value,
+        item=item,
+        delivery_attempts=delivery_attempts,
+        quote_approval_status=str((quote_record or {}).get("approval_status", "")).strip(),
+        quote_actioned_at=(quote_record or {}).get("actioned_at"),
+    )
 
 
 async def finalize_quote_draft_feedback(
@@ -1989,6 +2193,8 @@ __all__ = [
     "upsert_quote_draft",
     "get_quote_draft_record",
     "get_quote_delivery_attempts",
+    "get_quote_followup_state",
+    "get_job_followup_state",
     "finalize_quote_draft_feedback",
     "insert_quote_delivery_log",
     "apply_twilio_delivery_status",

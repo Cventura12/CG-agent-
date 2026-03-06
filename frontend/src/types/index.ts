@@ -102,6 +102,7 @@ export interface JobDetailPayload {
     trace_id: string;
     metadata: Record<string, unknown>;
   }>;
+  followup_state?: QuoteFollowupState | null;
 }
 
 export interface QueuePayload {
@@ -234,6 +235,15 @@ export interface QuoteDraft {
   approval_notes?: string;
 }
 
+export interface QuoteSourceFile {
+  storage_ref: string;
+  bucket: string;
+  path: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+}
+
 export interface QuoteResponse {
   quote_id: string;
   trace_id: string;
@@ -255,6 +265,7 @@ export interface QuoteResponse {
   };
   active_job_id: string;
   errors: string[];
+  source_files?: QuoteSourceFile[];
 }
 
 export type QuoteApprovalStatus = "approved" | "edited" | "discarded";
@@ -296,4 +307,30 @@ export interface QuoteDeliveryResponse {
   quote_id: string;
   trace_id: string;
   deliveries: QuoteDeliveryAttempt[];
+}
+
+export type QuoteFollowupStatus = "scheduled" | "stopped" | "pending_destination" | "none";
+
+export interface QuoteFollowupState {
+  open_item_id: string | null;
+  quote_id: string | null;
+  job_id: string | null;
+  status: QuoteFollowupStatus;
+  next_due_at: string | null;
+  reminder_count: number;
+  last_reminder_at: string | null;
+  stopped_at: string | null;
+  stop_reason: string | null;
+  channel: string | null;
+}
+
+export interface QuoteFollowupResponse {
+  quote_id: string;
+  trace_id: string;
+  followup: QuoteFollowupState;
+}
+
+export interface QuoteFollowupStopResponse extends QuoteFollowupResponse {
+  stopped: boolean;
+  reason: string;
 }

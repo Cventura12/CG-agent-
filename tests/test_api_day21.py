@@ -29,8 +29,17 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
         approval_status: str = "pending",
         edited_scope_of_work: str = "",
         edited_total_price: float | None = None,
+        uploaded_files: list[dict[str, object]] | None = None,
     ) -> AgentState:
-        _ = (raw_input, session_id, gc_id, approval_status, edited_scope_of_work, edited_total_price)
+        _ = (
+            raw_input,
+            session_id,
+            gc_id,
+            approval_status,
+            edited_scope_of_work,
+            edited_total_price,
+            uploaded_files,
+        )
         return AgentState(
             mode="estimate",
             active_job_id="job-pdf-1",
@@ -63,6 +72,7 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
         quote_draft: dict[str, object],
         rendered_quote: str,
         estimate_confidence: dict[str, object] | None = None,
+        source_files: list[dict[str, object]] | None = None,
     ) -> None:
         stored_quotes[quote_id] = {
             "id": quote_id,
@@ -73,6 +83,7 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
             "final_quote_draft": {},
             "rendered_quote": rendered_quote,
             "estimate_confidence": estimate_confidence or {},
+            "source_files": source_files or [],
         }
 
     async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:

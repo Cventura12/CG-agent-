@@ -24,8 +24,9 @@ async def test_post_quote_returns_quote_draft(monkeypatch: pytest.MonkeyPatch) -
         approval_status: str = "pending",
         edited_scope_of_work: str = "",
         edited_total_price: float | None = None,
+        uploaded_files: list[dict[str, object]] | None = None,
     ) -> AgentState:
-        _ = (session_id, gc_id, approval_status, edited_scope_of_work, edited_total_price)
+        _ = (session_id, gc_id, approval_status, edited_scope_of_work, edited_total_price, uploaded_files)
         return AgentState(
             mode="estimate",
             raw_input=raw_input,

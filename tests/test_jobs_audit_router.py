@@ -63,10 +63,25 @@ async def test_job_detail_includes_audit_timeline(monkeypatch: pytest.MonkeyPatc
             }
         ]
 
+    async def _fake_get_job_followup_state(_: str, __: str):
+        return {
+            "open_item_id": "followup-1",
+            "quote_id": "quote-1",
+            "job_id": "job-1",
+            "status": "scheduled",
+            "next_due_at": "2026-03-06T14:00:00+00:00",
+            "reminder_count": 1,
+            "last_reminder_at": "2026-03-05T14:00:00+00:00",
+            "stopped_at": None,
+            "stop_reason": None,
+            "channel": "sms",
+        }
+
     monkeypatch.setattr(jobs_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
     monkeypatch.setattr(jobs_module.queries, "get_active_jobs", _fake_get_active_jobs)
     monkeypatch.setattr(jobs_module.queries, "get_recent_update_logs", _fake_get_recent_update_logs)
     monkeypatch.setattr(jobs_module.queries, "get_job_audit_timeline", _fake_get_job_audit_timeline)
+    monkeypatch.setattr(jobs_module.queries, "get_job_followup_state", _fake_get_job_followup_state)
 
     _, client = _build_test_client()
     async with client:
@@ -78,6 +93,7 @@ async def test_job_detail_includes_audit_timeline(monkeypatch: pytest.MonkeyPatc
     assert payload["data"]["job"]["id"] == "job-1"
     assert len(payload["data"]["audit_timeline"]) == 1
     assert payload["data"]["audit_timeline"][0]["event_type"] == "quote_approved"
+    assert payload["data"]["followup_state"]["status"] == "scheduled"
 
 
 @pytest.mark.asyncio
@@ -96,10 +112,14 @@ async def test_job_detail_returns_not_found_when_job_missing(monkeypatch: pytest
         _ = limit
         return []
 
+    async def _fake_get_job_followup_state(_: str, __: str):
+        return None
+
     monkeypatch.setattr(jobs_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
     monkeypatch.setattr(jobs_module.queries, "get_active_jobs", _fake_get_active_jobs)
     monkeypatch.setattr(jobs_module.queries, "get_recent_update_logs", _fake_get_recent_update_logs)
     monkeypatch.setattr(jobs_module.queries, "get_job_audit_timeline", _fake_get_job_audit_timeline)
+    monkeypatch.setattr(jobs_module.queries, "get_job_followup_state", _fake_get_job_followup_state)
 
     _, client = _build_test_client()
     async with client:

@@ -8,7 +8,7 @@ import asyncio
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from pydantic import BaseModel, Field
 
 from gc_agent.api.auth import DEFAULT_ESTIMATE_GC_ID, require_api_key
@@ -16,11 +16,12 @@ from gc_agent.api.quote_pdf import render_quote_pdf
 from gc_agent.db import queries
 from gc_agent.db.queries import DatabaseError
 from gc_agent.email_delivery import send_email_message
-from gc_agent.nodes.followup_trigger import ensure_quote_followup
+from gc_agent.nodes.followup_trigger import ensure_quote_followup, stop_quote_followup
 from gc_agent.nodes.send_and_track import send_and_track
 from gc_agent.nodes.update_memory import build_prompt_tuning_signals, update_memory
 from gc_agent.state import AgentState, Draft
 from gc_agent.telemetry import write_agent_trace
+from gc_agent.tools.upload_storage import is_allowed_upload, upload_quote_source_file
 
 open_router = APIRouter()
 router = APIRouter(dependencies=[Depends(require_api_key)])
@@ -264,6 +265,117 @@ def _build_delivery_subject(*, quote_id: str, quote: dict[str, Any]) -> str:
     return f"{company} quote for {address} ({quote_id})"
 
 
+def _normalize_source_files(source_files: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Keep only JSON-safe uploaded source metadata."""
+    normalized: list[dict[str, Any]] = []
+    for item in source_files or []:
+        if not isinstance(item, dict):
+            continue
+        storage_ref = str(item.get("storage_ref", "")).strip()
+        if not storage_ref:
+            continue
+        normalized.append(
+            {
+                "storage_ref": storage_ref,
+                "bucket": str(item.get("bucket", "")).strip(),
+                "path": str(item.get("path", "")).strip(),
+                "filename": str(item.get("filename", "")).strip(),
+                "content_type": str(item.get("content_type", "")).strip(),
+                "size_bytes": int(item.get("size_bytes", 0) or 0),
+            }
+        )
+    return normalized
+
+
+async def _create_quote_response(
+    *,
+    raw_input: str,
+    contractor_id: str,
+    session_id: str = "",
+    source_files: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Run the estimate flow and persist one quote draft response."""
+    normalized_source_files = _normalize_source_files(source_files)
+    try:
+        state = await run_single_estimate(
+            raw_input,
+            session_id=session_id,
+            gc_id=contractor_id,
+            uploaded_files=normalized_source_files,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"quote generation failed: {exc}",
+        ) from exc
+
+    if not state.quote_draft:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="quote generation returned no quote_draft",
+        )
+
+    quote_id = session_id.strip() or str(uuid4())
+    estimate_confidence = _estimate_confidence(state)
+    assumptions_raw = state.materials.get("assumptions")
+    assumptions = (
+        [str(item).strip() for item in assumptions_raw if str(item).strip()]
+        if isinstance(assumptions_raw, list)
+        else []
+    )
+    clarification_questions = [
+        str(item).strip()
+        for item in state.clarification_questions
+        if str(item).strip()
+    ]
+    pricing_context = state.memory_context.get("pricing_context")
+    has_pricing_context = isinstance(pricing_context, dict) and bool(pricing_context)
+    contractor_profile = (
+        state.memory_context.get("contractor_profile", {})
+        if isinstance(state.memory_context.get("contractor_profile"), dict)
+        else {}
+    )
+    pricing_signals = (
+        contractor_profile.get("pricing_signals", {})
+        if isinstance(contractor_profile.get("pricing_signals"), dict)
+        else {}
+    )
+    cold_start = {
+        "active": not bool(state.memory_context.get("has_relevant_memory")) and not has_pricing_context,
+        "primary_trade": str(pricing_signals.get("primary_trade", "")).strip() or "general_construction",
+    }
+    try:
+        await queries.upsert_quote_draft(
+            quote_id=quote_id,
+            gc_id=contractor_id,
+            job_id=state.active_job_id,
+            trace_id=state.trace_id,
+            quote_draft=dict(state.quote_draft),
+            rendered_quote=state.rendered_quote,
+            estimate_confidence=estimate_confidence,
+            source_files=normalized_source_files,
+        )
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"quote persistence failed: {exc}",
+        ) from exc
+
+    return {
+        "quote_id": quote_id,
+        "trace_id": state.trace_id,
+        "quote_draft": state.quote_draft,
+        "rendered_quote": state.rendered_quote,
+        "estimate_confidence": estimate_confidence,
+        "assumptions": assumptions,
+        "clarification_questions": clarification_questions,
+        "cold_start": cold_start,
+        "active_job_id": state.active_job_id,
+        "errors": state.errors,
+        "source_files": normalized_source_files,
+    }
+
+
 def _estimate_confidence(state: AgentState) -> dict[str, Any]:
     """Compute user-facing estimate confidence based on extraction/data completeness."""
     extraction_conf = str(state.job_scope.get("extraction_confidence", "medium")).strip().lower()
@@ -349,81 +461,67 @@ async def _deliver_quote_email(
 @router.post("/quote")
 async def create_quote(payload: QuoteRequest) -> dict[str, Any]:
     """Run the v5 estimating path and return the generated quote payload."""
-    try:
-        state = await run_single_estimate(
-            payload.input,
-            session_id=payload.session_id,
-            gc_id=payload.contractor_id,
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"quote generation failed: {exc}",
-        ) from exc
+    return await _create_quote_response(
+        raw_input=payload.input,
+        contractor_id=payload.contractor_id,
+        session_id=payload.session_id,
+    )
 
-    if not state.quote_draft:
+
+@router.post("/quote/upload")
+async def create_quote_upload(
+    contractor_id: str = Form(default=DEFAULT_ESTIMATE_GC_ID),
+    input: str = Form(default=""),
+    session_id: str = Form(default=""),
+    file: UploadFile | None = File(default=None),
+) -> dict[str, Any]:
+    """Run the quote flow from typed notes plus one uploaded PDF/image."""
+    notes = input.strip()
+    if not notes and file is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="quote generation returned no quote_draft",
+            detail="Provide typed notes, an uploaded file, or both",
         )
 
-    quote_id = payload.session_id.strip() or str(uuid4())
-    estimate_confidence = _estimate_confidence(state)
-    assumptions_raw = state.materials.get("assumptions")
-    assumptions = (
-        [str(item).strip() for item in assumptions_raw if str(item).strip()]
-        if isinstance(assumptions_raw, list)
-        else []
-    )
-    clarification_questions = [
-        str(item).strip()
-        for item in state.clarification_questions
-        if str(item).strip()
-    ]
-    pricing_context = state.memory_context.get("pricing_context")
-    has_pricing_context = isinstance(pricing_context, dict) and bool(pricing_context)
-    contractor_profile = (
-        state.memory_context.get("contractor_profile", {})
-        if isinstance(state.memory_context.get("contractor_profile"), dict)
-        else {}
-    )
-    pricing_signals = (
-        contractor_profile.get("pricing_signals", {})
-        if isinstance(contractor_profile.get("pricing_signals"), dict)
-        else {}
-    )
-    cold_start = {
-        "active": not bool(state.memory_context.get("has_relevant_memory")) and not has_pricing_context,
-        "primary_trade": str(pricing_signals.get("primary_trade", "")).strip() or "general_construction",
-    }
-    try:
-        await queries.upsert_quote_draft(
-            quote_id=quote_id,
-            gc_id=payload.contractor_id,
-            job_id=state.active_job_id,
-            trace_id=state.trace_id,
-            quote_draft=dict(state.quote_draft),
-            rendered_quote=state.rendered_quote,
-            estimate_confidence=estimate_confidence,
-        )
-    except DatabaseError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"quote persistence failed: {exc}",
-        ) from exc
+    source_files: list[dict[str, Any]] = []
+    if file is not None:
+        filename = str(file.filename or "").strip()
+        content_type = str(file.content_type or "").strip().lower()
+        if not filename or not is_allowed_upload(filename, content_type):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Only PDF, JPG, and PNG uploads are supported",
+            )
 
-    return {
-        "quote_id": quote_id,
-        "trace_id": state.trace_id,
-        "quote_draft": state.quote_draft,
-        "rendered_quote": state.rendered_quote,
-        "estimate_confidence": estimate_confidence,
-        "assumptions": assumptions,
-        "clarification_questions": clarification_questions,
-        "cold_start": cold_start,
-        "active_job_id": state.active_job_id,
-        "errors": state.errors,
-    }
+        payload = await file.read()
+        try:
+            stored = await asyncio.to_thread(
+                upload_quote_source_file,
+                contractor_id=contractor_id,
+                session_id=session_id,
+                filename=filename,
+                content_type=content_type,
+                payload=payload,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=str(exc),
+            ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"quote upload failed: {exc}",
+            ) from exc
+
+        source_files.append(stored)
+
+    return await _create_quote_response(
+        raw_input=notes,
+        contractor_id=contractor_id,
+        session_id=session_id,
+        source_files=source_files,
+    )
 
 
 @router.get("/quote/{quote_id}/pdf")
@@ -509,6 +607,80 @@ async def get_quote_delivery(
             }
             for row in deliveries
         ],
+    }
+
+
+@router.get("/quote/{quote_id}/followup")
+async def get_quote_followup(
+    quote_id: str,
+    contractor_id: str = Query(..., min_length=1),
+) -> dict[str, Any]:
+    """Return the current follow-up state for one quote."""
+    try:
+        record = await queries.get_quote_draft_record(quote_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="quote_id not found")
+    if str(record.get("gc_id", "")).strip() != contractor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="quote does not belong to contractor")
+
+    try:
+        followup = await queries.get_quote_followup_state(quote_id, contractor_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "quote_id": quote_id,
+        "trace_id": str(record.get("trace_id", "")).strip(),
+        "followup": followup,
+    }
+
+
+@router.post("/quote/{quote_id}/followup/stop")
+async def stop_quote_followup_route(
+    quote_id: str,
+    payload: QuoteDecisionRequest,
+) -> dict[str, Any]:
+    """Manually stop automatic follow-up reminders for a quote."""
+    try:
+        record = await queries.get_quote_draft_record(quote_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="quote_id not found")
+    if str(record.get("gc_id", "")).strip() != payload.contractor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="quote does not belong to contractor")
+
+    result = await stop_quote_followup(payload.contractor_id, quote_id)
+    if str(result.get("reason", "")).strip() == "not_found":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no active follow-up found for quote")
+
+    try:
+        followup = await queries.get_quote_followup_state(quote_id, payload.contractor_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "quote_id": quote_id,
+        "trace_id": str(record.get("trace_id", "")).strip(),
+        "stopped": bool(result.get("stopped", False)),
+        "reason": str(result.get("reason", "")).strip(),
+        "followup": followup,
     }
 
 
@@ -1081,6 +1253,7 @@ __all__ = [
     "approve_quote",
     "approve_queue_item",
     "create_quote",
+    "create_quote_upload",
     "discard_quote",
     "discard_queue_item",
     "edit_quote",
@@ -1089,6 +1262,7 @@ __all__ = [
     "get_jobs",
     "get_queue",
     "get_quote_delivery",
+    "get_quote_followup",
     "get_quote_pdf",
     "graph",
     "health",
@@ -1099,5 +1273,6 @@ __all__ = [
     "run_single_estimate",
     "send_quote_to_client",
     "send_and_track",
+    "stop_quote_followup_route",
     "update_memory",
 ]

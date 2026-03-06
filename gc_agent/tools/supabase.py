@@ -43,6 +43,12 @@ class OpenItemRow(TypedDict):
     status: str
     days_silent: int
     due_date: str | None
+    quote_id: NotRequired[str | None]
+    reminder_count: NotRequired[int]
+    last_reminder_at: NotRequired[str | None]
+    next_due_at: NotRequired[str | None]
+    stopped_at: NotRequired[str | None]
+    stop_reason: NotRequired[str | None]
     trace_id: NotRequired[str | None]
     created_at: NotRequired[str]
     resolved_at: NotRequired[str | None]
@@ -302,7 +308,8 @@ def list_open_items(gc_id: str, job_id: str | None = None) -> list[OpenItemRow]:
         client.table("open_items")
         .select(
             "id,job_id,gc_id,type,description,owner,status,days_silent,"
-            "due_date,trace_id,created_at,resolved_at"
+            "due_date,quote_id,reminder_count,last_reminder_at,next_due_at,"
+            "stopped_at,stop_reason,trace_id,created_at,resolved_at"
         )
         .eq("gc_id", gc_value)
         .order("created_at", desc=True)
@@ -330,6 +337,12 @@ def insert_open_item(row: OpenItemRow) -> OpenItemRow | None:
         "status": str(row.get("status", "open")).strip() or "open",
         "days_silent": int(row.get("days_silent") or 0),
         "due_date": str(row.get("due_date") or "").strip() or None,
+        "quote_id": str(row.get("quote_id") or "").strip() or None,
+        "reminder_count": int(row.get("reminder_count") or 0),
+        "last_reminder_at": str(row.get("last_reminder_at") or "").strip() or None,
+        "next_due_at": str(row.get("next_due_at") or "").strip() or None,
+        "stopped_at": str(row.get("stopped_at") or "").strip() or None,
+        "stop_reason": str(row.get("stop_reason") or "").strip() or None,
         "trace_id": str(row.get("trace_id") or "").strip() or None,
     }
     client.table("open_items").insert(payload).execute()
