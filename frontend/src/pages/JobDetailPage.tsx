@@ -81,12 +81,54 @@ function followupReason(reason: string | null): string {
   return normalized.replace(/_/g, " ");
 }
 
+function transcriptUrgencyTone(urgency: string): string {
+  const normalized = urgency.trim().toLowerCase();
+  if (normalized === "high") return "tr";
+  if (normalized === "low") return "ts";
+  return "ta";
+}
+
+function transcriptClassificationLabel(value: string): string {
+  const normalized = value.trim();
+  if (!normalized) return "unknown";
+  return normalized.replace(/_/g, " ");
+}
+
+function transcriptConfidenceLabel(value: number | null): string {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "Manual";
+  }
+  const normalized = value <= 1 ? Math.round(value * 100) : Math.round(value);
+  return `${normalized}%`;
+}
+
+function formatDuration(seconds: number | null): string {
+  if (!seconds || seconds <= 0) {
+    return "";
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes <= 0) {
+    return `${remainingSeconds}s`;
+  }
+  return `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+}
+
+function transcriptSummary(entry: { summary: string; transcript_text: string }): string {
+  return entry.summary || entry.transcript_text || "Manual transcript review needed.";
+}
+
+function transcriptRawText(entry: { transcript_text: string }): string {
+  return entry.transcript_text || "Transcript text unavailable.";
+}
+
 export function JobDetailPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId ?? "";
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [expandedUpdateIds, setExpandedUpdateIds] = useState<Record<string, boolean>>({});
+  const [expandedTranscriptIds, setExpandedTranscriptIds] = useState<Record<string, boolean>>({});
   const [draftEdits, setDraftEdits] = useState<Record<string, string>>({});
 
   const { userId } = useAuth();
@@ -103,6 +145,7 @@ export function JobDetailPage() {
 
   const job = detailQuery.data?.job;
   const updates = useMemo(() => (detailQuery.data?.recent_updates ?? []).slice(0, 5), [detailQuery.data]);
+  const callHistory = useMemo(() => (detailQuery.data?.call_history ?? []).slice(0, 8), [detailQuery.data]);
   const auditTimeline = useMemo(() => (detailQuery.data?.audit_timeline ?? []).slice(0, 20), [detailQuery.data]);
   const followupState = detailQuery.data?.followup_state ?? null;
 
@@ -211,6 +254,13 @@ export function JobDetailPage() {
     }));
   };
 
+  const toggleTranscript = (transcriptId: string) => {
+    setExpandedTranscriptIds((current) => ({
+      ...current,
+      [transcriptId]: !current[transcriptId],
+    }));
+  };
+
   const followupChip = followupTag(followupState?.status);
 
   return (
@@ -261,7 +311,8 @@ export function JobDetailPage() {
                 <div className="ir"><span className="ik">Last reminder</span><span className="iv">{followupState?.last_reminder_at ? formatTimestamp(followupState.last_reminder_at) : "Not recorded yet"}</span></div>
                 <div className="ir"><span className="ik">Channel</span><span className="iv">{followupState?.channel ? followupState.channel.charAt(0).toUpperCase() + followupState.channel.slice(1) : "Not chosen yet"}</span></div>
                 <hr className="wd" />
-                <div style={{ fontSize: 12, color: "var(--cream)" }}>{followupReason(followupState?.stop_reason ?? null)}</div>`r`n                <div style={{ marginTop: 6, fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", lineHeight: 1.8, letterSpacing: "0.5px" }}>FOLLOW-UP STATE IS TRACKED INSIDE THE JOB RECORD</div>
+                <div style={{ fontSize: 12, color: "var(--cream)" }}>{followupReason(followupState?.stop_reason ?? null)}</div>
+                <div style={{ marginTop: 6, fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", lineHeight: 1.8, letterSpacing: "0.5px" }}>FOLLOW-UP STATE IS TRACKED INSIDE THE JOB RECORD</div>
               </div>
             </div>
 
@@ -316,6 +367,99 @@ export function JobDetailPage() {
           </div>
 
           <div className="vs">
+            <div className="panel ani a1">
+              <div className="ph2"><span className="ptl">Call History</span></div>
+              <div className="pb">
+                {callHistory.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--steel)" }}>No linked call transcripts for this job yet.</div>
+                ) : (
+                  <div className="vs">
+                    {callHistory.map((entry) => {
+                      const isExpanded = !!expandedTranscriptIds[entry.id];
+                      return (
+                        <div key={entry.id} className="panel" style={{ borderColor: "var(--wire2)" }}>
+                          <div className="pb">
+                            <div className="sp" style={{ marginBottom: 10, gap: 12 }}>
+                              <div style={{ flex: 1 }}>
+                                <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
+                                  <span className="tag ts">{formatTimestamp(entry.timestamp || entry.started_at || "")}</span>
+                                  <span className={`tag ${transcriptUrgencyTone(entry.urgency)}`}>{entry.urgency || "normal"}</span>
+                                  <span className="tag tb">{transcriptClassificationLabel(entry.classification)}</span>
+                                  {entry.linked_quote_id ? <span className="tag ta">{entry.linked_quote_id}</span> : null}
+                                </div>
+                                <div style={{ fontSize: 13, color: "var(--cream)", lineHeight: 1.65, marginBottom: 6 }}>
+                                  {transcriptSummary(entry)}
+                                </div>
+                                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.08em", lineHeight: 1.8 }}>
+                                  {entry.caller_label || "Inbound call transcript"}
+                                  {entry.source ? ` · ${entry.source.replace(/_/g, " ").toUpperCase()}` : ""}
+                                  {entry.duration_seconds ? ` · ${formatDuration(entry.duration_seconds).toUpperCase()}` : ""}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right" }}>
+                                <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 18, fontWeight: 600, color: "var(--cream)" }}>
+                                  {transcriptConfidenceLabel(entry.confidence)}
+                                </div>
+                                <div style={{ marginTop: 6 }}>
+                                  {entry.related_queue_item_ids.length ? (
+                                    <Link to="/queue" className="btn bw sm">Queue review</Link>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                            {entry.recommended_actions.length ? (
+                              <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginBottom: entry.risk_flags.length ? 10 : 0 }}>
+                                {entry.recommended_actions.slice(0, 3).map((action) => (
+                                  <span key={`${entry.id}-${action}`} className="tag tb">{action}</span>
+                                ))}
+                              </div>
+                            ) : null}
+                            {entry.risk_flags.length ? (
+                              <div className="alert awarn" style={{ marginBottom: 10 }}>
+                                <span>!</span>
+                                <div>{entry.risk_flags[0]}</div>
+                              </div>
+                            ) : null}
+                            {entry.missing_information.length ? (
+                              <div style={{ marginBottom: 10 }}>
+                                <div className="lbl">Missing information</div>
+                                <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                                  {entry.missing_information.map((item) => (
+                                    <span key={`${entry.id}-${item}`} className="tag ts">{item}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                            <div className="hs" style={{ flexWrap: "wrap" }}>
+                              {entry.classification === "estimate_request" && entry.id ? (
+                                <Link
+                                  to={`/quote?transcript_id=${encodeURIComponent(entry.id)}`}
+                                  className="btn bw sm"
+                                >
+                                  Create quote draft
+                                </Link>
+                              ) : null}
+                              <button type="button" className="btn bw sm" onClick={() => toggleTranscript(entry.id)}>
+                                {isExpanded ? "Hide transcript" : "View transcript"}
+                              </button>
+                            </div>
+                          </div>
+                          {isExpanded ? (
+                            <div style={{ borderTop: "1px solid var(--wire)", padding: "12px 14px" }}>
+                              <div className="lbl" style={{ marginBottom: 6 }}>Raw transcript</div>
+                              <pre style={{ whiteSpace: "pre-wrap", fontFamily: "'Syne Mono', monospace", fontSize: 10, color: "var(--steel)", lineHeight: 1.8, margin: 0 }}>
+                                {transcriptRawText(entry)}
+                              </pre>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="panel ani a1">
               <div className="ph2"><span className="ptl">Recent Updates</span></div>
               <div className="pb">

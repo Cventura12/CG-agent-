@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -72,6 +72,7 @@ class Draft(BaseModel):
         "follow-up",
         "owner-update",
         "material-order",
+        "transcript-review",
     ]
     title: str
     original_content: Optional[str] = None
@@ -83,6 +84,7 @@ class Draft(BaseModel):
     approval_recorded_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     trace_id: str = ""
+    transcript: Optional["DraftTranscriptContext"] = None
 
 
 class ParsedIntent(BaseModel):
@@ -95,6 +97,131 @@ class ParsedIntent(BaseModel):
     risks_flagged: list[str] = Field(default_factory=list)
 
 
+TranscriptClassification = Literal[
+    "estimate_request",
+    "quote_question",
+    "job_update",
+    "reschedule",
+    "complaint_or_issue",
+    "followup_response",
+    "vendor_or_subcontractor",
+    "unknown",
+]
+
+TranscriptUrgency = Literal["low", "normal", "high"]
+
+
+class CallTranscriptRecord(BaseModel):
+    """Durable call transcript record used by persistence helpers."""
+
+    id: str
+    gc_id: str
+    job_id: str = ""
+    quote_id: str = ""
+    call_id: str = ""
+    source: str
+    provider: str = ""
+    caller_phone: str = ""
+    caller_name: str = ""
+    started_at: str | None = None
+    duration_seconds: int | None = None
+    recording_url: str = ""
+    transcript_text: str
+    summary: str = ""
+    classification: TranscriptClassification = "unknown"
+    confidence: float | None = None
+    extracted_json: dict[str, Any] = Field(default_factory=dict)
+    risk_flags: list[str] = Field(default_factory=list)
+    recommended_actions: list[str] = Field(default_factory=list)
+    trace_id: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class CallTranscriptAnalysis(BaseModel):
+    """Validated classifier/extraction output for one call transcript."""
+
+    classification: TranscriptClassification
+    confidence: float | None = None
+    summary: str
+    urgency: TranscriptUrgency = "normal"
+    risks: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
+    job_type: str | None = None
+    scope_items: list[str] = Field(default_factory=list)
+    customer_questions: list[str] = Field(default_factory=list)
+    insurance_involved: bool | None = None
+    scheduling_notes: list[str] = Field(default_factory=list)
+
+
+class DraftTranscriptContext(BaseModel):
+    """Queue-friendly transcript context attached to transcript-review drafts."""
+
+    transcript_id: str
+    source: str
+    provider: str = ""
+    caller_label: str = ""
+    caller_phone: str = ""
+    summary: str = ""
+    classification: TranscriptClassification = "unknown"
+    urgency: TranscriptUrgency = "normal"
+    confidence: float | None = None
+    recommended_actions: list[str] = Field(default_factory=list)
+    risk_flags: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    transcript_text: str = ""
+    linked_quote_id: str = ""
+    recording_url: str = ""
+    started_at: str | None = None
+    duration_seconds: int | None = None
+
+
+class TranscriptQuotePrefill(BaseModel):
+    """Quote-workspace prefill derived from a persisted call transcript."""
+
+    transcript_id: str
+    trace_id: str = ""
+    classification: TranscriptClassification = "unknown"
+    confidence: float | None = None
+    summary: str = ""
+    urgency: TranscriptUrgency = "normal"
+    caller_name: str = ""
+    caller_phone: str = ""
+    linked_job_id: str = ""
+    linked_quote_id: str = ""
+    customer_name: str = ""
+    job_type: str = ""
+    scope_items: list[str] = Field(default_factory=list)
+    customer_questions: list[str] = Field(default_factory=list)
+    insurance_involved: bool | None = None
+    missing_information: list[str] = Field(default_factory=list)
+    recommended_actions: list[str] = Field(default_factory=list)
+    scheduling_notes: list[str] = Field(default_factory=list)
+    estimate_related: bool = False
+    quote_input: str = ""
+
+
+class TranscriptIngestResult(BaseModel):
+    """Stable API payload returned after transcript ingest completes."""
+
+    mode: Literal["transcript"] = "transcript"
+    trace_id: str
+    transcript_id: str
+    summary: str = "Manual transcript review needed."
+    classification: TranscriptClassification = "unknown"
+    confidence: float | None = None
+    urgency: TranscriptUrgency = "normal"
+    risk_flags: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
+    active_job_id: str = ""
+    linked_quote_id: str = ""
+    created_draft_ids: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
 class AgentState(BaseModel):
     """Single LangGraph state object shared across all execution nodes."""
 
@@ -104,7 +231,7 @@ class AgentState(BaseModel):
     input_type: Literal["whatsapp", "sms", "chat", "cron", "voice"] = "chat"
     raw_input: str = ""
     from_number: str = ""
-    mode: Optional[Literal["update", "briefing", "query", "estimate"]] = None
+    mode: Optional[Literal["update", "briefing", "query", "estimate", "transcript"]] = None
     thread_style: bool = False
     uploaded_files: list[dict[str, object]] = Field(default_factory=list)
 
@@ -137,10 +264,20 @@ class AgentState(BaseModel):
     trace_id: str = ""
 
 
+Draft.model_rebuild()
+
+
 __all__ = [
     "OpenItem",
     "Job",
     "Draft",
     "ParsedIntent",
+    "TranscriptClassification",
+    "TranscriptUrgency",
+    "CallTranscriptRecord",
+    "CallTranscriptAnalysis",
+    "DraftTranscriptContext",
+    "TranscriptQuotePrefill",
+    "TranscriptIngestResult",
     "AgentState",
 ]

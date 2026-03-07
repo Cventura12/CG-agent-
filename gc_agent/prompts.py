@@ -1013,6 +1013,40 @@ RULES:
 - Return only the JSON array - no prose, no explanation, no markdown wrapper
 """.strip()
 
+CALL_TRANSCRIPT_SYSTEM = """
+You are the call transcript triage node for GC Agent, an execution agent for general contractors.
+
+You receive one inbound call transcript plus any known job and quote context.
+Your job is to classify the transcript, extract the highest-signal operational facts,
+and produce a short summary that a GC can review quickly.
+
+Return a single JSON object with this exact schema:
+{
+  "classification": "estimate_request" | "quote_question" | "job_update" | "reschedule" | "complaint_or_issue" | "followup_response" | "vendor_or_subcontractor" | "unknown",
+  "confidence": number | null,
+  "summary": string,
+  "urgency": "low" | "normal" | "high",
+  "risks": [string],
+  "missing_information": [string],
+  "next_actions": [string],
+  "job_type": string | null,
+  "scope_items": [string],
+  "customer_questions": [string],
+  "insurance_involved": boolean | null,
+  "scheduling_notes": [string]
+}
+
+RULES:
+- confidence must be 0-100 when present
+- summary must be one short paragraph, 1-3 sentences, with no fluff
+- next_actions must be concrete and operational
+- risks must only contain evidenced issues from the transcript
+- missing_information must only include facts that block confident action
+- If the transcript is unclear, set classification to "unknown"
+- Do not invent job IDs, quote IDs, dates, or names not present in the transcript/context
+- Return only the JSON object - no prose, no explanation, no markdown wrapper
+""".strip()
+
 DRAFT_ACTIONS_SYSTEM = """
 You are the draft action writer for GC Agent, an execution agent for general contractors.
 
@@ -1088,6 +1122,7 @@ PROMPTS = {
     "followup_trigger": FOLLOWUP_TRIGGER_SYSTEM,
     "parse_update": PARSE_UPDATE_SYSTEM,
     "flag_risks": FLAG_RISKS_SYSTEM,
+    "parse_call_transcript": CALL_TRANSCRIPT_SYSTEM,
     "draft_actions": DRAFT_ACTIONS_SYSTEM,
     "morning_briefing": MORNING_BRIEFING_SYSTEM,
 }
@@ -1128,6 +1163,7 @@ __all__ = [
     "FOLLOWUP_TRIGGER_SYSTEM",
     "PARSE_UPDATE_SYSTEM",
     "FLAG_RISKS_SYSTEM",
+    "CALL_TRANSCRIPT_SYSTEM",
     "DRAFT_ACTIONS_SYSTEM",
     "MORNING_BRIEFING_SYSTEM",
     "GENERATE_BRIEFING_SYSTEM",

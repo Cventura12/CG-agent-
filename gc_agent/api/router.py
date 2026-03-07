@@ -64,6 +64,8 @@ class QuoteRequest(BaseModel):
     input: str = Field(min_length=1)
     contractor_id: str = Field(default=DEFAULT_ESTIMATE_GC_ID, min_length=1)
     session_id: str = ""
+    transcript_id: str = ""
+    job_id: str = ""
 
 
 class ApproveDraftRequest(BaseModel):
@@ -293,9 +295,22 @@ async def _create_quote_response(
     contractor_id: str,
     session_id: str = "",
     source_files: list[dict[str, Any]] | None = None,
+    transcript_id: str = "",
+    job_id: str = "",
 ) -> dict[str, Any]:
     """Run the estimate flow and persist one quote draft response."""
     normalized_source_files = _normalize_source_files(source_files)
+    transcript_value = transcript_id.strip()
+    requested_job_id = job_id.strip()
+    transcript_record = None
+    if transcript_value:
+        try:
+            transcript_record = await queries.get_call_transcript_by_id(transcript_value, contractor_id)
+        except DatabaseError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"transcript lookup failed: {exc}",
+            ) from exc
     try:
         state = await run_single_estimate(
             raw_input,
@@ -328,6 +343,20 @@ async def _create_quote_response(
         for item in state.clarification_questions
         if str(item).strip()
     ]
+    quote_draft = dict(state.quote_draft)
+    transcript_caller = (
+        str((transcript_record or {}).get("caller_name", "")).strip()
+        if isinstance(transcript_record, dict)
+        else ""
+    )
+    if transcript_caller and not str(quote_draft.get("customer_name", "")).strip():
+        quote_draft["customer_name"] = transcript_caller
+
+    resolved_job_id = (
+        state.active_job_id.strip()
+        or requested_job_id
+        or (str((transcript_record or {}).get("job_id", "")).strip() if isinstance(transcript_record, dict) else "")
+    )
     pricing_context = state.memory_context.get("pricing_context")
     has_pricing_context = isinstance(pricing_context, dict) and bool(pricing_context)
     contractor_profile = (
@@ -348,9 +377,9 @@ async def _create_quote_response(
         await queries.upsert_quote_draft(
             quote_id=quote_id,
             gc_id=contractor_id,
-            job_id=state.active_job_id,
+            job_id=resolved_job_id,
             trace_id=state.trace_id,
-            quote_draft=dict(state.quote_draft),
+            quote_draft=quote_draft,
             rendered_quote=state.rendered_quote,
             estimate_confidence=estimate_confidence,
             source_files=normalized_source_files,
@@ -361,16 +390,41 @@ async def _create_quote_response(
             detail=f"quote persistence failed: {exc}",
         ) from exc
 
+    if transcript_value and isinstance(transcript_record, dict):
+        existing_metadata = (
+            transcript_record.get("metadata")
+            if isinstance(transcript_record.get("metadata"), dict)
+            else {}
+        )
+        try:
+            await queries.update_call_transcript(
+                transcript_value,
+                contractor_id,
+                quote_id=quote_id,
+                job_id=resolved_job_id,
+                trace_id=state.trace_id,
+                metadata={
+                    **existing_metadata,
+                    "quote_prefill_used": True,
+                    "quote_prefill_quote_id": quote_id,
+                },
+            )
+        except DatabaseError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"transcript linkage failed: {exc}",
+            ) from exc
+
     return {
         "quote_id": quote_id,
         "trace_id": state.trace_id,
-        "quote_draft": state.quote_draft,
+        "quote_draft": quote_draft,
         "rendered_quote": state.rendered_quote,
         "estimate_confidence": estimate_confidence,
         "assumptions": assumptions,
         "clarification_questions": clarification_questions,
         "cold_start": cold_start,
-        "active_job_id": state.active_job_id,
+        "active_job_id": resolved_job_id,
         "errors": state.errors,
         "source_files": normalized_source_files,
     }
@@ -465,6 +519,8 @@ async def create_quote(payload: QuoteRequest) -> dict[str, Any]:
         raw_input=payload.input,
         contractor_id=payload.contractor_id,
         session_id=payload.session_id,
+        transcript_id=payload.transcript_id,
+        job_id=payload.job_id,
     )
 
 
@@ -473,6 +529,8 @@ async def create_quote_upload(
     contractor_id: str = Form(default=DEFAULT_ESTIMATE_GC_ID),
     input: str = Form(default=""),
     session_id: str = Form(default=""),
+    transcript_id: str = Form(default=""),
+    job_id: str = Form(default=""),
     file: UploadFile | None = File(default=None),
 ) -> dict[str, Any]:
     """Run the quote flow from typed notes plus one uploaded PDF/image."""
@@ -521,6 +579,8 @@ async def create_quote_upload(
         contractor_id=contractor_id,
         session_id=session_id,
         source_files=source_files,
+        transcript_id=transcript_id,
+        job_id=job_id,
     )
 
 

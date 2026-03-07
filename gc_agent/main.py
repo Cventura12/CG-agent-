@@ -34,6 +34,7 @@ from gc_agent.routers.ingest import router as ingest_router
 from gc_agent.routers.insights import router as insights_router
 from gc_agent.routers.jobs import router as jobs_router
 from gc_agent.routers.queue import router as queue_router
+from gc_agent.routers.transcripts import router as transcripts_router
 from gc_agent.webhooks.twilio import (
     router as twilio_router,
     send_sms_message,
@@ -593,6 +594,7 @@ app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(insights_router, prefix="/api/v1")
 app.include_router(queue_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")
+app.include_router(transcripts_router, prefix="/api/v1")
 app.include_router(public_open_router, prefix="/public", tags=["public"])
 app.include_router(public_router, prefix="/public", tags=["public"])
 

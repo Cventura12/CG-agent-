@@ -22,7 +22,7 @@ async def test_status_callback_updates_delivery_rows(monkeypatch: pytest.MonkeyP
         assert "30003" in error_message
         return {"updated_rows": 2, "quote_rows": 1, "briefing_rows": 1}
 
-    monkeypatch.setattr(twilio, "_validate_twilio_signature", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(twilio, "_validate_twilio_request", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(twilio.queries, "apply_twilio_delivery_status", _fake_apply)
 
     async with _build_client() as client:
@@ -46,7 +46,7 @@ async def test_status_callback_updates_delivery_rows(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_status_callback_rejects_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(twilio, "_validate_twilio_signature", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(twilio, "_validate_twilio_request", lambda *_args, **_kwargs: False)
 
     async with _build_client() as client:
         response = await client.post(

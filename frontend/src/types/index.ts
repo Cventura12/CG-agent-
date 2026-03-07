@@ -44,10 +44,43 @@ export type DraftType =
   | "sub-message"
   | "follow-up"
   | "owner-update"
-  | "material-order";
+  | "material-order"
+  | "transcript-review";
+
+export type TranscriptClassification =
+  | "estimate_request"
+  | "quote_question"
+  | "job_update"
+  | "reschedule"
+  | "complaint_or_issue"
+  | "followup_response"
+  | "vendor_or_subcontractor"
+  | "unknown";
+
+export type TranscriptUrgency = "low" | "normal" | "high";
 
 export type DraftStatus = "queued" | "pending" | "approved" | "edited" | "discarded" | "needs-review";
 export type DraftApprovalStatus = "approved_without_edit" | "approved_with_edit" | "discarded";
+
+export interface DraftTranscriptContext {
+  transcript_id: string;
+  source: string;
+  provider: string;
+  caller_label: string;
+  caller_phone: string;
+  summary: string;
+  classification: TranscriptClassification;
+  urgency: TranscriptUrgency;
+  confidence: number | null;
+  recommended_actions: string[];
+  risk_flags: string[];
+  missing_information: string[];
+  transcript_text: string;
+  linked_quote_id: string;
+  recording_url: string;
+  started_at: string | null;
+  duration_seconds: number | null;
+}
 
 export interface Draft {
   id: string;
@@ -62,6 +95,7 @@ export interface Draft {
   approval_status?: DraftApprovalStatus | null;
   approval_recorded_at?: string | null;
   created_at: string;
+  transcript?: DraftTranscriptContext | null;
 }
 
 export interface QueueJobGroup {
@@ -80,6 +114,52 @@ export interface UpdateLogEntry {
   created_at: string;
 }
 
+export interface JobCallHistoryEntry {
+  id: string;
+  timestamp: string | null;
+  trace_id: string;
+  caller_label: string;
+  caller_phone: string;
+  source: string;
+  provider: string;
+  summary: string;
+  classification: TranscriptClassification;
+  urgency: TranscriptUrgency;
+  confidence: number | null;
+  risk_flags: string[];
+  recommended_actions: string[];
+  missing_information: string[];
+  transcript_text: string;
+  linked_quote_id: string;
+  related_queue_item_ids: string[];
+  recording_url: string;
+  started_at: string | null;
+  duration_seconds: number | null;
+}
+
+export interface TranscriptQuotePrefill {
+  transcript_id: string;
+  trace_id: string;
+  classification: TranscriptClassification;
+  confidence: number | null;
+  summary: string;
+  urgency: TranscriptUrgency;
+  caller_name: string;
+  caller_phone: string;
+  linked_job_id: string;
+  linked_quote_id: string;
+  customer_name: string;
+  job_type: string;
+  scope_items: string[];
+  customer_questions: string[];
+  insurance_involved: boolean | null;
+  missing_information: string[];
+  recommended_actions: string[];
+  scheduling_notes: string[];
+  estimate_related: boolean;
+  quote_input: string;
+}
+
 export interface ApiEnvelope<T> {
   success: boolean;
   data: T | null;
@@ -93,6 +173,7 @@ export interface JobsListPayload {
 export interface JobDetailPayload {
   job: Job;
   recent_updates: UpdateLogEntry[];
+  call_history: JobCallHistoryEntry[];
   audit_timeline: Array<{
     id: string;
     event_type: string;

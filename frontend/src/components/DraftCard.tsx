@@ -27,6 +27,7 @@ function typeBadgeClass(type: DraftType): string {
     "follow-up": "border-red-400/60 bg-red-400/10 text-red-300",
     "owner-update": "border-steel/60 bg-steel/15 text-steel",
     "material-order": "border-muted/60 bg-muted/15 text-muted",
+    "transcript-review": "border-orange/70 bg-orange/15 text-orange",
   };
   return mapping[type];
 }
@@ -43,6 +44,7 @@ function recipientLabel(type: DraftType): string {
     "follow-up": "Customer / stakeholder",
     "owner-update": "Property owner",
     "material-order": "Supplier / vendor",
+    "transcript-review": "Caller / operations review",
   };
   return mapping[type];
 }

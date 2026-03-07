@@ -17,8 +17,9 @@ InboundSurface = Literal[
     "voice_note",
     "inbound_call",
     "voicemail",
+    "call_transcript",
 ]
-InboundIntent = Literal["estimate", "update", "briefing"]
+InboundIntent = Literal["estimate", "update", "briefing", "transcript"]
 
 
 class InboundInput(BaseModel):
@@ -32,7 +33,15 @@ class InboundInput(BaseModel):
     external_id: str = ""
     from_number: str = ""
     gc_id: str = ""
+    job_id: str = ""
+    quote_id: str = ""
+    call_id: str = ""
+    provider: str = ""
+    caller_name: str = ""
     received_at: datetime | None = None
+    started_at: datetime | None = None
+    duration_seconds: int | None = None
+    recording_url: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -42,7 +51,7 @@ def _input_type_for_surface(surface: InboundSurface) -> Literal["whatsapp", "sms
         return "sms"
     if surface in {"whatsapp"}:
         return "whatsapp"
-    if surface in {"voice_note", "inbound_call", "voicemail"}:
+    if surface in {"voice_note", "inbound_call", "voicemail", "call_transcript"}:
         return "voice"
     return "chat"
 

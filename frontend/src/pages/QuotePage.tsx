@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { Mic, Square, TriangleAlert } from "lucide-react";
 
+import { fetchTranscriptQuotePrefill } from "../api/transcripts";
 import {
   approveQuote,
   discardQuote,
@@ -23,6 +24,7 @@ import type {
   QuoteFollowupState,
   QuoteLineItem,
   QuoteResponse,
+  TranscriptQuotePrefill,
 } from "../types";
 
 const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
@@ -77,6 +79,8 @@ type QuoteSubmissionRequest = {
   input: string;
   source: QuoteInputSource;
   file: File | null;
+  transcriptId: string;
+  jobId: string;
 };
 
 const QUOTE_NOTES_STORAGE_KEY = "gc-agent:quote:notes:v1";
@@ -326,6 +330,12 @@ function followupChannel(channel: string | null): string {
   return normalized;
 }
 
+function transcriptClassificationLabel(value: string): string {
+  const normalized = value.trim();
+  if (!normalized) return "unknown";
+  return normalized.replace(/_/g, " ");
+}
+
 export function QuotePage() {
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const autoSubmitRef = useRef(false);
@@ -366,13 +376,19 @@ export function QuotePage() {
   const [followupState, setFollowupState] = useState<QuoteFollowupState | null>(null);
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
   const [followupMessage, setFollowupMessage] = useState<string | null>(null);
+  const [transcriptPrefill, setTranscriptPrefill] = useState<TranscriptQuotePrefill | null>(null);
+  const [isTranscriptPrefillLoading, setIsTranscriptPrefillLoading] = useState(false);
+  const [transcriptPrefillError, setTranscriptPrefillError] = useState<string | null>(null);
   const [tab, setTab] = useState<"notes" | "voice" | "upload">("notes");
   const location = useLocation();
   const apiReady = hasBetaApiCredentials();
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const firstSessionMode = useMemo(() => {
-    const params = new URLSearchParams(location.search);
-    return params.get("first_session") === "1";
-  }, [location.search]);
+    return searchParams.get("first_session") === "1";
+  }, [searchParams]);
+  const transcriptId = useMemo(() => {
+    return searchParams.get("transcript_id")?.trim() ?? "";
+  }, [searchParams]);
 
   const applyQuoteSuccess = useCallback((payload: QuoteResponse) => {
     setActiveQuote(payload);
@@ -401,6 +417,42 @@ export function QuotePage() {
       setCaptureError(null);
     }
   }, []);
+
+  const loadTranscriptPrefill = useCallback(
+    async (nextTranscriptId: string) => {
+      const transcriptValue = nextTranscriptId.trim();
+      if (!transcriptValue) {
+        setTranscriptPrefill(null);
+        setTranscriptPrefillError(null);
+        setIsTranscriptPrefillLoading(false);
+        return;
+      }
+
+      setIsTranscriptPrefillLoading(true);
+      setTranscriptPrefillError(null);
+      try {
+        const payload = await fetchTranscriptQuotePrefill(transcriptValue);
+        setTranscriptPrefill(payload);
+        setActiveQuote(null);
+        setEditMode(false);
+        setDecisionStatus(null);
+        setDecisionMessage(null);
+        setDeliveryMessage(null);
+        setFollowupState(null);
+        setFollowupMessage(null);
+        setTab("notes");
+        setNotes(payload.quote_input);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not load call transcript context.";
+        setTranscriptPrefill(null);
+        setTranscriptPrefillError(message);
+      } finally {
+        setIsTranscriptPrefillLoading(false);
+      }
+    },
+    []
+  );
 
   const enqueueOfflineQuote = useCallback((input: string, source: QuoteInputSource) => {
     const trimmed = input.trim();
@@ -473,8 +525,10 @@ export function QuotePage() {
   );
 
   const quoteMutation = useMutation({
-    mutationFn: async ({ input, file }: QuoteSubmissionRequest) =>
-      file ? submitQuoteUpload(input, file) : submitQuote(input),
+    mutationFn: async ({ input, file, transcriptId: nextTranscriptId, jobId }: QuoteSubmissionRequest) =>
+      file
+        ? submitQuoteUpload(input, file, { transcriptId: nextTranscriptId, jobId })
+        : submitQuote(input, { transcriptId: nextTranscriptId, jobId }),
     onSuccess: applyQuoteSuccess,
     onError: (error, variables) => {
       const currentlyOnline =
@@ -578,10 +632,26 @@ export function QuotePage() {
         return;
       }
 
-      quoteMutation.mutate({ input: trimmed, source, file });
+      quoteMutation.mutate({
+        input: trimmed,
+        source,
+        file,
+        transcriptId,
+        jobId: transcriptPrefill?.linked_job_id ?? "",
+      });
     },
-    [enqueueOfflineQuote, isOnline, isQueueSyncing, quoteMutation]
+    [enqueueOfflineQuote, isOnline, isQueueSyncing, quoteMutation, transcriptId, transcriptPrefill]
   );
+
+  useEffect(() => {
+    if (!transcriptId) {
+      setTranscriptPrefill(null);
+      setTranscriptPrefillError(null);
+      setIsTranscriptPrefillLoading(false);
+      return;
+    }
+    void loadTranscriptPrefill(transcriptId);
+  }, [loadTranscriptPrefill, transcriptId]);
 
   useEffect(() => {
     if (!activeQuote) {
@@ -1021,6 +1091,92 @@ export function QuotePage() {
                   </div>
                 ) : null}
 
+                {isTranscriptPrefillLoading ? (
+                  <div className="alert ainfo" style={{ marginBottom: 12 }}>
+                    <span>◈</span>
+                    <div>Loading call transcript context for this estimate...</div>
+                  </div>
+                ) : null}
+
+                {transcriptPrefillError ? (
+                  <div className="alert awarn" style={{ marginBottom: 12 }}>
+                    <span>⚠</span>
+                    <div>{transcriptPrefillError}</div>
+                  </div>
+                ) : null}
+
+                {transcriptPrefill ? (
+                  <div
+                    className="panel"
+                    style={{
+                      marginBottom: 12,
+                      borderColor: "var(--wire2)",
+                    }}
+                  >
+                    <div className="ph2 sp">
+                      <span className="ptl">Call Transcript Context</span>
+                      <div className="hs" style={{ gap: 6, flexWrap: "wrap" }}>
+                        <span className={`tag ${transcriptPrefill.estimate_related ? "ta" : "ts"}`}>
+                          {transcriptPrefill.estimate_related ? "estimate request" : transcriptClassificationLabel(transcriptPrefill.classification)}
+                        </span>
+                        <span className={`tag ${transcriptPrefill.urgency === "high" ? "tr" : transcriptPrefill.urgency === "low" ? "ts" : "ta"}`}>
+                          {transcriptPrefill.urgency}
+                        </span>
+                        {transcriptPrefill.linked_job_id ? <span className="tag tb">{transcriptPrefill.linked_job_id}</span> : null}
+                      </div>
+                    </div>
+                    <div className="pb">
+                      <div style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.7, marginBottom: 8 }}>
+                        {transcriptPrefill.summary}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "'Syne Mono', monospace",
+                          fontSize: 8,
+                          color: "var(--fog)",
+                          letterSpacing: "0.08em",
+                          lineHeight: 1.8,
+                          marginBottom: transcriptPrefill.scope_items.length ? 10 : 0,
+                        }}
+                      >
+                        {transcriptPrefill.customer_name || "Caller not identified"}
+                        {transcriptPrefill.caller_phone ? ` · ${transcriptPrefill.caller_phone}` : ""}
+                        {transcriptPrefill.job_type ? ` · ${transcriptPrefill.job_type.toUpperCase()}` : ""}
+                        {typeof transcriptPrefill.confidence === "number" ? ` · ${Math.round(transcriptPrefill.confidence)}% CONFIDENCE` : ""}
+                      </div>
+                      {transcriptPrefill.scope_items.length ? (
+                        <div style={{ marginBottom: 10 }}>
+                          <div className="lbl">Scope items</div>
+                          <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                            {transcriptPrefill.scope_items.map((item) => (
+                              <span key={`${transcriptPrefill.transcript_id}-${item}`} className="tag tb">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {transcriptPrefill.missing_information.length ? (
+                        <div className="alert awarn" style={{ marginBottom: 0 }}>
+                          <span>!</span>
+                          <div>
+                            <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                              CONFIRM BEFORE FINALIZING
+                            </strong>
+                            <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                              {transcriptPrefill.missing_information.map((item) => (
+                                <span key={`${transcriptPrefill.transcript_id}-${item}-missing`} className="tag ts">
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
                 {tab === "notes" ? (
                   <div className="vs">
                     <div>
@@ -1319,6 +1475,24 @@ export function QuotePage() {
                       </div>
                     </div>
                   </div>
+
+                  {transcriptPrefill?.missing_information.length ? (
+                    <div className="alert awarn" style={{ marginBottom: 14 }}>
+                      <span>!</span>
+                      <div>
+                        <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                          TRANSCRIPT DETAILS STILL TO CONFIRM
+                        </strong>
+                        <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                          {transcriptPrefill.missing_information.map((item) => (
+                            <span key={`${transcriptPrefill.transcript_id}-${item}-review`} className="tag ts">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div style={{ marginBottom: 14 }}>
                     <div className="sh">Project</div>

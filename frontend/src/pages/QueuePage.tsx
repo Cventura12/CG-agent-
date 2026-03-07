@@ -54,7 +54,69 @@ function statusTone(status: string): string {
 }
 
 function draftTone(type: string): string {
-  return type === "follow-up" ? "ta" : type === "material-order" ? "tb" : "ts";
+  if (type === "follow-up") return "ta";
+  if (type === "material-order") return "tb";
+  if (type === "transcript-review") return "tb";
+  return "ts";
+}
+
+function transcriptUrgencyTone(urgency: string | undefined): string {
+  const normalized = (urgency ?? "").trim().toLowerCase();
+  if (normalized === "high") return "tr";
+  if (normalized === "low") return "ts";
+  return "ta";
+}
+
+function classificationLabel(value: string | undefined): string {
+  const normalized = (value ?? "").trim();
+  if (!normalized) return "Unknown";
+  return normalized.replace(/_/g, " ");
+}
+
+function confidenceLabel(value: number | null | undefined): string {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "Manual";
+  }
+  const normalized = value <= 1 ? Math.round(value * 100) : Math.round(value);
+  return `${normalized}%`;
+}
+
+function transcriptHeadline(draft: Draft): string {
+  if (draft.type !== "transcript-review") {
+    return draft.job_name;
+  }
+  if (!draft.transcript) {
+    return draft.title || "Call transcript review";
+  }
+  return draft.transcript.caller_label || "Inbound call transcript";
+}
+
+function transcriptActionLabel(draft: Draft): string {
+  if (draft.type !== "transcript-review") {
+    return draft.why;
+  }
+  if (!draft.transcript) {
+    return draft.why || "Review transcript and choose the next step.";
+  }
+  const firstAction = draft.transcript.recommended_actions[0];
+  if (firstAction) {
+    return `Next action: ${firstAction}`;
+  }
+  return draft.why || "Review transcript and choose the next step.";
+}
+
+function transcriptSummary(draft: Draft): string {
+  if (draft.type !== "transcript-review") {
+    return draft.why;
+  }
+  return draft.transcript?.summary || draft.why || "Manual transcript review needed.";
+}
+
+function transcriptRawText(draft: Draft): string {
+  if (draft.type !== "transcript-review") {
+    return draft.content;
+  }
+  return draft.transcript?.transcript_text || "Transcript text unavailable.";
 }
 
 export function QueuePage() {
@@ -62,6 +124,7 @@ export function QueuePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [openDraftId, setOpenDraftId] = useState<string | null>(null);
   const [draftEdits, setDraftEdits] = useState<Record<string, string>>({});
+  const [openTranscriptIds, setOpenTranscriptIds] = useState<Record<string, boolean>>({});
   const [exitingDrafts, setExitingDrafts] = useState<Record<string, "approved" | "discarded">>({});
   const autoSelectedRef = useRef(false);
   const exitTimersRef = useRef<Record<string, number>>({});
@@ -288,6 +351,9 @@ export function QueuePage() {
         {visibleDrafts.map(({ draft, group, job }, index) => {
           const isOpen = openDraftId === draft.id;
           const editValue = draftEdits[draft.id] ?? draft.content;
+          const isTranscriptDraft = draft.type === "transcript-review" && !!draft.transcript;
+          const transcript = draft.transcript;
+          const rawTranscriptOpen = !!openTranscriptIds[draft.id];
           return (
             <div
               key={draft.id}
@@ -304,25 +370,59 @@ export function QueuePage() {
                 <div className="sp" style={{ marginBottom: 10 }}>
                   <div>
                     <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>{group.job_name}</span>
+                      <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>{transcriptHeadline(draft)}</span>
                       <span className="tag ts" style={{ fontSize: 7 }}>{group.job_id}</span>
                       <span className={`tag ${draftTone(draft.type)}`}>{draft.type}</span>
+                      {isTranscriptDraft ? <span className={`tag ${transcriptUrgencyTone(transcript?.urgency)}`}>{transcript?.urgency ?? "normal"}</span> : null}
+                      {isTranscriptDraft && transcript?.classification ? <span className="tag ts">{classificationLabel(transcript.classification)}</span> : null}
+                      {isTranscriptDraft && transcript?.linked_quote_id ? <span className="tag tb">{transcript.linked_quote_id}</span> : null}
                     </div>
                     <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.8px" }}>
-                      {draft.title.toUpperCase()} · {formatCreatedAt(draft.created_at).toUpperCase()} · {draft.id}
+                      {isTranscriptDraft
+                        ? `${draft.title.toUpperCase()} · ${formatCreatedAt(draft.created_at).toUpperCase()} · ${(transcript?.source || "call transcript").replace(/_/g, " ").toUpperCase()}`
+                        : `${draft.title.toUpperCase()} · ${formatCreatedAt(draft.created_at).toUpperCase()} · ${draft.id}`}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>
-                      {job ? job.contract_type : "QUEUE"}
+                      {isTranscriptDraft ? confidenceLabel(transcript?.confidence) : job ? job.contract_type : "QUEUE"}
                     </div>
                     <span className={`tag ${statusTone(draft.status)}`}>{draft.status}</span>
                   </div>
                 </div>
 
-                <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{draft.why}</div>
+                {isTranscriptDraft ? (
+                  <div className="vs" style={{ gap: 10 }}>
+                    <div style={{ fontSize: 13, color: "var(--cream)", lineHeight: 1.65 }}>
+                      {transcriptSummary(draft)}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{transcriptActionLabel(draft)}</div>
+                    {transcript?.recommended_actions?.length ? (
+                      <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                        {transcript.recommended_actions.slice(0, 3).map((action) => (
+                          <span key={`${draft.id}-${action}`} className="tag tb">{action}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {transcript?.risk_flags?.length ? (
+                      <div className="alert awarn" style={{ marginTop: 0 }}>
+                        <span>!</span>
+                        <div>{transcript.risk_flags[0]}</div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{draft.why}</div>
+                )}
                 <div className="pt" style={{ marginTop: 12 }}>
-                  <div className="pf" style={{ width: `${Math.max(36, Math.min(100, draft.content.length / 2))}%` }} />
+                  <div
+                    className="pf"
+                    style={{
+                      width: isTranscriptDraft
+                        ? `${Math.max(28, Math.min(100, Math.round((transcript?.confidence ?? 48) <= 1 ? (transcript?.confidence ?? 48) * 100 : (transcript?.confidence ?? 48))))}%`
+                        : `${Math.max(36, Math.min(100, draft.content.length / 2))}%`,
+                    }}
+                  />
                 </div>
 
                 {isOpen ? (
@@ -330,8 +430,90 @@ export function QueuePage() {
                     <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.8px", marginBottom: 12 }}>
                       JOB · {job?.type?.toUpperCase() || "GENERAL"} · HEALTH {healthTone(job?.health).toUpperCase()} · OPEN ITEMS {job?.open_items?.length ?? 0}
                     </div>
+                    {isTranscriptDraft && transcript ? (
+                      <div className="vs" style={{ gap: 12, marginBottom: 12 }}>
+                        <div className="g2">
+                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
+                            <div className="pb">
+                              <div className="lbl">Caller / source</div>
+                              <div style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>
+                                {transcript.caller_label || draft.title || "Inbound call transcript"}
+                              </div>
+                              <div style={{ marginTop: 6, fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.08em" }}>
+                                {(transcript.source || "call_transcript").replace(/_/g, " ").toUpperCase()}
+                                {transcript.provider ? ` · ${transcript.provider.toUpperCase()}` : ""}
+                                {transcript.duration_seconds ? ` · ${transcript.duration_seconds}s` : ""}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
+                            <div className="pb">
+                              <div className="lbl">Recommended actions</div>
+                              {transcript.recommended_actions.length ? (
+                                <div className="vs" style={{ gap: 6 }}>
+                                  {transcript.recommended_actions.map((action) => (
+                                    <div key={`${draft.id}-${action}-full`} style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>
+                                      - {action}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: "var(--steel)" }}>No action recommendation captured yet.</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {transcript.missing_information.length ? (
+                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
+                            <div className="pb">
+                              <div className="lbl">Missing information</div>
+                              <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                                {transcript.missing_information.map((item) => (
+                                  <span key={`${draft.id}-${item}-missing`} className="tag ts">{item}</span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="hs" style={{ flexWrap: "wrap" }}>
+                          {transcript.classification === "estimate_request" && transcript.transcript_id ? (
+                            <Link
+                              to={`/quote?transcript_id=${encodeURIComponent(transcript.transcript_id)}`}
+                              className="btn bw"
+                            >
+                              Create quote draft
+                            </Link>
+                          ) : null}
+                          <Link to={`/jobs/${draft.job_id}`} className="btn bw">
+                            Open job
+                          </Link>
+                          <button
+                            type="button"
+                            className="btn bw"
+                            onClick={() =>
+                              setOpenTranscriptIds((current) => ({
+                                ...current,
+                                [draft.id]: !current[draft.id],
+                              }))
+                            }
+                          >
+                            {rawTranscriptOpen ? "Hide transcript" : "View transcript"}
+                          </button>
+                        </div>
+                        {rawTranscriptOpen ? (
+                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
+                            <div className="pb">
+                              <div className="lbl">Raw transcript</div>
+                              <pre style={{ whiteSpace: "pre-wrap", fontFamily: "'Syne Mono', monospace", fontSize: 10, color: "var(--steel)", lineHeight: 1.8, margin: 0 }}>
+                                {transcriptRawText(draft)}
+                              </pre>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div style={{ marginBottom: 12 }}>
-                      <label className="lbl" htmlFor={`draft-${draft.id}`}>Draft content</label>
+                      <label className="lbl" htmlFor={`draft-${draft.id}`}>{isTranscriptDraft ? "Review note" : "Draft content"}</label>
                       <textarea
                         id={`draft-${draft.id}`}
                         className="txta"
@@ -341,9 +523,15 @@ export function QueuePage() {
                       />
                     </div>
                     <div className="hs" style={{ flexWrap: "wrap" }}>
-                      <button type="button" className="btn bg" onClick={() => approveMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>? Approve</button>
-                      <button type="button" className="btn bw" onClick={() => editMutation.mutate({ draftId: draft.id, content: editValue })} disabled={isDraftLoading(draft.id)}>? Edit</button>
-                      <button type="button" className="btn brd" onClick={() => discardMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>? Discard</button>
+                      <button type="button" className="btn bg" onClick={() => approveMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>
+                        {isTranscriptDraft ? "Mark reviewed" : "Approve"}
+                      </button>
+                      <button type="button" className="btn bw" onClick={() => editMutation.mutate({ draftId: draft.id, content: editValue })} disabled={isDraftLoading(draft.id)}>
+                        {isTranscriptDraft ? "Save note" : "Edit"}
+                      </button>
+                      <button type="button" className="btn brd" onClick={() => discardMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>
+                        Discard
+                      </button>
                     </div>
                   </div>
                 ) : null}

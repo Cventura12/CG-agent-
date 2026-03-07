@@ -1,10 +1,12 @@
-﻿"""Twilio WhatsApp webhook handlers for GC Agent."""
+"""Twilio webhook handlers for GC Agent."""
 
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
+from importlib import import_module
 from typing import Any, Optional
 
 from dotenv import load_dotenv
@@ -27,6 +29,7 @@ from gc_agent.db import queries
 from gc_agent.db.queries import DatabaseError
 from gc_agent.state import AgentState
 from gc_agent.webhooks.onboarding import build_unregistered_onboarding_message
+from gc_agent.webhooks.transcript_normalization import normalize_provider_transcript
 
 load_dotenv()
 
@@ -71,6 +74,14 @@ def _normalize_sms_number(phone_number: str) -> str:
     cleaned = phone_number.strip()
     if not cleaned:
         raise ValueError("Destination phone number is required")
+    if cleaned.startswith("whatsapp:"):
+        cleaned = cleaned.replace("whatsapp:", "", 1).strip()
+    return cleaned
+
+
+def _normalize_lookup_number(phone_number: str) -> str:
+    """Return a lookup-safe phone string for GC identity matching."""
+    cleaned = phone_number.strip()
     if cleaned.startswith("whatsapp:"):
         cleaned = cleaned.replace("whatsapp:", "", 1).strip()
     return cleaned
@@ -258,8 +269,13 @@ async def _lookup_gc_id_by_phone(phone_number: str) -> tuple[str, bool]:
     return gc_id, True
 
 
-def _validate_twilio_signature(request: Request, payload: dict[str, str]) -> bool:
-    """Validate incoming Twilio signature against request URL and form payload."""
+def _validate_twilio_request(
+    request: Request,
+    *,
+    form_payload: dict[str, str] | None = None,
+    raw_body: bytes | None = None,
+) -> bool:
+    """Validate Twilio requests for either form or raw JSON bodies."""
     if RequestValidator is None:
         LOGGER.error("Twilio SDK is not installed; cannot validate webhook signature")
         return False
@@ -276,7 +292,77 @@ def _validate_twilio_signature(request: Request, payload: dict[str, str]) -> boo
         return False
 
     validator = RequestValidator(auth_token)
-    return validator.validate(str(request.url), payload, signature)
+    if raw_body is not None:
+        validate_body = getattr(validator, "validate_body", None)
+        if callable(validate_body):
+            try:
+                return bool(validate_body(str(request.url), raw_body.decode("utf-8"), signature))
+            except TypeError:
+                return bool(validate_body(str(request.url), raw_body, signature))
+        LOGGER.error("Twilio SDK does not support raw-body signature validation")
+        return False
+
+    normalized_payload = {key: str(value) for key, value in (form_payload or {}).items()}
+    return validator.validate(str(request.url), normalized_payload, signature)
+
+
+async def _read_provider_payload(
+    request: Request,
+) -> tuple[dict[str, Any], dict[str, str] | None, bytes | None]:
+    """Parse webhook bodies as JSON or form payloads."""
+    content_type = request.headers.get("content-type", "").lower()
+    raw_body = await request.body()
+
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(raw_body.decode("utf-8") or "{}")
+        except json.JSONDecodeError as exc:
+            raise ValueError("invalid JSON webhook payload") from exc
+        if not isinstance(payload, dict):
+            raise ValueError("JSON webhook payload must be an object")
+        return payload, None, raw_body
+
+    try:
+        form = await request.form()
+    except Exception as exc:
+        raise ValueError("invalid form webhook payload") from exc
+
+    payload = {key: str(value) for key, value in form.multi_items()}
+    return payload, payload, None
+
+
+async def _process_normalized_input(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Lazily import normalized ingest dispatch so webhooks reuse the same runtime path."""
+    ingest_module = import_module("gc_agent.routers.ingest")
+    return await ingest_module.process_normalized_input(*args, **kwargs)
+
+
+async def _resolve_transcript_gc_id(
+    payload: dict[str, Any],
+    *,
+    from_number: str,
+    to_number: str,
+    explicit_gc_id: str = "",
+) -> tuple[str, str]:
+    """Resolve the owning GC for transcript webhooks."""
+    if explicit_gc_id.strip():
+        return explicit_gc_id.strip(), "explicit_gc_id"
+
+    payload_gc_id = str(payload.get("gc_id", "") or payload.get("GcId", "")).strip()
+    if payload_gc_id:
+        return payload_gc_id, "payload_gc_id"
+
+    lookup_candidates = [
+        ("from_number", _normalize_lookup_number(from_number)),
+        ("to_number", _normalize_lookup_number(to_number)),
+    ]
+    for match_source, candidate in lookup_candidates:
+        if not candidate:
+            continue
+        gc_id, recognized = await _lookup_gc_id_by_phone(candidate)
+        if recognized and gc_id.strip():
+            return gc_id.strip(), match_source
+    return "", ""
 
 
 def _compose_reply(state: AgentState) -> str:
@@ -324,7 +410,7 @@ async def whatsapp_webhook(request: Request) -> Response:
         error_xml = _twiml_message("Something went wrong - I'll retry. Invalid payload.")
         return Response(content=error_xml, media_type="text/xml")
 
-    if not _validate_twilio_signature(request, payload):
+    if not _validate_twilio_request(request, form_payload=payload):
         LOGGER.warning("Rejected Twilio webhook due to invalid signature")
         forbidden_xml = _twiml_message("Forbidden")
         return Response(status_code=403, content=forbidden_xml, media_type="text/xml")
@@ -384,7 +470,7 @@ async def whatsapp_status_callback(request: Request) -> JSONResponse:
         LOGGER.exception("Failed to parse Twilio status callback payload")
         return JSONResponse(content={"status": "error", "detail": "invalid payload"}, status_code=400)
 
-    if not _validate_twilio_signature(request, payload):
+    if not _validate_twilio_request(request, form_payload=payload):
         LOGGER.warning("Rejected Twilio status callback due to invalid signature")
         return JSONResponse(content={"status": "forbidden"}, status_code=403)
 
@@ -426,6 +512,120 @@ async def whatsapp_status_callback(request: Request) -> JSONResponse:
     )
 
 
+@router.post("/twilio/transcript")
+async def twilio_transcript_webhook(request: Request) -> JSONResponse:
+    """Normalize a Twilio transcript webhook into the shared transcript ingest path."""
+    try:
+        payload, form_payload, raw_body = await _read_provider_payload(request)
+    except ValueError as exc:
+        LOGGER.warning("Rejected Twilio transcript webhook due to invalid payload: %s", exc)
+        return JSONResponse(content={"status": "error", "detail": str(exc), "trace_id": ""}, status_code=400)
+
+    query_gc_id = request.query_params.get("gc_id", "").strip()
+    if query_gc_id and "gc_id" not in payload and "GcId" not in payload:
+        payload["gc_id"] = query_gc_id
+
+    if not _validate_twilio_request(request, form_payload=form_payload, raw_body=raw_body):
+        LOGGER.warning("Rejected Twilio transcript webhook due to invalid signature")
+        return JSONResponse(content={"status": "forbidden", "trace_id": ""}, status_code=403)
+
+    normalization = normalize_provider_transcript("twilio", payload)
+    if normalization.inbound_input is None:
+        LOGGER.info(
+            "Ignoring Twilio transcript webhook reason=%s call_sid=%s",
+            normalization.reason,
+            str(payload.get("CallSid", "")).strip(),
+        )
+        return JSONResponse(
+            content={
+                "status": "ignored",
+                "reason": normalization.reason,
+                "trace_id": "",
+            },
+            status_code=202,
+        )
+
+    normalized_input = normalization.inbound_input
+    transcript_trace_id = normalized_input.external_id.strip()
+    to_number = str(normalized_input.metadata.get("to_number", "")).strip()
+    gc_id, gc_resolution = await _resolve_transcript_gc_id(
+        payload,
+        from_number=normalized_input.from_number,
+        to_number=to_number,
+        explicit_gc_id=normalized_input.gc_id,
+    )
+    if not gc_id:
+        LOGGER.info(
+            "Ignoring Twilio transcript webhook because GC could not be resolved call_id=%s from=%s to=%s",
+            normalized_input.call_id,
+            normalized_input.from_number,
+            to_number,
+        )
+        return JSONResponse(
+            content={"status": "ignored", "reason": "gc_not_resolved", "trace_id": transcript_trace_id},
+            status_code=202,
+        )
+
+    normalized_input = normalized_input.model_copy(
+        update={
+            "gc_id": gc_id,
+            "metadata": {
+                **normalized_input.metadata,
+                "gc_resolution": gc_resolution,
+                "webhook_provider": "twilio",
+            },
+        }
+    )
+
+    try:
+        result = await _process_normalized_input(
+            normalized_input,
+            gc_id,
+            trace_id=normalized_input.external_id,
+        )
+    except DatabaseError:
+        LOGGER.exception("Twilio transcript webhook persistence failed gc_id=%s", gc_id)
+        return JSONResponse(
+            content={"status": "error", "detail": "processing failed", "trace_id": transcript_trace_id},
+            status_code=200,
+        )
+    except ValueError as exc:
+        LOGGER.warning(
+            "Twilio transcript webhook ignored after normalization gc_id=%s detail=%s",
+            gc_id,
+            exc,
+        )
+        return JSONResponse(
+            content={
+                "status": "ignored",
+                "reason": "invalid_transcript",
+                "detail": str(exc),
+                "trace_id": transcript_trace_id,
+            },
+            status_code=202,
+        )
+    except Exception:
+        LOGGER.exception("Twilio transcript webhook processing failed gc_id=%s", gc_id)
+        return JSONResponse(
+            content={"status": "error", "detail": "processing failed", "trace_id": transcript_trace_id},
+            status_code=200,
+        )
+
+    return JSONResponse(
+        content={
+            "status": "ok",
+            "provider": "twilio",
+            "trace_id": result.get("trace_id", ""),
+            "transcript_id": result.get("transcript_id", ""),
+            "classification": result.get("classification", ""),
+            "active_job_id": result.get("active_job_id", ""),
+            "linked_quote_id": result.get("linked_quote_id", ""),
+            "created_draft_ids": result.get("created_draft_ids", []),
+        },
+        status_code=200,
+    )
+
+
 @router.get("/whatsapp/health")
 async def whatsapp_health() -> dict[str, str]:
     """Health endpoint for Twilio webhook availability checks."""
@@ -436,8 +636,9 @@ __all__ = [
     "router",
     "whatsapp_webhook",
     "whatsapp_status_callback",
+    "twilio_transcript_webhook",
     "whatsapp_health",
     "send_whatsapp_message",
     "send_sms_message",
-    
 ]
+

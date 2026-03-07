@@ -8,6 +8,11 @@ import type {
   QuoteSendResponse,
 } from "../types";
 
+type QuoteSubmissionOptions = {
+  transcriptId?: string;
+  jobId?: string;
+};
+
 const betaContractorId =
   (import.meta.env.VITE_BETA_CONTRACTOR_ID as string | undefined)?.trim() ??
   "00000000-0000-0000-0000-000000000001";
@@ -22,7 +27,10 @@ export function getBetaContractorId(): string {
   return betaContractorId;
 }
 
-export async function submitQuote(input: string): Promise<QuoteResponse> {
+export async function submitQuote(
+  input: string,
+  options: QuoteSubmissionOptions = {}
+): Promise<QuoteResponse> {
   if (!betaApiKey) {
     throw new Error("VITE_BETA_API_KEY is required for quote submission");
   }
@@ -32,6 +40,8 @@ export async function submitQuote(input: string): Promise<QuoteResponse> {
     {
       input,
       contractor_id: betaContractorId,
+      transcript_id: options.transcriptId?.trim() || undefined,
+      job_id: options.jobId?.trim() || undefined,
     },
     {
       headers: {
@@ -43,7 +53,11 @@ export async function submitQuote(input: string): Promise<QuoteResponse> {
   return response.data;
 }
 
-export async function submitQuoteUpload(input: string, file: File): Promise<QuoteResponse> {
+export async function submitQuoteUpload(
+  input: string,
+  file: File,
+  options: QuoteSubmissionOptions = {}
+): Promise<QuoteResponse> {
   if (!betaApiKey) {
     throw new Error("VITE_BETA_API_KEY is required for quote submission");
   }
@@ -52,6 +66,12 @@ export async function submitQuoteUpload(input: string, file: File): Promise<Quot
   formData.append("contractor_id", betaContractorId);
   if (input.trim()) {
     formData.append("input", input);
+  }
+  if (options.transcriptId?.trim()) {
+    formData.append("transcript_id", options.transcriptId.trim());
+  }
+  if (options.jobId?.trim()) {
+    formData.append("job_id", options.jobId.trim());
   }
   formData.append("file", file);
 

@@ -19,6 +19,7 @@ VALID_DRAFT_TYPES = {
     "follow-up",
     "owner-update",
     "material-order",
+    "transcript-review",
 }
 PLACEHOLDER_PATTERN = re.compile(r"\[[^\[\]\n]+\]")
 

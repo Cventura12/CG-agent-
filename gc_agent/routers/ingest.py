@@ -43,6 +43,69 @@ async def _run_single_input(*args: object, **kwargs: object):
     return await cli_module.run_single_input(*args, **kwargs)
 
 
+async def _process_call_transcript(*args: object, **kwargs: object):
+    """Lazily import transcript ingest orchestration to keep boot path light."""
+    transcript_module = import_module("gc_agent.call_transcripts")
+    return await transcript_module.process_call_transcript(*args, **kwargs)
+
+
+async def process_normalized_input(
+    payload: InboundInput,
+    resolved_gc_id: str,
+    *,
+    trace_id: str = "",
+) -> dict[str, object]:
+    """Dispatch one normalized payload into the existing runtime paths."""
+    effective_trace_id = trace_id.strip() or payload.external_id.strip() or uuid4().hex
+    normalized_state = to_agent_state(payload, trace_id=effective_trace_id, gc_id=resolved_gc_id)
+
+    if payload.intent == "transcript" or payload.surface == "call_transcript":
+        return await _process_call_transcript(payload, resolved_gc_id, effective_trace_id)
+
+    if payload.intent == "update":
+        graph_module = import_module("gc_agent.graph")
+        state = await graph_module.run_update(
+            raw_input=normalized_state.raw_input,
+            gc_id=resolved_gc_id,
+            from_number=normalized_state.from_number,
+            input_type=normalized_state.input_type,
+            trace_id=effective_trace_id,
+        )
+        return {
+            "mode": "update",
+            "trace_id": state.trace_id,
+            "risk_flags": state.risk_flags,
+            "draft_actions": [draft.model_dump(mode="json") for draft in state.drafts_created],
+            "errors": state.errors,
+        }
+
+    if payload.intent == "briefing":
+        graph_module = import_module("gc_agent.graph")
+        briefing = await graph_module.run_briefing(resolved_gc_id, trace_id=effective_trace_id)
+        return {
+            "mode": "briefing",
+            "trace_id": effective_trace_id,
+            "briefing": briefing,
+        }
+
+    state = await _run_single_input(
+        normalized_state.raw_input,
+        session_id=effective_trace_id,
+        gc_id=resolved_gc_id,
+    )
+    return {
+        "mode": state.mode or "estimate",
+        "trace_id": state.trace_id,
+        "active_job_id": state.active_job_id,
+        "quote_draft": state.quote_draft,
+        "rendered_quote": state.rendered_quote,
+        "clarification_questions": state.clarification_questions,
+        "risk_flags": state.risk_flags,
+        "draft_actions": [draft.model_dump(mode="json") for draft in state.drafts_created],
+        "errors": state.errors,
+    }
+
+
 @router.post("/ingest", response_model=None)
 async def ingest_input(
     payload: InboundInput,
@@ -57,57 +120,13 @@ async def ingest_input(
     if not resolved_gc_id:
         return _error(404, "GC profile not found")
 
-    trace_id = payload.external_id.strip() or uuid4().hex
-    normalized_state = to_agent_state(payload, trace_id=trace_id, gc_id=resolved_gc_id)
-
-    if payload.intent == "update":
-        graph_module = import_module("gc_agent.graph")
-        state = await graph_module.run_update(
-            raw_input=normalized_state.raw_input,
-            gc_id=resolved_gc_id,
-            from_number=normalized_state.from_number,
-            input_type=normalized_state.input_type,
-            trace_id=trace_id,
-        )
-        return _success(
-            {
-                "mode": "update",
-                "trace_id": state.trace_id,
-                "risk_flags": state.risk_flags,
-                "draft_actions": [draft.model_dump(mode="json") for draft in state.drafts_created],
-                "errors": state.errors,
-            }
-        )
-
-    if payload.intent == "briefing":
-        graph_module = import_module("gc_agent.graph")
-        briefing = await graph_module.run_briefing(resolved_gc_id, trace_id=trace_id)
-        return _success(
-            {
-                "mode": "briefing",
-                "trace_id": trace_id,
-                "briefing": briefing,
-            }
-        )
-
-    state = await _run_single_input(
-        normalized_state.raw_input,
-        session_id=trace_id,
-        gc_id=resolved_gc_id,
-    )
-    return _success(
-        {
-            "mode": state.mode or "estimate",
-            "trace_id": state.trace_id,
-            "active_job_id": state.active_job_id,
-            "quote_draft": state.quote_draft,
-            "rendered_quote": state.rendered_quote,
-            "clarification_questions": state.clarification_questions,
-            "risk_flags": state.risk_flags,
-            "draft_actions": [draft.model_dump(mode="json") for draft in state.drafts_created],
-            "errors": state.errors,
-        }
-    )
+    try:
+        result = await process_normalized_input(payload, resolved_gc_id)
+    except ValueError as exc:
+        return _error(400, str(exc))
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+    return _success(result)
 
 
-__all__ = ["router", "ingest_input"]
+__all__ = ["router", "ingest_input", "process_normalized_input"]
