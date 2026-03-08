@@ -140,7 +140,7 @@ describe("QuotePage transcript prefill", () => {
 
     expect(await screen.findByText("Call Transcript Context")).toBeInTheDocument();
     expect(screen.getByText("Caller wants a first-pass exterior paint estimate.")).toBeInTheDocument();
-    expect(screen.getByText("Exact square footage")).toBeInTheDocument();
+    expect(screen.getAllByText("Exact square footage").length).toBeGreaterThan(0);
     expect(screen.getByText("Prime siding")).toBeInTheDocument();
 
     const notesField = screen.getByLabelText("Transcript / field notes") as HTMLTextAreaElement;

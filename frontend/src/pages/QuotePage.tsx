@@ -12,7 +12,6 @@ import {
   fetchQuoteFollowup,
   fetchQuotePdf,
   fetchQuoteXlsx,
-  getBetaContractorId,
   hasBetaApiCredentials,
   sendQuoteToClient,
   stopQuoteFollowup,
@@ -1081,6 +1080,51 @@ export function QuotePage() {
   const quoteBlockingReasons = uniqueStrings(
     activeQuote?.blocking_reasons ?? activeQuote?.estimate_confidence.blocking_reasons ?? []
   );
+  const estimateSignalSummary = useMemo(() => {
+    if (activeQuote) {
+      if (activeQuote.cold_start.active) {
+        return "Baseline still warming";
+      }
+      if (quoteEvidenceSignals.length > 0) {
+        return "Historical signals applied";
+      }
+      return "Baseline applied";
+    }
+    if (transcriptPrefill) {
+      return transcriptPrefill.estimate_related
+        ? "Transcript request ready"
+        : "Transcript needs review";
+    }
+    return apiReady ? "Ready for first draft" : "API setup required";
+  }, [activeQuote, apiReady, quoteEvidenceSignals.length, transcriptPrefill]);
+  const estimateSignalTone = activeQuote?.cold_start.active
+    ? "ta"
+    : activeQuote
+      ? "tg"
+      : apiReady
+        ? "ts"
+        : "tr";
+  const similarJobsLabel = useMemo(() => {
+    if (quoteEvidenceSignals.some((signal) => /histor|similar|past job|prior job/i.test(signal))) {
+      return "Similar jobs found";
+    }
+    if (activeQuote) {
+      return activeQuote.cold_start.active ? "Not enough history yet" : "Learning from this draft";
+    }
+    return "History builds after approved jobs";
+  }, [activeQuote, quoteEvidenceSignals]);
+  const readinessHeadline = isOnline
+    ? offlineQueue.length > 0
+      ? `${offlineQueue.length} draft${offlineQueue.length === 1 ? "" : "s"} queued to sync`
+      : "Ready to generate"
+    : `Offline mode · ${offlineQueue.length} queued`;
+  const readinessDetail = isOnline
+    ? "Add scope, measurements, materials, and any customer deadline."
+    : "You can keep capturing notes now and sync them when the connection returns.";
+  const preflightChecklist = transcriptPrefill?.missing_information.length
+    ? transcriptPrefill.missing_information
+    : ["Measurements or quantities", "Material preference or grade", "Any site access or schedule constraint"];
+  const readinessSignals = quoteEvidenceSignals.slice(0, 3);
   const reviewStatusLabel =
     decisionStatus === "discarded"
       ? "Discarded"
@@ -1129,7 +1173,7 @@ export function QuotePage() {
             <div className="panel ani">
               <div className="ph2">
                 <span className="ptl">Capture Input</span>
-                <span className="pid">{apiReady ? `CONTRACTOR ${getBetaContractorId()}` : "API NOT READY"}</span>
+                <span className="pid">{apiReady ? "PUBLIC QUOTE API READY" : "API NOT READY"}</span>
               </div>
 
               <div className="qitabs">
@@ -1156,10 +1200,21 @@ export function QuotePage() {
                 >
                   <div>
                     <div className="lbl" style={{ marginBottom: 2 }}>
-                      Runtime
+                      Estimate readiness
                     </div>
                     <div style={{ fontSize: 12, color: "var(--cream)" }}>
-                      {isOnline ? "Live connection" : "Offline cache active"} · {offlineQueue.length} queued
+                      {readinessHeadline}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontFamily: "'Syne Mono', monospace",
+                        fontSize: 8,
+                        color: "var(--fog)",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {readinessDetail}
                     </div>
                   </div>
                   <button
@@ -1174,7 +1229,7 @@ export function QuotePage() {
                       quoteMutation.isPending
                     }
                   >
-                    {isQueueSyncing ? "Syncing..." : "Sync queued"}
+                    {isQueueSyncing ? "Syncing..." : offlineQueue.length > 0 ? "Sync queued" : "Ready"}
                   </button>
                 </div>
 
@@ -1270,6 +1325,34 @@ export function QuotePage() {
                     </div>
                   </div>
                 ) : null}
+
+                <div className="alert ainfo" style={{ marginBottom: 12 }}>
+                  <span>◈</span>
+                  <div>
+                    <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                      WHAT HELPS THIS ESTIMATE
+                    </strong>
+                    <div style={{ marginTop: 6, fontSize: 12, color: "var(--cream)" }}>
+                      Measurements, material preferences, site access notes, photos, and any deadline make the draft sharper.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="alert awarn" style={{ marginBottom: 14 }}>
+                  <span>!</span>
+                  <div>
+                    <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                      MISSING DETAILS REDUCE CONFIDENCE
+                    </strong>
+                    <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                      {preflightChecklist.map((item) => (
+                        <span key={`preflight-${item}`} className="tag ts">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
                 {tab === "notes" ? (
                   <div className="vs">
@@ -2114,19 +2197,29 @@ export function QuotePage() {
 
           <div className="panel ani a2">
             <div className="ph2">
-              <span className="ptl">Memory Context</span>
+              <span className="ptl">Estimate Inputs</span>
             </div>
             <div className="pb">
               {[
-                ["Pricing baseline", activeQuote?.cold_start.active ? "Partial" : "Applied", true],
-                ["Trade signal", memoryTrade, false],
-                ["Past jobs", activeQuote ? String(Math.max(1, deliveryHistory.length + 1)) : "--", false],
-                ["Memory strength", activeQuote ? `${confidenceScore}%` : apiReady ? "Warming" : "Offline", false],
+                ["Price book", estimateSignalSummary, true],
+                ["Trade focus", memoryTrade, false],
+                ["Similar jobs", similarJobsLabel, false],
+                [
+                  "Confidence basis",
+                  activeQuote
+                    ? `${confidenceScore}% confidence`
+                    : transcriptPrefill
+                      ? "Transcript context loaded"
+                      : apiReady
+                        ? "Waiting for first draft"
+                        : "Configure API access",
+                  false,
+                ],
               ].map(([key, value, badge]) => (
                 <div className="ir" key={String(key)}>
                   <span className="ik">{key}</span>
                   {badge ? (
-                    <span className={`tag ${activeQuote?.cold_start.active ? "ta" : "tg"}`} style={{ marginLeft: "auto" }}>
+                    <span className={`tag ${estimateSignalTone}`} style={{ marginLeft: "auto" }}>
                       {value}
                     </span>
                   ) : (
@@ -2143,6 +2236,20 @@ export function QuotePage() {
               >
                 Import price book
               </button>
+              {readinessSignals.length ? (
+                <div style={{ marginBottom: 10 }}>
+                  <div className="lbl" style={{ marginBottom: 6 }}>
+                    Estimate evidence
+                  </div>
+                  <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                    {readinessSignals.map((signal) => (
+                      <span key={`evidence-${signal}`} className="tag tb">
+                        {signal}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div
                 style={{
                   fontFamily: "'Syne Mono', monospace",
@@ -2152,9 +2259,9 @@ export function QuotePage() {
                   letterSpacing: "0.4px",
                 }}
               >
-                ESTIMATES DRAW FROM HISTORICAL PRICING
+                PRICE BOOKS AND APPROVED QUOTES FEED FUTURE ESTIMATES
                 <br />
-                ACCURACY IMPROVES WITH EACH COMPLETED JOB
+                MISSING DETAILS KEEP THE DRAFT IN REVIEW BEFORE SEND
                 <br />
                 {bypassAuth ? "DEMO MODE ACTIVE" : apiReady ? "LIVE PUBLIC QUOTE ENDPOINT CONNECTED" : "CONFIGURE PUBLIC API CREDENTIALS"}
               </div>
@@ -2164,11 +2271,26 @@ export function QuotePage() {
           {!activeQuote ? (
             <div className="panel ani a3">
               <div className="ph2">
-                <span className="ptl">Output</span>
+                <span className="ptl">Before You Generate</span>
               </div>
               <div className="pb">
-                <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.7 }}>
-                  Once the agent returns a draft, this side becomes your review, delivery, and follow-up workspace.
+                <div className="vs" style={{ gap: 10 }}>
+                  <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.7 }}>
+                    Keep the request short and concrete. The draft does not need every answer yet, but weak inputs will force a review step before send.
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'Syne Mono', monospace",
+                      fontSize: 8,
+                      color: "var(--fog)",
+                      lineHeight: 1.8,
+                      letterSpacing: "0.4px",
+                    }}
+                  >
+                    INCLUDE:
+                    <br />
+                    MEASUREMENTS · MATERIAL GRADE · SITE ACCESS · DEADLINE
+                  </div>
                 </div>
               </div>
             </div>
