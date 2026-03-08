@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Mic, Square, TriangleAlert } from "lucide-react";
 
 import { fetchTranscriptQuotePrefill } from "../api/transcripts";
@@ -11,6 +11,7 @@ import {
   fetchQuoteDelivery,
   fetchQuoteFollowup,
   fetchQuotePdf,
+  fetchQuoteXlsx,
   getBetaContractorId,
   hasBetaApiCredentials,
   sendQuoteToClient,
@@ -330,6 +331,35 @@ function followupChannel(channel: string | null): string {
   return normalized;
 }
 
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    const key = normalized.toLowerCase();
+    if (!normalized || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(normalized);
+  }
+  return result;
+}
+
+function downloadBlobFile(blob: Blob, filename: string): void {
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.setTimeout(() => {
+    window.URL.revokeObjectURL(objectUrl);
+  }, 60000);
+}
+
 function transcriptClassificationLabel(value: string): string {
   const normalized = value.trim();
   if (!normalized) return "unknown";
@@ -381,6 +411,7 @@ export function QuotePage() {
   const [transcriptPrefillError, setTranscriptPrefillError] = useState<string | null>(null);
   const [tab, setTab] = useState<"notes" | "voice" | "upload">("notes");
   const location = useLocation();
+  const navigate = useNavigate();
   const apiReady = hasBetaApiCredentials();
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const firstSessionMode = useMemo(() => {
@@ -793,6 +824,24 @@ export function QuotePage() {
     },
   });
 
+  const exportXlsxMutation = useMutation({
+    mutationFn: async (quote: QuoteResponse) => {
+      const xlsxBlob = await fetchQuoteXlsx(quote.quote_id);
+      const filename = `gc-agent-quote-${quote.quote_id}.xlsx`;
+      downloadBlobFile(xlsxBlob, filename);
+      return "Quote spreadsheet exported for Excel or CSV workflow handoff.";
+    },
+    onSuccess: (message) => {
+      setShareMessage(message);
+      setCaptureError(null);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Could not export quote spreadsheet.";
+      setCaptureError(message);
+      setShareMessage(null);
+    },
+  });
+
   const decisionMutation = useMutation({
     mutationFn: async (action: QuoteDecisionAction) => {
       if (!activeQuote) {
@@ -822,14 +871,29 @@ export function QuotePage() {
           : `Quote ${payload.approval_status}.`
       );
       if (activeQuote && payload.quote_draft) {
-      setActiveQuote({
-        ...activeQuote,
-        quote_draft: payload.quote_draft,
-      });
-      setEditedScopeOfWork(payload.quote_draft.scope_of_work ?? "");
-      setEditedTotalPrice(String(payload.quote_draft.total_price ?? ""));
-      setEditMode(false);
-    }
+        setActiveQuote({
+          ...activeQuote,
+          quote_draft: payload.quote_draft,
+          review_required: payload.approval_status === "discarded",
+          send_blocked: payload.approval_status === "discarded",
+          blocking_reasons:
+            payload.approval_status === "discarded"
+              ? ["Discarded quotes cannot be sent to the customer."]
+              : [],
+          estimate_confidence: {
+            ...activeQuote.estimate_confidence,
+            review_required: payload.approval_status === "discarded",
+            send_blocked: payload.approval_status === "discarded",
+            blocking_reasons:
+              payload.approval_status === "discarded"
+                ? ["Discarded quotes cannot be sent to the customer."]
+                : [],
+          },
+        });
+        setEditedScopeOfWork(payload.quote_draft.scope_of_work ?? "");
+        setEditedTotalPrice(String(payload.quote_draft.total_price ?? ""));
+        setEditMode(false);
+      }
       setCaptureError(null);
       if (activeQuote) {
         void loadFollowupState(activeQuote.quote_id);
@@ -997,6 +1061,36 @@ export function QuotePage() {
   const exclusions = activeQuote?.quote_draft.exclusions ?? [];
   const canStopFollowup =
     followupState?.status === "scheduled" || followupState?.status === "pending_destination";
+  const isPersistedReviewedQuote =
+    decisionStatus === "approved" || decisionStatus === "edited";
+  const quoteReviewRequired =
+    activeQuote?.review_required ??
+    activeQuote?.estimate_confidence.review_required ??
+    !isPersistedReviewedQuote;
+  const quoteSendBlocked =
+    activeQuote?.send_blocked ??
+    activeQuote?.estimate_confidence.send_blocked ??
+    !isPersistedReviewedQuote;
+  const quoteMissingInformation = uniqueStrings([
+    ...(activeQuote?.missing_information ?? activeQuote?.estimate_confidence.missing_information ?? []),
+    ...(transcriptPrefill?.missing_information ?? []),
+  ]);
+  const quoteEvidenceSignals = uniqueStrings(
+    activeQuote?.evidence_signals ?? activeQuote?.estimate_confidence.evidence_signals ?? []
+  );
+  const quoteBlockingReasons = uniqueStrings(
+    activeQuote?.blocking_reasons ?? activeQuote?.estimate_confidence.blocking_reasons ?? []
+  );
+  const reviewStatusLabel =
+    decisionStatus === "discarded"
+      ? "Discarded"
+      : decisionStatus === "approved"
+        ? "Approved"
+        : decisionStatus === "edited"
+          ? "Edited"
+          : quoteReviewRequired
+            ? "Review required"
+            : "Ready";
 
   return (
     <div className="pw">
@@ -1455,39 +1549,67 @@ export function QuotePage() {
                     <div className="ctrack" style={{ width: 88 }}>
                       <div className="cfill" style={{ width: `${confidenceScore}%`, background: confidenceFill }} />
                     </div>
-                    <span className={`tag td ${decisionStatus === "discarded" ? "tr" : "ta"}`}>
-                      {decisionStatus === "discarded" ? "Discarded" : "Pending"}
+                    <span
+                      className={`tag td ${
+                        decisionStatus === "discarded"
+                          ? "tr"
+                          : quoteReviewRequired
+                            ? "ta"
+                            : "tg"
+                      }`}
+                    >
+                      {reviewStatusLabel}
                     </span>
                   </div>
                 </div>
 
                 <div className="pb lg">
-                  <div className="alert aok" style={{ marginBottom: 14 }}>
-                    <span>✓</span>
+                  <div className={`alert ${quoteReviewRequired ? "awarn" : "aok"}`} style={{ marginBottom: 14 }}>
+                    <span>{quoteReviewRequired ? "!" : "✓"}</span>
                     <div>
                       <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
                         {confidenceScore}% CONFIDENCE · PRICING BASELINE {activeQuote.cold_start.active ? "PARTIAL" : "APPLIED"}
                       </strong>
                       <div style={{ marginTop: 3, fontSize: 12 }}>
-                        {clarificationQuestions.length > 0
-                          ? `${clarificationQuestions.length} clarification item${clarificationQuestions.length === 1 ? "" : "s"} flagged below.`
-                          : "Review assumptions before you send."}
+                        {quoteReviewRequired
+                          ? "Review is required before this quote can be sent."
+                          : clarificationQuestions.length > 0
+                            ? `${clarificationQuestions.length} clarification item${clarificationQuestions.length === 1 ? "" : "s"} flagged below.`
+                            : "Quote is ready for delivery or export."}
                       </div>
                     </div>
                   </div>
 
-                  {transcriptPrefill?.missing_information.length ? (
+                  {quoteMissingInformation.length ? (
                     <div className="alert awarn" style={{ marginBottom: 14 }}>
                       <span>!</span>
                       <div>
                         <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                          TRANSCRIPT DETAILS STILL TO CONFIRM
+                          MISSING INFORMATION TO CONFIRM
                         </strong>
                         <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                          {transcriptPrefill.missing_information.map((item) => (
-                            <span key={`${transcriptPrefill.transcript_id}-${item}-review`} className="tag ts">
+                          {quoteMissingInformation.map((item) => (
+                            <span key={`quote-missing-${item}`} className="tag ts">
                               {item}
                             </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {quoteEvidenceSignals.length ? (
+                    <div className="alert ainfo" style={{ marginBottom: 14 }}>
+                      <span>◈</span>
+                      <div>
+                        <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                          EVIDENCE SIGNALS
+                        </strong>
+                        <div style={{ marginTop: 6 }} className="vs">
+                          {quoteEvidenceSignals.map((signal) => (
+                            <div key={signal} style={{ fontSize: 12, color: "var(--cream)" }}>
+                              {signal}
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -1739,10 +1861,30 @@ export function QuotePage() {
                     className="cta"
                     style={{ width: "100%", textAlign: "center", display: "block" }}
                     onClick={() => directDeliveryMutation.mutate()}
-                    disabled={directDeliveryMutation.isPending || !apiReady}
+                    disabled={directDeliveryMutation.isPending || !apiReady || quoteSendBlocked}
                   >
-                    {directDeliveryMutation.isPending ? "SENDING..." : "SEND QUOTE"}
+                    {directDeliveryMutation.isPending
+                      ? "SENDING..."
+                      : quoteSendBlocked
+                        ? "REVIEW REQUIRED BEFORE SEND"
+                        : "SEND QUOTE"}
                   </button>
+
+                  {quoteSendBlocked ? (
+                    <div className="alert awarn" style={{ fontSize: 12 }}>
+                      <span>!</span>
+                      <div>
+                        <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
+                          DELIVERY BLOCKED
+                        </strong>
+                        <div style={{ marginTop: 6 }} className="vs">
+                          {quoteBlockingReasons.map((reason) => (
+                            <div key={reason}>{reason}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <button
                     type="button"
@@ -1752,6 +1894,16 @@ export function QuotePage() {
                     disabled={sendMutation.isPending || !apiReady}
                   >
                     {sendMutation.isPending ? "Generating PDF..." : "Open PDF"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn bw"
+                    style={{ width: "100%", justifyContent: "center" }}
+                    onClick={() => exportXlsxMutation.mutate(activeQuote)}
+                    disabled={exportXlsxMutation.isPending || !apiReady}
+                  >
+                    {exportXlsxMutation.isPending ? "Exporting..." : "Export XLSX"}
                   </button>
 
                   {deliveryMessage ? (
@@ -1983,6 +2135,14 @@ export function QuotePage() {
                 </div>
               ))}
               <hr className="wd" />
+              <button
+                type="button"
+                className="btn bw"
+                style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+                onClick={() => navigate("/onboarding?pricing=1")}
+              >
+                Import price book
+              </button>
               <div
                 style={{
                   fontFamily: "'Syne Mono', monospace",

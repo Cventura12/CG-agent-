@@ -56,6 +56,7 @@ vi.mock("../../src/api/quote", () => ({
   submitQuote: vi.fn(),
   submitQuoteUpload: submitQuoteUploadMock,
   fetchQuotePdf: vi.fn(),
+  fetchQuoteXlsx: vi.fn(),
   fetchQuoteDelivery: async () => ({
     quote_id: "quote-upload-1",
     trace_id: "trace-upload-1",
@@ -127,7 +128,11 @@ describe("QuotePage upload intake", () => {
       expect.objectContaining({
         name: "source.pdf",
         type: "application/pdf",
-      })
+      }),
+      {
+        transcriptId: "",
+        jobId: "",
+      }
     );
     expect(await screen.findByText("Quote Draft")).toBeInTheDocument();
     expect(screen.getByText("14 Oak Lane")).toBeInTheDocument();

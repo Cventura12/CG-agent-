@@ -8,8 +8,6 @@ import { approveDraft, discardDraft, editDraft } from "../api/queue";
 import { useQueue } from "../hooks/useQueue";
 import type { QueuePayload } from "../types";
 
-const RAW_INPUT_PREVIEW_CHARS = 120;
-
 type QueueMutationContext = {
   previousQueue: QueuePayload | undefined;
 };
@@ -31,6 +29,7 @@ function removeDraftFromQueue(queue: QueuePayload, draftId: string): QueuePayloa
         drafts: group.drafts.filter((draft) => draft.id !== draftId),
       }))
       .filter((group) => group.drafts.length > 0),
+    inbox: queue.inbox,
   };
 }
 
@@ -48,21 +47,6 @@ function formatTimestamp(value: string): string {
     return value;
   }
   return parsed.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
-
-function truncate(value: string, maxChars: number): string {
-  if (value.length <= maxChars) {
-    return value;
-  }
-  return `${value.slice(0, maxChars - 3)}...`;
-}
-
-function inputTone(inputType: string): string {
-  const normalized = inputType.toLowerCase();
-  if (normalized === "voice") return "tb";
-  if (normalized === "whatsapp") return "tg";
-  if (normalized === "sms") return "ta";
-  return "ts";
 }
 
 function followupTag(status: string | undefined): { label: string; cls: string } {
@@ -122,12 +106,19 @@ function transcriptRawText(entry: { transcript_text: string }): string {
   return entry.transcript_text || "Transcript text unavailable.";
 }
 
+function shortTrace(traceId: string): string {
+  const normalized = traceId.trim();
+  if (!normalized) {
+    return "";
+  }
+  return normalized.length > 18 ? `${normalized.slice(0, 15)}...` : normalized;
+}
+
 export function JobDetailPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId ?? "";
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [expandedUpdateIds, setExpandedUpdateIds] = useState<Record<string, boolean>>({});
   const [expandedTranscriptIds, setExpandedTranscriptIds] = useState<Record<string, boolean>>({});
   const [draftEdits, setDraftEdits] = useState<Record<string, string>>({});
 
@@ -144,9 +135,15 @@ export function JobDetailPage() {
   });
 
   const job = detailQuery.data?.job;
-  const updates = useMemo(() => (detailQuery.data?.recent_updates ?? []).slice(0, 5), [detailQuery.data]);
   const callHistory = useMemo(() => (detailQuery.data?.call_history ?? []).slice(0, 8), [detailQuery.data]);
-  const auditTimeline = useMemo(() => (detailQuery.data?.audit_timeline ?? []).slice(0, 20), [detailQuery.data]);
+  const auditTimeline = useMemo(() => {
+    const events = detailQuery.data?.audit_timeline ?? [];
+    const filteredEvents =
+      callHistory.length > 0
+        ? events.filter((event) => event.event_type !== "call_transcript_received")
+        : events;
+    return filteredEvents.slice(0, 20);
+  }, [detailQuery.data, callHistory.length]);
   const followupState = detailQuery.data?.followup_state ?? null;
 
   const pendingDrafts = useMemo(() => {
@@ -247,13 +244,6 @@ export function JobDetailPage() {
     );
   };
 
-  const toggleUpdate = (updateId: string) => {
-    setExpandedUpdateIds((current) => ({
-      ...current,
-      [updateId]: !current[updateId],
-    }));
-  };
-
   const toggleTranscript = (transcriptId: string) => {
     setExpandedTranscriptIds((current) => ({
       ...current,
@@ -352,9 +342,9 @@ export function JobDetailPage() {
                               />
                             </div>
                             <div className="hs" style={{ flexWrap: "wrap" }}>
-                              <button type="button" className="btn bg sm" onClick={() => approveMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>? Approve</button>
-                              <button type="button" className="btn bw sm" onClick={() => editMutation.mutate({ draftId: draft.id, content: editValue })} disabled={isDraftLoading(draft.id)}>? Edit</button>
-                              <button type="button" className="btn brd sm" onClick={() => discardMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>? Discard</button>
+                              <button type="button" className="btn bg sm" onClick={() => approveMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>Approve</button>
+                              <button type="button" className="btn bw sm" onClick={() => editMutation.mutate({ draftId: draft.id, content: editValue })} disabled={isDraftLoading(draft.id)}>Edit</button>
+                              <button type="button" className="btn brd sm" onClick={() => discardMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>Discard</button>
                             </div>
                           </div>
                         </div>
@@ -460,48 +450,8 @@ export function JobDetailPage() {
               </div>
             </div>
 
-            <div className="panel ani a1">
-              <div className="ph2"><span className="ptl">Recent Updates</span></div>
-              <div className="pb">
-                {updates.length === 0 ? (
-                  <div style={{ fontSize: 12, color: "var(--steel)" }}>No updates logged yet.</div>
-                ) : (
-                  <div className="vs">
-                    {updates.map((entry) => {
-                      const isExpanded = !!expandedUpdateIds[entry.id];
-                      return (
-                        <div key={entry.id} className="panel" style={{ borderColor: "var(--wire2)" }}>
-                          <button type="button" className="pb" style={{ width: "100%", textAlign: "left", background: "transparent" }} onClick={() => toggleUpdate(entry.id)}>
-                            <div className="sp">
-                              <div>
-                                <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
-                                  <span className="tag ts">{formatTimestamp(entry.created_at)}</span>
-                                  <span className={`tag ${inputTone(entry.input_type)}`}>{entry.input_type}</span>
-                                </div>
-                                <div style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>
-                                  {truncate(entry.raw_input || "", RAW_INPUT_PREVIEW_CHARS)}
-                                </div>
-                              </div>
-                              <span className="tag ts">{isExpanded ? "OPEN" : "VIEW"}</span>
-                            </div>
-                          </button>
-                          {isExpanded ? (
-                            <div style={{ borderTop: "1px solid var(--wire)", padding: "12px 14px" }}>
-                              <pre style={{ whiteSpace: "pre-wrap", fontFamily: "'Syne Mono', monospace", fontSize: 10, color: "var(--steel)", lineHeight: 1.8 }}>
-                                {JSON.stringify(entry.parsed_changes, null, 2)}
-                              </pre>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
             <div className="panel ani a2">
-              <div className="ph2"><span className="ptl">Audit Timeline</span></div>
+              <div className="ph2"><span className="ptl">Activity Timeline</span></div>
               <div className="pb">
                 {auditTimeline.length === 0 ? (
                   <div style={{ fontSize: 12, color: "var(--steel)" }}>No audit events yet.</div>
@@ -509,12 +459,12 @@ export function JobDetailPage() {
                   auditTimeline.map((event) => (
                     <div className="tli" key={event.id}>
                       <div className={`tln ${event.event_type.includes("approved") || event.event_type.includes("sent") ? "g" : event.event_type.includes("discard") || event.event_type.includes("failed") ? "a" : "m"}`}>
-                        {event.event_type.includes("approved") || event.event_type.includes("sent") ? "?" : "?"}
+                        {event.event_type.includes("approved") || event.event_type.includes("sent") ? "✓" : "●"}
                       </div>
                       <div>
                         <div className="tll">{event.title}</div>
                         <div style={{ marginTop: 3, fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{event.summary}</div>
-                        <div className="tlt">{formatTimestamp(event.timestamp)}{event.trace_id ? ` · ${truncate(event.trace_id, 18)}` : ""}</div>
+                        <div className="tlt">{formatTimestamp(event.timestamp)}{event.trace_id ? ` · ${shortTrace(event.trace_id)}` : ""}</div>
                       </div>
                     </div>
                   ))

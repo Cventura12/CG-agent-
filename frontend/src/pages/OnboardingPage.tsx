@@ -1,9 +1,11 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { SignIn, useUser } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { fetchOnboardingProfile, registerGc, saveOnboardingProfile } from "../api/auth";
+import { PricingImportPanel } from "../components/PricingImportPanel";
+import type { PricingImportCommitSummary } from "../types";
 
 const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === "true";
 
@@ -65,6 +67,7 @@ function getErrorMessage(error: unknown): string {
 
 export function OnboardingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   const [step, setStep] = useState(0);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -76,6 +79,9 @@ export function OnboardingPage() {
   const [defaultMarkupPct, setDefaultMarkupPct] = useState("");
   const [preferredSupplier, setPreferredSupplier] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [importSummary, setImportSummary] = useState<PricingImportCommitSummary | null>(null);
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const pricingMode = searchParams.get("pricing") === "1";
 
   const onboardingQuery = useQuery({ queryKey: ["auth", "onboarding"], queryFn: () => fetchOnboardingProfile(), enabled: !bypassAuth && !!user, retry: false });
   const activeDefaults = useMemo(() => DEFAULTS_BY_TRADE[primaryTrade] ?? DEFAULTS_BY_TRADE.general_construction, [primaryTrade]);
@@ -120,8 +126,8 @@ export function OnboardingPage() {
   useEffect(() => {
     const onboarding = onboardingQuery.data;
     if (!onboarding) return;
-    if (onboarding.registered && onboarding.onboarding_complete) {
-      navigate("/", { replace: true });
+    if (onboarding.registered && onboarding.onboarding_complete && !pricingMode) {
+      navigate("/quote", { replace: true });
       return;
     }
     const trade = asTradeKey(onboarding.primary_trade || "general_construction");
@@ -134,7 +140,13 @@ export function OnboardingPage() {
     setLaborRatePerSquare(String(onboarding.labor_rate_per_square || defaults.labor_rate_per_square));
     setDefaultMarkupPct(String(onboarding.default_markup_pct || defaults.default_markup_pct));
     setPreferredSupplier(onboarding.preferred_supplier || "");
-  }, [navigate, onboardingQuery.data, user]);
+  }, [navigate, onboardingQuery.data, pricingMode, user]);
+
+  useEffect(() => {
+    if (pricingMode && step < 2) {
+      setStep(2);
+    }
+  }, [pricingMode, step]);
 
   const canAdvanceCompanyStep = companyName.trim().length > 0 && serviceArea.trim().length > 0 && (!needsRegistration || normalizePhone(phoneNumber).length > 0);
   const canAdvanceTradeStep = primaryTrade.trim().length > 0;
@@ -208,6 +220,22 @@ export function OnboardingPage() {
                 </div>
                 <div><label className="lbl" htmlFor="supplier">Primary supplier</label><input id="supplier" className="inp" value={preferredSupplier} onChange={(event) => setPreferredSupplier(event.target.value)} placeholder="e.g. ABC Supply, Wesco" /></div>
                 <div className="alert ainfo" style={{ fontSize: 11 }}><span>◈</span><span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "0.5px", lineHeight: 1.7 }}>STARTING DEFAULTS ONLY — GC AGENT REFINES FROM REAL JOB OUTCOMES</span></div>
+                <PricingImportPanel
+                  disabledReason={
+                    bypassAuth
+                      ? "Spreadsheet import requires a signed-in contractor session. Demo mode keeps this disabled."
+                      : undefined
+                  }
+                  onImportComplete={(summary) => setImportSummary(summary)}
+                />
+                {importSummary ? (
+                  <div className="alert aok" style={{ fontSize: 12 }}>
+                    <span>✓</span>
+                    <div>
+                      Imported {importSummary.imported_count} price rows and skipped {importSummary.skipped_count}. GC Agent will use this price book to anchor future estimates.
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -216,7 +244,13 @@ export function OnboardingPage() {
                 <div style={{ fontSize: 38, marginBottom: 14 }}>🏗</div>
                 <h2 style={{ fontFamily: "'Oswald', sans-serif", fontSize: 24, fontWeight: 600, letterSpacing: "2.5px", textTransform: "uppercase", color: "var(--amber-hot)", marginBottom: 8 }}>System ready</h2>
                 <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.5px", marginBottom: 24 }}>GC AGENT INITIALIZED · ESTIMATING ENGINE ACTIVE</div>
-                <button type="button" className="cta" style={{ fontSize: 13, padding: "11px 28px" }} onClick={() => navigate("/", { replace: true })}>LAUNCH DASHBOARD</button>
+                {importSummary ? (
+                  <div className="alert aok" style={{ marginBottom: 18, textAlign: "left", fontSize: 12 }}>
+                    <span>✓</span>
+                    <div>Imported {importSummary.imported_count} pricing rows. Your next useful step is generating a real quote draft against the imported baseline.</div>
+                  </div>
+                ) : null}
+                <button type="button" className="cta" style={{ fontSize: 13, padding: "11px 28px" }} onClick={() => navigate("/quote", { replace: true })}>CREATE FIRST QUOTE</button>
               </div>
             ) : null}
 
@@ -226,7 +260,7 @@ export function OnboardingPage() {
               <div style={{ borderTop: "1px solid var(--wire)", padding: "11px 14px", display: "flex", justifyContent: "flex-end", gap: 9 }}>
                 {step > 0 ? <button type="button" className="btn bw" onClick={() => setStep((current) => Math.max(current - 1, 0))}>← Back</button> : null}
                 {step < 2 ? (
-                  <button type="button" className="cta" style={{ fontSize: 11, padding: "7px 18px" }} aria-label="Continue ?" disabled={(step === 0 && !canAdvanceCompanyStep) || (step === 1 && !canAdvanceTradeStep) || isBusy} onClick={() => setStep((current) => current + 1)}>CONTINUE →</button>
+                  <button type="button" className="cta" style={{ fontSize: 11, padding: "7px 18px" }} aria-label="Continue" disabled={(step === 0 && !canAdvanceCompanyStep) || (step === 1 && !canAdvanceTradeStep) || isBusy} onClick={() => setStep((current) => current + 1)}>CONTINUE →</button>
                 ) : (
                   <button type="button" className="cta" style={{ fontSize: 11, padding: "7px 18px" }} disabled={isBusy} onClick={() => saveMutation.mutate()}>{saveMutation.isPending ? "SAVING..." : "FINISH SETUP"}</button>
                 )}

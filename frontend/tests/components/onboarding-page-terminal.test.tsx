@@ -75,11 +75,11 @@ describe("OnboardingPage terminal flow", () => {
       target: { value: "Chattanooga, TN metro" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Continue ?" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByRole("heading", { name: "Trades" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Roofing/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Continue ?" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(await screen.findByRole("heading", { name: "Pricing baseline" })).toBeInTheDocument();
     expect(screen.getByLabelText("Avg hourly labor")).toBeInTheDocument();

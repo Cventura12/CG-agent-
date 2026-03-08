@@ -38,6 +38,7 @@ vi.mock("../../src/api/quote", () => ({
   submitQuote: vi.fn(),
   submitQuoteUpload: vi.fn(),
   fetchQuotePdf: vi.fn(),
+  fetchQuoteXlsx: vi.fn(),
   fetchQuoteDelivery: async () => ({
     quote_id: "quote-1",
     trace_id: "trace-1",

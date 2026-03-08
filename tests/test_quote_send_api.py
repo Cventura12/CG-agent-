@@ -30,6 +30,7 @@ async def test_quote_send_whatsapp_logs_delivery(monkeypatch: pytest.MonkeyPatch
             "gc_id": "gc-demo",
             "job_id": "job-88",
             "trace_id": "trace-send-1",
+            "approval_status": "approved",
             "quote_draft": {
                 "company_name": "GC Agent Roofing",
                 "project_address": "14 Oak Lane",
@@ -94,6 +95,7 @@ async def test_quote_send_email_logs_delivery_and_uses_pdf_attachment(
             "gc_id": "gc-demo",
             "job_id": "job-99",
             "trace_id": "trace-email-1",
+            "approval_status": "edited",
             "quote_draft": {
                 "company_name": "GC Agent Roofing",
                 "project_address": "14 Oak Lane",
@@ -201,6 +203,44 @@ async def test_quote_send_rejects_wrong_contractor(monkeypatch: pytest.MonkeyPat
 
     assert response.status_code == 403
     assert response.json()["detail"] == "quote does not belong to contractor"
+
+
+@pytest.mark.asyncio
+async def test_quote_send_blocks_unreviewed_quote(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
+
+    async def _fake_get_quote_draft_record(quote_id: str) -> dict[str, object] | None:
+        if quote_id != "quote-send-blocked":
+            return None
+        return {
+            "id": quote_id,
+            "gc_id": "gc-demo",
+            "trace_id": "trace-send-blocked",
+            "approval_status": "generated",
+            "quote_draft": {
+                "company_name": "GC Agent Roofing",
+                "project_address": "14 Oak Lane",
+                "scope_of_work": "Replace roof shingles and underlayment.",
+                "total_price": 14350.0,
+            },
+            "final_quote_draft": {},
+        }
+
+    monkeypatch.setattr(api_module.queries, "get_quote_draft_record", _fake_get_quote_draft_record)
+
+    async with _client() as client:
+        response = await client.post(
+            "/quote/quote-send-blocked/send",
+            json={
+                "contractor_id": "gc-demo",
+                "channel": "sms",
+                "destination": "+14235551234",
+            },
+            headers={"X-API-Key": "test-key"},
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Approve or edit the quote before sending it to the customer"
 
 
 @pytest.mark.asyncio

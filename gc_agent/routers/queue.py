@@ -91,6 +91,7 @@ async def get_queue(current_gc: str = Depends(get_current_gc)) -> dict[str, Any]
 
     try:
         queued_drafts = await queries.get_queued_drafts(gc_id)
+        transcript_inbox = await queries.list_unlinked_transcript_inbox(gc_id, limit=25)
     except DatabaseError as exc:
         return _error(500, str(exc))
 
@@ -104,7 +105,14 @@ async def get_queue(current_gc: str = Depends(get_current_gc)) -> dict[str, Any]
             }
         grouped[draft.job_id]["drafts"].append(_serialize_draft(draft))
 
-    return _success({"jobs": list(grouped.values())})
+    return _success(
+        {
+            "jobs": list(grouped.values()),
+            "inbox": {
+                "transcripts": transcript_inbox,
+            },
+        }
+    )
 
 
 @router.post("/queue/{draft_id}/approve", response_model=None)

@@ -82,6 +82,31 @@ export interface DraftTranscriptContext {
   duration_seconds: number | null;
 }
 
+export interface TranscriptInboxItem {
+  transcript_id: string;
+  trace_id: string;
+  caller_label: string;
+  caller_phone: string;
+  source: string;
+  provider: string;
+  summary: string;
+  classification: TranscriptClassification;
+  urgency: TranscriptUrgency;
+  confidence: number | null;
+  recommended_actions: string[];
+  risk_flags: string[];
+  missing_information: string[];
+  transcript_text: string;
+  linked_quote_id: string;
+  related_queue_item_ids: string[];
+  created_at: string | null;
+  recording_url: string;
+  started_at: string | null;
+  duration_seconds: number | null;
+  match_source: string;
+  review_state: "pending" | "reviewed" | "discarded" | "logged_update";
+}
+
 export interface Draft {
   id: string;
   job_id: string;
@@ -188,6 +213,9 @@ export interface JobDetailPayload {
 
 export interface QueuePayload {
   jobs: QueueJobGroup[];
+  inbox: {
+    transcripts: TranscriptInboxItem[];
+  };
 }
 
 export interface BriefingPayload {
@@ -226,6 +254,69 @@ export interface OnboardingProfile {
   missing_fields: string[];
 }
 
+export interface SpreadsheetImportMapping {
+  item_name: string;
+  category: string;
+  unit: string;
+  material_cost: string;
+  labor_cost: string;
+  markup_percent: string;
+  default_price: string;
+  notes: string;
+  vendor: string;
+  sku: string;
+}
+
+export interface NormalizedPriceBookRow {
+  row_number: number;
+  item_name: string;
+  category: string;
+  unit: string;
+  material_cost: number | null;
+  labor_cost: number | null;
+  markup_percent: number | null;
+  default_price: number | null;
+  notes: string;
+  vendor: string;
+  sku: string;
+  item_key: string;
+  recognized_key: string;
+  resolved_unit_cost: number | null;
+  status: "ready" | "skipped";
+  reason: string;
+}
+
+export interface PricingImportPreviewRow {
+  row_number: number;
+  raw: Record<string, string>;
+  normalized: NormalizedPriceBookRow;
+}
+
+export interface PricingImportPreview {
+  filename: string;
+  source_type: "csv" | "xlsx";
+  sheet_names: string[];
+  selected_sheet: string;
+  headers: string[];
+  suggested_mapping: SpreadsheetImportMapping;
+  preview_rows: PricingImportPreviewRow[];
+  total_rows: number;
+}
+
+export interface PricingImportCommitSummary {
+  import_log_id: string;
+  trace_id: string;
+  filename: string;
+  source_type: "csv" | "xlsx";
+  sheet_name: string;
+  mapping: SpreadsheetImportMapping;
+  imported_count: number;
+  skipped_count: number;
+  error_count: number;
+  imported_rows: NormalizedPriceBookRow[];
+  skipped_rows: NormalizedPriceBookRow[];
+}
+
 export interface UsageAnalyticsPayload {
   window_days: number;
   since: string;
@@ -235,7 +326,9 @@ export interface UsageAnalyticsPayload {
     edited: number;
     discarded: number;
     approval_rate_pct: number;
+    conversion_rate_pct: number;
     avg_quote_value: number;
+    avg_turnaround_minutes: number;
     memory_updates: number;
   };
   delivery: {
@@ -243,15 +336,31 @@ export interface UsageAnalyticsPayload {
     failed: number;
     channel_breakdown: Record<string, number>;
   };
+  followup: {
+    active: number;
+    stopped: number;
+    reminders_sent: number;
+    effectiveness_rate_pct: number;
+  };
+  transcripts: {
+    ingested: number;
+    linked: number;
+    unlinked: number;
+    estimate_requests: number;
+    linkage_rate_pct: number;
+  };
   updates: {
     ingested: number;
     drafts_suggested: number;
   };
   queue: {
     pending: number;
+    backlog: number;
+    transcript_inbox: number;
     approved: number;
     discarded: number;
     edited: number;
+    by_type: Record<string, number>;
   };
   runtime: {
     trace_rows: number;
@@ -343,7 +452,17 @@ export interface QuoteResponse {
     missing_fields: string[];
     missing_prices: string[];
     reasons: string[];
+    review_required: boolean;
+    send_blocked: boolean;
+    blocking_reasons: string[];
+    missing_information: string[];
+    evidence_signals: string[];
   };
+  review_required: boolean;
+  send_blocked: boolean;
+  blocking_reasons: string[];
+  missing_information: string[];
+  evidence_signals: string[];
   active_job_id: string;
   errors: string[];
   source_files?: QuoteSourceFile[];

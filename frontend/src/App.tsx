@@ -19,6 +19,7 @@ import { BriefingPage } from "./pages/BriefingPage";
 import { JobDetailPage } from "./pages/JobDetailPage";
 import { JobsPage } from "./pages/JobsPage";
 import { InsightsPage } from "./pages/InsightsPage";
+import { LandingPage } from "./pages/LandingPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { QuotePage } from "./pages/QuotePage";
 import { QueuePage } from "./pages/QueuePage";
@@ -74,6 +75,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
+      <Route path="/product" element={<LandingPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route
         path="/"
@@ -160,9 +162,26 @@ function AppRoutes() {
   );
 }
 
+function PublicOnlyRoutes() {
+  return (
+    <Routes>
+      <Route path="/product" element={<LandingPage />} />
+      <Route
+        path="*"
+        element={
+          <AppStatusScreen
+            title="Sign-in is not configured"
+            detail="Set VITE_CLERK_KEY to access the operator app. The public product page remains available at /product."
+          />
+        }
+      />
+    </Routes>
+  );
+}
+
 export default function App() {
   if (!clerkPublishableKey) {
-    throw new Error("VITE_CLERK_KEY is required");
+    return <PublicOnlyRoutes />;
   }
 
   return (

@@ -4,6 +4,12 @@ import { useAuth } from "@clerk/clerk-react";
 import { Link } from "react-router-dom";
 
 import { approveAll, approveDraft, discardDraft, editDraft } from "../api/queue";
+import {
+  discardTranscript,
+  linkTranscriptToJob,
+  logTranscriptAsUpdate,
+  markTranscriptReviewed,
+} from "../api/transcripts";
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
@@ -28,6 +34,7 @@ function updateDraftInQueue(queue: QueuePayload, updatedDraft: Draft): QueuePayl
       ...group,
       drafts: group.drafts.map((draft) => (draft.id === updatedDraft.id ? updatedDraft : draft)),
     })),
+    inbox: queue.inbox,
   };
 }
 
@@ -125,6 +132,7 @@ export function QueuePage() {
   const [openDraftId, setOpenDraftId] = useState<string | null>(null);
   const [draftEdits, setDraftEdits] = useState<Record<string, string>>({});
   const [openTranscriptIds, setOpenTranscriptIds] = useState<Record<string, boolean>>({});
+  const [linkSelections, setLinkSelections] = useState<Record<string, string>>({});
   const [exitingDrafts, setExitingDrafts] = useState<Record<string, "approved" | "discarded">>({});
   const autoSelectedRef = useRef(false);
   const exitTimersRef = useRef<Record<string, number>>({});
@@ -139,10 +147,14 @@ export function QueuePage() {
   const jobsQuery = useJobs(currentUserId);
 
   const queueGroups = queueQuery.data?.jobs ?? [];
+  const transcriptInbox = queueQuery.data?.inbox?.transcripts ?? [];
   const jobs = jobsQuery.data?.jobs ?? [];
 
   const jobsById = useMemo(() => new Map(jobs.map((job) => [job.id, job])), [jobs]);
-  const pendingCount = useMemo(() => queueGroups.reduce((total, group) => total + group.drafts.length, 0), [queueGroups]);
+  const pendingCount = useMemo(
+    () => queueGroups.reduce((total, group) => total + group.drafts.length, 0) + transcriptInbox.length,
+    [queueGroups, transcriptInbox]
+  );
 
   useEffect(() => {
     if (autoSelectedRef.current || jobs.length === 0) {
@@ -277,7 +289,10 @@ export function QueuePage() {
       await queryClient.cancelQueries({ queryKey: ["queue", scope] });
       const previousQueue = queryClient.getQueryData<QueuePayload>(["queue", scope]);
       if (previousQueue) {
-        queryClient.setQueryData<QueuePayload>(["queue", scope], { jobs: [] });
+        queryClient.setQueryData<QueuePayload>(["queue", scope], {
+          jobs: [],
+          inbox: previousQueue.inbox,
+        });
       }
       return { previousQueue };
     },
@@ -289,6 +304,57 @@ export function QueuePage() {
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["queue", scope] });
+    },
+  });
+
+  const transcriptLinkMutation = useMutation({
+    mutationFn: ({ transcriptId, jobId }: { transcriptId: string; jobId: string }) =>
+      linkTranscriptToJob(transcriptId, jobId),
+    onError: (error) => {
+      setErrorMessage(error instanceof Error ? error.message : "Could not link transcript to job.");
+    },
+    onSuccess: async () => {
+      setErrorMessage(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["queue", scope] }),
+        queryClient.invalidateQueries({ queryKey: ["jobs", scope] }),
+      ]);
+    },
+  });
+
+  const transcriptReviewMutation = useMutation({
+    mutationFn: (transcriptId: string) => markTranscriptReviewed(transcriptId),
+    onError: (error) => {
+      setErrorMessage(error instanceof Error ? error.message : "Could not mark transcript reviewed.");
+    },
+    onSuccess: async () => {
+      setErrorMessage(null);
+      await queryClient.invalidateQueries({ queryKey: ["queue", scope] });
+    },
+  });
+
+  const transcriptDiscardMutation = useMutation({
+    mutationFn: (transcriptId: string) => discardTranscript(transcriptId),
+    onError: (error) => {
+      setErrorMessage(error instanceof Error ? error.message : "Could not discard transcript.");
+    },
+    onSuccess: async () => {
+      setErrorMessage(null);
+      await queryClient.invalidateQueries({ queryKey: ["queue", scope] });
+    },
+  });
+
+  const transcriptLogUpdateMutation = useMutation({
+    mutationFn: (transcriptId: string) => logTranscriptAsUpdate(transcriptId),
+    onError: (error) => {
+      setErrorMessage(error instanceof Error ? error.message : "Could not log transcript as update.");
+    },
+    onSuccess: async () => {
+      setErrorMessage(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["queue", scope] }),
+        queryClient.invalidateQueries({ queryKey: ["jobs", scope] }),
+      ]);
     },
   });
 
@@ -343,7 +409,190 @@ export function QueuePage() {
         </div>
       ) : null}
 
-      {!queueQuery.isLoading && visibleDrafts.length === 0 ? (
+      {transcriptInbox.length > 0 ? (
+        <div className="panel" style={{ marginBottom: 14 }}>
+          <div className="ph2 sp">
+            <span className="ptl">Transcript Inbox</span>
+            <span className="tag ta">{transcriptInbox.length}</span>
+          </div>
+          <div className="pb vs">
+            {transcriptInbox.map((transcript) => {
+              const selectedJob = linkSelections[transcript.transcript_id] ?? "";
+              const transcriptOpen = !!openTranscriptIds[`inbox-${transcript.transcript_id}`];
+              const isBusy =
+                transcriptLinkMutation.isPending ||
+                transcriptReviewMutation.isPending ||
+                transcriptDiscardMutation.isPending ||
+                transcriptLogUpdateMutation.isPending;
+              return (
+                <div key={transcript.transcript_id} className="panel" style={{ borderColor: "var(--wire2)" }}>
+                  <div className="pb">
+                    <div className="sp" style={{ marginBottom: 10, gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
+                          <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>
+                            {transcript.caller_label || "Inbound call transcript"}
+                          </span>
+                          <span className={`tag ${transcriptUrgencyTone(transcript.urgency)}`}>{transcript.urgency}</span>
+                          <span className="tag ts">{classificationLabel(transcript.classification)}</span>
+                          {transcript.linked_quote_id ? <span className="tag tb">{transcript.linked_quote_id}</span> : null}
+                        </div>
+                        <div style={{ fontSize: 13, color: "var(--cream)", lineHeight: 1.65 }}>{transcript.summary || "Manual transcript review needed."}</div>
+                        <div style={{ marginTop: 6, fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>
+                          {transcript.recommended_actions[0] || `Needs attention from ${transcript.match_source.replace(/_/g, " ")}`}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>
+                          {confidenceLabel(transcript.confidence)}
+                        </div>
+                        <span className="tag tb">Inbox</span>
+                      </div>
+                    </div>
+
+                    {transcript.recommended_actions.length ? (
+                      <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                        {transcript.recommended_actions.slice(0, 3).map((action) => (
+                          <span key={`${transcript.transcript_id}-${action}`} className="tag tb">{action}</span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {transcript.risk_flags.length ? (
+                      <div className="alert awarn" style={{ marginBottom: 10 }}>
+                        <span>!</span>
+                        <div>{transcript.risk_flags[0]}</div>
+                      </div>
+                    ) : null}
+
+                    {transcript.missing_information.length ? (
+                      <div style={{ marginBottom: 10 }}>
+                        <div className="lbl">Missing information</div>
+                        <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                          {transcript.missing_information.map((item) => (
+                            <span key={`${transcript.transcript_id}-${item}`} className="tag ts">{item}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="g2" style={{ marginBottom: 12 }}>
+                      <div>
+                        <label className="lbl" htmlFor={`link-job-${transcript.transcript_id}`}>Link to job</label>
+                        <select
+                          id={`link-job-${transcript.transcript_id}`}
+                          className="sel"
+                          value={selectedJob}
+                          onChange={(event) =>
+                            setLinkSelections((current) => ({
+                              ...current,
+                              [transcript.transcript_id]: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Select existing job...</option>
+                          {jobs.map((job) => (
+                            <option key={`${transcript.transcript_id}-${job.id}`} value={job.id}>
+                              {job.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="lbl">Caller / source</label>
+                        <div style={{ fontSize: 12, color: "var(--steel)", paddingTop: 10 }}>
+                          {(transcript.source || "call_transcript").replace(/_/g, " ").toUpperCase()}
+                          {transcript.provider ? ` · ${transcript.provider.toUpperCase()}` : ""}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="hs" style={{ flexWrap: "wrap" }}>
+                      {transcript.classification === "estimate_request" ? (
+                        <Link to={`/quote?transcript_id=${encodeURIComponent(transcript.transcript_id)}`} className="btn bw">
+                          Create quote draft
+                        </Link>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn bw"
+                        onClick={() =>
+                          transcriptLinkMutation.mutate({
+                            transcriptId: transcript.transcript_id,
+                            jobId: selectedJob,
+                          })
+                        }
+                        disabled={!selectedJob || isBusy}
+                      >
+                        Link to job
+                      </button>
+                      <button
+                        type="button"
+                        className="btn bw"
+                        onClick={async () => {
+                          if (!selectedJob) {
+                            setErrorMessage("Link the transcript to a job before logging it as an update.");
+                            return;
+                          }
+                          await transcriptLinkMutation.mutateAsync({
+                            transcriptId: transcript.transcript_id,
+                            jobId: selectedJob,
+                          });
+                          await transcriptLogUpdateMutation.mutateAsync(transcript.transcript_id);
+                        }}
+                        disabled={isBusy || !selectedJob}
+                      >
+                        Log as update
+                      </button>
+                      <button
+                        type="button"
+                        className="btn bg"
+                        onClick={() => transcriptReviewMutation.mutate(transcript.transcript_id)}
+                        disabled={isBusy}
+                      >
+                        Mark reviewed
+                      </button>
+                      <button
+                        type="button"
+                        className="btn brd"
+                        onClick={() => transcriptDiscardMutation.mutate(transcript.transcript_id)}
+                        disabled={isBusy}
+                      >
+                        Discard
+                      </button>
+                      <button
+                        type="button"
+                        className="btn bw"
+                        onClick={() =>
+                          setOpenTranscriptIds((current) => ({
+                            ...current,
+                            [`inbox-${transcript.transcript_id}`]: !current[`inbox-${transcript.transcript_id}`],
+                          }))
+                        }
+                      >
+                        {transcriptOpen ? "Hide transcript" : "View transcript"}
+                      </button>
+                    </div>
+
+                    {transcriptOpen ? (
+                      <div className="panel" style={{ borderColor: "var(--wire2)", marginTop: 12 }}>
+                        <div className="pb">
+                          <div className="lbl">Raw transcript</div>
+                          <pre style={{ whiteSpace: "pre-wrap", fontFamily: "'Syne Mono', monospace", fontSize: 10, color: "var(--steel)", lineHeight: 1.8, margin: 0 }}>
+                            {transcript.transcript_text || "Transcript text unavailable."}
+                          </pre>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {!queueQuery.isLoading && visibleDrafts.length === 0 && transcriptInbox.length === 0 ? (
         <div className="panel"><div className="pb">No queued drafts are waiting right now.</div></div>
       ) : null}
 

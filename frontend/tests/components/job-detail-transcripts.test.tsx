@@ -37,7 +37,7 @@ let mockJobDetail = {
       id: "transcript-1",
       timestamp: "2026-03-06T10:00:00+00:00",
       trace_id: "trace-transcript-1",
-      caller_label: "Taylor Brooks · +14235550101",
+      caller_label: "Taylor Brooks - +14235550101",
       caller_phone: "+14235550101",
       source: "call_transcript",
       provider: "manual",
@@ -56,7 +56,17 @@ let mockJobDetail = {
       duration_seconds: 114,
     },
   ],
-  audit_timeline: [],
+  audit_timeline: [
+    {
+      id: "timeline-1",
+      event_type: "update_logged",
+      title: "Update logged",
+      summary: "Crew confirmed material drop for tomorrow morning.",
+      timestamp: "2026-03-06T08:00:00+00:00",
+      actor: "system",
+      metadata: { raw_input: "Crew confirmed material drop for tomorrow morning." },
+    },
+  ],
   followup_state: null,
 };
 
@@ -79,6 +89,7 @@ vi.mock("../../src/hooks/useQueue", () => ({
     isLoading: false,
     data: {
       jobs: [],
+      inbox: { transcripts: [] },
     },
     dataUpdatedAt: 0,
   }),
@@ -104,66 +115,12 @@ function renderJobDetailPage() {
 
 describe("JobDetailPage transcript history", () => {
   it("renders transcript summaries and keeps raw transcript collapsed by default", async () => {
-    mockJobDetail = {
-      job: {
-        id: "job-1",
-        name: "Miller Job",
-        type: "Roofing",
-        status: "active",
-        health: "on-track",
-        address: "101 Main St",
-        contract_value: 90000,
-        contract_type: "Lump Sum",
-        est_completion: "2026-12-01",
-        notes: "",
-        last_updated: "2026-03-05T10:00:00+00:00",
-        open_items: [],
-      },
-      recent_updates: [
-        {
-          id: "update-1",
-          job_id: "job-1",
-          input_type: "sms",
-          raw_input: "Crew confirmed material drop for tomorrow morning.",
-          parsed_changes: { owner: "PM" },
-          drafts_created: [],
-          created_at: "2026-03-06T08:00:00+00:00",
-        },
-      ],
-      call_history: [
-        {
-          id: "transcript-1",
-          timestamp: "2026-03-06T10:00:00+00:00",
-          trace_id: "trace-transcript-1",
-          caller_label: "Taylor Brooks · +14235550101",
-          caller_phone: "+14235550101",
-          source: "call_transcript",
-          provider: "manual",
-          summary: "Caller wants a first-pass estimate before Friday.",
-          classification: "estimate_request",
-          urgency: "high",
-          confidence: 91,
-          risk_flags: ["Client may stall approval without revised number."],
-          recommended_actions: ["Create quote draft", "Confirm permit allowance"],
-          missing_information: ["Updated total with permit allowance"],
-          transcript_text: "Can you send me a first-pass estimate before Friday?",
-          linked_quote_id: "quote-9",
-          related_queue_item_ids: ["draft-transcript-1"],
-          recording_url: "",
-          started_at: null,
-          duration_seconds: 114,
-        },
-      ],
-      audit_timeline: [],
-      followup_state: null,
-    };
-
     renderJobDetailPage();
 
     expect(await screen.findByText("Call History")).toBeInTheDocument();
     expect(screen.getByText("Caller wants a first-pass estimate before Friday.")).toBeInTheDocument();
     expect(screen.getByText(/Taylor Brooks/)).toBeInTheDocument();
-    expect(screen.getByText("Recent Updates")).toBeInTheDocument();
+    expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
     expect(screen.getByText("Crew confirmed material drop for tomorrow morning.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Queue review" })).toHaveAttribute("href", "/queue");
     expect(screen.getByRole("link", { name: "Create quote draft" })).toHaveAttribute(

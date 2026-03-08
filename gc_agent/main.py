@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -33,6 +34,7 @@ from gc_agent.routers.auth import router as auth_router
 from gc_agent.routers.ingest import router as ingest_router
 from gc_agent.routers.insights import router as insights_router
 from gc_agent.routers.jobs import router as jobs_router
+from gc_agent.routers.pricing import router as pricing_router
 from gc_agent.routers.queue import router as queue_router
 from gc_agent.routers.transcripts import router as transcripts_router
 from gc_agent.webhooks.twilio import (
@@ -77,6 +79,37 @@ class Settings(BaseSettings):
 
 settings = Settings()
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
+
+
+def _log_startup_runtime_warnings() -> None:
+    """Emit explicit runtime warnings for optional integrations and jobs."""
+    twilio_configured = bool(
+        settings.twilio_account_sid.strip()
+        and settings.twilio_auth_token.strip()
+        and settings.twilio_whatsapp_from.strip()
+    )
+    smtp_configured = bool(
+        os.getenv("SMTP_HOST", "").strip()
+        and os.getenv("SMTP_FROM_EMAIL", "").strip()
+        and (
+            os.getenv("SMTP_PASSWORD", "").strip()
+            or os.getenv("SMTP_USERNAME", "").strip()
+        )
+    )
+
+    if twilio_configured:
+        LOGGER.info("Twilio messaging + webhook integration configured")
+    else:
+        LOGGER.warning("Twilio config incomplete; SMS/WhatsApp delivery and provider callbacks may be unavailable")
+
+    if smtp_configured:
+        LOGGER.info("SMTP email delivery configured")
+    else:
+        LOGGER.warning("SMTP config incomplete; email quote delivery may be unavailable")
+
+    LOGGER.info(
+        "Route surfaces ready: internal=/api/v1 (Clerk), public=/public (API key), webhooks=/webhook"
+    )
 
 
 def _get_supabase_key() -> str:
@@ -562,6 +595,8 @@ async def lifespan(app: FastAPI):
     )
     scheduler.start()
     app.state.scheduler = scheduler
+    _log_startup_runtime_warnings()
+    LOGGER.info("Scheduler jobs registered: daily_briefings, retry_failed_briefings, process_due_followups")
 
     LOGGER.info("Startup complete; jobs_loaded=%s, briefing_hour=%s", jobs_loaded, settings.briefing_hour)
 
@@ -594,6 +629,7 @@ app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(insights_router, prefix="/api/v1")
 app.include_router(queue_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")
+app.include_router(pricing_router, prefix="/api/v1")
 app.include_router(transcripts_router, prefix="/api/v1")
 app.include_router(public_open_router, prefix="/public", tags=["public"])
 app.include_router(public_router, prefix="/public", tags=["public"])

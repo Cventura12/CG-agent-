@@ -1,5 +1,5 @@
-﻿import { useMemo, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
+import { useState } from "react";
 
 import { useAnalytics } from "../hooks/useAnalytics";
 
@@ -21,21 +21,20 @@ export function AnalyticsPage() {
 
   const analyticsQuery = useAnalytics(currentUserId, days);
   const data = analyticsQuery.data;
-  const flowEntries = useMemo(() => {
-    if (!data) {
-      return [];
-    }
-    return Object.entries(data.runtime.flow_breakdown).sort((a, b) => b[1] - a[1]);
-  }, [data]);
 
-  const peakFlow = Math.max(...flowEntries.map(([, count]) => count), 1);
+  const quoteTurnaroundMinutes = data?.quotes.avg_turnaround_minutes ?? 0;
+  const quoteConversion = data?.quotes.conversion_rate_pct ?? data?.quotes.approval_rate_pct ?? 0;
+  const followupEffectiveness = data?.followup.effectiveness_rate_pct ?? 0;
+  const queueBacklog = data?.queue.backlog ?? data?.queue.pending ?? 0;
+  const transcriptBacklog = data?.queue.transcript_inbox ?? 0;
+  const transcriptLinkage = data?.transcripts.linkage_rate_pct ?? 0;
 
   return (
     <div className="pw">
       <div className="ph">
         <div className="eyebrow">System Performance</div>
         <div className="ptitle">Analytics</div>
-        <div className="psub">Last {days} days · All trades</div>
+        <div className="psub">Last {days} days · Contractor operations</div>
       </div>
 
       <div className="tabrow">
@@ -53,10 +52,30 @@ export function AnalyticsPage() {
         <>
           <div className="sstrip c4 ani" style={{ marginBottom: 14 }}>
             {[
-              { k: "Quotes Sent", v: String(data.quotes.generated), delta: `${data.quotes.approval_rate_pct}% approval rate`, dir: data.quotes.approval_rate_pct >= 60 ? "up" : "flat" },
-              { k: "Approval Rate", v: `${data.quotes.approval_rate_pct}%`, delta: `${data.quotes.approved + data.quotes.edited} approved/edit`, dir: data.quotes.approval_rate_pct >= 60 ? "up" : "flat" },
-              { k: "Avg Quote", v: formatCurrency(data.quotes.avg_quote_value), delta: `${data.quotes.memory_updates} memory updates`, dir: data.quotes.memory_updates > 0 ? "up" : "flat" },
-              { k: "Runtime", v: `${data.runtime.avg_node_latency_ms}ms`, delta: `${data.runtime.trace_error_rate_pct}% error rate`, dir: data.runtime.trace_error_rate_pct > 5 ? "dn" : "up" },
+              {
+                k: "Quote Turnaround",
+                v: `${quoteTurnaroundMinutes}m`,
+                delta: `${data.quotes.generated} quotes generated`,
+                dir: quoteTurnaroundMinutes > 0 && quoteTurnaroundMinutes <= 60 ? "up" : "flat",
+              },
+              {
+                k: "Quote Conversion",
+                v: `${quoteConversion}%`,
+                delta: `${data.quotes.approved + data.quotes.edited} approved or edited`,
+                dir: quoteConversion >= 60 ? "up" : "flat",
+              },
+              {
+                k: "Follow-up",
+                v: `${followupEffectiveness}%`,
+                delta: `${data.followup.active} active sequences`,
+                dir: followupEffectiveness >= 50 ? "up" : "flat",
+              },
+              {
+                k: "Queue Backlog",
+                v: String(queueBacklog),
+                delta: `${transcriptBacklog} transcript inbox`,
+                dir: queueBacklog > 10 ? "dn" : "flat",
+              },
             ].map((stat) => (
               <div className="scell" key={stat.k}>
                 <div className="sk">{stat.k}</div>
@@ -68,35 +87,36 @@ export function AnalyticsPage() {
 
           <div className="g2 ani a1" style={{ gap: 14, marginBottom: 14 }}>
             <div className="panel">
-              <div className="ph2"><span className="ptl">Weekly Activity</span></div>
-              <div className="pb">
-                <div className="bchart">
-                  {flowEntries.length === 0 ? (
-                    <div style={{ fontSize: 12, color: "var(--steel)" }}>No runtime flow data yet.</div>
-                  ) : (
-                    flowEntries.map(([flow, count], index) => (
-                      <div
-                        key={flow}
-                        className={`bbar ${index === 0 ? "peak" : ""}`}
-                        style={{ height: `${Math.max(18, Math.round((count / peakFlow) * 100))}%` }}
-                        title={`${flow}: ${count}`}
-                      />
-                    ))
-                  )}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 6, letterSpacing: "0.5px" }}>
-                  {flowEntries.slice(0, 7).map(([flow]) => <span key={flow}>{flow.slice(0, 1).toUpperCase()}</span>)}
-                </div>
+              <div className="ph2"><span className="ptl">Queue Pressure</span></div>
+              <div className="pb vs" style={{ gap: 12 }}>
+                {[
+                  { label: "Job-backed drafts", value: queueBacklog, pct: Math.min(100, queueBacklog * 10), color: "var(--amber-hot)" },
+                  { label: "Transcript inbox", value: transcriptBacklog, pct: Math.min(100, transcriptBacklog * 20), color: "var(--blue-hi)" },
+                  { label: "Owner updates", value: data.queue.by_type["owner-update"] ?? 0, pct: Math.min(100, (data.queue.by_type["owner-update"] ?? 0) * 20), color: "var(--green-hi)" },
+                ].map((row) => (
+                  <div key={row.label}>
+                    <div className="sp" style={{ marginBottom: 5 }}>
+                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px", textTransform: "uppercase" }}>{row.label}</span>
+                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 10, color: row.color }}>{row.value}</span>
+                    </div>
+                    <div className="pt"><div className="pf" style={{ width: `${row.pct}%`, background: row.color }} /></div>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="panel">
-              <div className="ph2"><span className="ptl">Queue Outcomes</span></div>
+              <div className="ph2"><span className="ptl">Transcript Intake</span></div>
               <div className="pb vs" style={{ gap: 12 }}>
                 {[
-                  { label: "Approved", value: data.queue.approved, pct: data.queue.pending + data.queue.approved + data.queue.edited + data.queue.discarded > 0 ? Math.round((data.queue.approved / Math.max(1, data.queue.pending + data.queue.approved + data.queue.edited + data.queue.discarded)) * 100) : 0, color: "var(--green-hi)" },
-                  { label: "Edited", value: data.queue.edited, pct: data.queue.pending + data.queue.approved + data.queue.edited + data.queue.discarded > 0 ? Math.round((data.queue.edited / Math.max(1, data.queue.pending + data.queue.approved + data.queue.edited + data.queue.discarded)) * 100) : 0, color: "var(--amber-hot)" },
-                  { label: "Discarded", value: data.queue.discarded, pct: data.queue.pending + data.queue.approved + data.queue.edited + data.queue.discarded > 0 ? Math.round((data.queue.discarded / Math.max(1, data.queue.pending + data.queue.approved + data.queue.edited + data.queue.discarded)) * 100) : 0, color: "var(--red-hi)" },
+                  { label: "Ingested", value: data.transcripts.ingested, pct: 100, color: "var(--amber-hot)" },
+                  { label: "Linked", value: data.transcripts.linked, pct: transcriptLinkage, color: "var(--green-hi)" },
+                  {
+                    label: "Estimate requests",
+                    value: data.transcripts.estimate_requests,
+                    pct: data.transcripts.ingested > 0 ? Math.round((data.transcripts.estimate_requests / data.transcripts.ingested) * 100) : 0,
+                    color: "var(--blue-hi)",
+                  },
                 ].map((row) => (
                   <div key={row.label}>
                     <div className="sp" style={{ marginBottom: 5 }}>
@@ -111,7 +131,7 @@ export function AnalyticsPage() {
           </div>
 
           <div className="panel ani a2" style={{ marginBottom: 14 }}>
-            <div className="ph2"><span className="ptl">Delivery + Runtime</span></div>
+            <div className="ph2"><span className="ptl">Operational Signals</span></div>
             <table className="lit" style={{ width: "100%" }}>
               <thead>
                 <tr>
@@ -123,48 +143,49 @@ export function AnalyticsPage() {
               </thead>
               <tbody>
                 <tr>
-                  <td>Quote delivery sent</td>
-                  <td>{data.delivery.sent}</td>
-                  <td>{Object.keys(data.delivery.channel_breakdown).length} channels</td>
-                  <td>{data.delivery.failed === 0 ? "Stable" : "Watch"}</td>
+                  <td>Quote conversion</td>
+                  <td>{quoteConversion}%</td>
+                  <td>{data.quotes.approved + data.quotes.edited} approved or edited</td>
+                  <td>{quoteConversion >= 60 ? "Healthy" : "Watch"}</td>
                 </tr>
                 <tr>
                   <td>Quote delivery failed</td>
                   <td>{data.delivery.failed}</td>
-                  <td>Retry on provider failure</td>
+                  <td>{data.delivery.sent} deliveries sent</td>
                   <td>{data.delivery.failed > 0 ? "Risk" : "Clear"}</td>
                 </tr>
                 <tr>
-                  <td>Updates ingested</td>
-                  <td>{data.updates.ingested}</td>
-                  <td>{data.updates.drafts_suggested} drafts suggested</td>
-                  <td>{data.updates.ingested > 0 ? "Live" : "Idle"}</td>
+                  <td>Follow-up effectiveness</td>
+                  <td>{followupEffectiveness}%</td>
+                  <td>{data.followup.reminders_sent} reminders sent</td>
+                  <td>{followupEffectiveness >= 50 ? "Healthy" : "Watch"}</td>
                 </tr>
                 <tr>
-                  <td>Trace rows</td>
-                  <td>{data.runtime.trace_rows}</td>
-                  <td>{data.runtime.trace_errors} errors</td>
-                  <td>{data.runtime.trace_error_rate_pct > 5 ? "Watch" : "Healthy"}</td>
+                  <td>Transcript linkage</td>
+                  <td>{transcriptLinkage}%</td>
+                  <td>{data.transcripts.unlinked} still need routing</td>
+                  <td>{transcriptLinkage >= 70 ? "Healthy" : "Watch"}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <div className="panel ani a3">
-            <div className="ph2 sp"><span className="ptl">Estimating Memory</span><span className="tag tb">{data.quotes.memory_updates} UPDATES</span></div>
+            <div className="ph2 sp"><span className="ptl">Runtime Health</span><span className="tag tb">{data.runtime.trace_rows} TRACES</span></div>
             <div className="pb">
-              <div className="pt" style={{ height: 7, marginBottom: 10 }}><div className="pf" style={{ width: `${Math.min(100, data.quotes.approval_rate_pct)}%`, background: "var(--blue-hi)" }} /></div>
+              <div className="pt" style={{ height: 7, marginBottom: 10 }}><div className="pf" style={{ width: `${Math.max(4, 100 - Math.min(100, data.runtime.trace_error_rate_pct * 10))}%`, background: "var(--blue-hi)" }} /></div>
               <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", lineHeight: 1.9, letterSpacing: "0.5px" }}>
-                MEMORY UPDATES TRACK APPROVED + EDITED QUOTES<br />
-                QUEUE OUTCOMES SHOW WHETHER DRAFTS ARE ACTUALLY USABLE<br />
-                TRACE ROWS EXPOSE RUNTIME HEALTH UNDER LOAD
+                TRACE ROWS SHOW WORKFLOW HEALTH UNDER LOAD<br />
+                QUEUE PRESSURE SHOWS WHERE CONTRACTOR REVIEW IS BACKING UP<br />
+                TRANSCRIPT LINKAGE SHOWS HOW OFTEN CALLS TURN INTO ACTIONABLE WORK<br />
+                AVERAGE QUOTE VALUE THIS WINDOW: {formatCurrency(data.quotes.avg_quote_value)}
               </div>
             </div>
           </div>
 
           {data.warnings.length > 0 ? (
             <div className="alert awarn" style={{ marginTop: 14 }}>
-              <span>?</span>
+              <span>!</span>
               <div>
                 <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>PARTIAL ANALYTICS</strong>
                 <div style={{ marginTop: 3 }}>{data.warnings.join(" ")}</div>
@@ -176,4 +197,3 @@ export function AnalyticsPage() {
     </div>
   );
 }
-

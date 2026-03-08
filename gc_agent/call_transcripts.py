@@ -6,8 +6,14 @@ from typing import Any
 from uuid import uuid4
 
 from gc_agent.db import queries
-from gc_agent.db.queries import DatabaseError
+from gc_agent.db.queries import (
+    DatabaseError,
+    _normalize_transcript_classification as _normalize_classification,
+    _normalize_transcript_urgency as _normalize_urgency,
+    _string_list,
+)
 from gc_agent.input_surface import InboundInput, to_agent_state
+from gc_agent.nodes.draft_actions import draft_actions
 from gc_agent.nodes.flag_risks import flag_risks
 from gc_agent.nodes.parse_call_transcript import parse_call_transcript
 from gc_agent.nodes.parse_update import parse_update
@@ -55,40 +61,6 @@ def _merge_unique(items: list[str], extras: list[str]) -> list[str]:
         seen.add(lowered)
         result.append(normalized)
     return result
-
-
-def _string_list(value: Any) -> list[str]:
-    """Normalize a JSON array into trimmed string values."""
-    if not isinstance(value, list):
-        return []
-    normalized: list[str] = []
-    for raw in value:
-        item = str(raw).strip()
-        if item:
-            normalized.append(item)
-    return normalized
-
-
-def _normalize_classification(value: Any) -> str:
-    """Clamp transcript classification values to the supported enum."""
-    normalized = str(value or "").strip().lower()
-    valid = {
-        "estimate_request",
-        "quote_question",
-        "job_update",
-        "reschedule",
-        "complaint_or_issue",
-        "followup_response",
-        "vendor_or_subcontractor",
-        "unknown",
-    }
-    return normalized if normalized in valid else "unknown"
-
-
-def _normalize_urgency(value: Any) -> str:
-    """Clamp transcript urgency values to the supported enum."""
-    normalized = str(value or "").strip().lower()
-    return normalized if normalized in {"low", "normal", "high"} else "normal"
 
 
 def _job_name_for_id(jobs: list[Job], job_id: str) -> str:
@@ -144,6 +116,39 @@ def _build_review_draft(
     )
 
 
+async def _ensure_review_draft(
+    *,
+    gc_id: str,
+    transcript_record: dict[str, Any],
+    analysis: CallTranscriptAnalysis,
+    state: AgentState,
+    jobs: list[Job],
+) -> list[str]:
+    """Ensure one transcript-review draft exists once a transcript is linked to a job."""
+    linked_job_id = str(transcript_record.get("job_id", "")).strip() or state.active_job_id.strip()
+    if not linked_job_id:
+        return []
+
+    existing_ids = await queries.get_related_transcript_review_draft_ids(
+        gc_id,
+        job_id=linked_job_id,
+        trace_id=str(transcript_record.get("trace_id", "")).strip() or state.trace_id,
+        transcript_id=str(transcript_record.get("id", "")).strip(),
+    )
+    if existing_ids:
+        return existing_ids
+
+    review_draft = _build_review_draft(
+        analysis=analysis,
+        transcript_id=str(transcript_record.get("id", "")).strip(),
+        state=state.model_copy(update={"active_job_id": linked_job_id}),
+        job_name=_job_name_for_id(jobs, linked_job_id),
+        linked_quote_id=str(transcript_record.get("quote_id", "")).strip(),
+    )
+    await queries.insert_drafts([review_draft], gc_id)
+    return [review_draft.id]
+
+
 async def _resolve_context(
     payload: InboundInput,
     gc_id: str,
@@ -177,6 +182,17 @@ async def _resolve_context(
                 linked_job_id = str(recent_match.get("job_id", "")).strip()
                 caller_name = caller_name or str(recent_match.get("recipient_name", "")).strip()
                 match_source = "recent_quote_delivery"
+
+    if not linked_job_id and not linked_quote_id:
+        normalized_phone = _normalize_phone(payload.from_number.strip())
+        if normalized_phone:
+            recent_transcript = await queries.find_recent_call_transcript_match(gc_id, normalized_phone)
+            if recent_transcript is not None:
+                linked_quote_id = str(recent_transcript.get("quote_id", "")).strip()
+                linked_job_id = str(recent_transcript.get("job_id", "")).strip()
+                caller_name = caller_name or str(recent_transcript.get("caller_name", "")).strip()
+                if linked_job_id or linked_quote_id:
+                    match_source = "recent_transcript_history"
 
     return linked_job_id, linked_quote_id, caller_name, match_source
 
@@ -370,33 +386,28 @@ async def get_transcript_quote_prefill(transcript_id: str, gc_id: str) -> Transc
     if record is None:
         return None
 
-    extracted_json = record.get("extracted_json") if isinstance(record.get("extracted_json"), dict) else {}
-    classification = str(record.get("classification", "")).strip() or "unknown"
+    analysis = _analysis_from_record(record)
     customer_name = str(record.get("caller_name", "")).strip()
     prefill = TranscriptQuotePrefill(
         transcript_id=str(record.get("id", "")).strip(),
         trace_id=str(record.get("trace_id", "")).strip(),
-        classification=_normalize_classification(classification),
-        confidence=record.get("confidence") if isinstance(record.get("confidence"), (int, float)) else None,
-        summary=str(record.get("summary", "")).strip() or "Manual transcript review needed.",
-        urgency=_normalize_urgency(extracted_json.get("urgency")),
+        classification=analysis.classification,
+        confidence=analysis.confidence,
+        summary=analysis.summary,
+        urgency=analysis.urgency,
         caller_name=customer_name,
         caller_phone=str(record.get("caller_phone", "")).strip(),
         linked_job_id=str(record.get("job_id", "")).strip(),
         linked_quote_id=str(record.get("quote_id", "")).strip(),
         customer_name=customer_name,
-        job_type=str(extracted_json.get("job_type", "")).strip(),
-        scope_items=_string_list(extracted_json.get("scope_items")),
-        customer_questions=_string_list(extracted_json.get("customer_questions")),
-        insurance_involved=(
-            extracted_json.get("insurance_involved")
-            if isinstance(extracted_json.get("insurance_involved"), bool)
-            else None
-        ),
-        missing_information=_string_list(extracted_json.get("missing_information")),
-        recommended_actions=_string_list(record.get("recommended_actions")),
-        scheduling_notes=_string_list(extracted_json.get("scheduling_notes")),
-        estimate_related=classification in ESTIMATE_RELATED_TRANSCRIPT_CLASSES,
+        job_type=analysis.job_type or "",
+        scope_items=list(analysis.scope_items),
+        customer_questions=list(analysis.customer_questions),
+        insurance_involved=analysis.insurance_involved,
+        missing_information=list(analysis.missing_information),
+        recommended_actions=list(analysis.next_actions),
+        scheduling_notes=list(analysis.scheduling_notes),
+        estimate_related=analysis.classification in ESTIMATE_RELATED_TRANSCRIPT_CLASSES,
     )
     return prefill.model_copy(update={"quote_input": _build_quote_input(prefill, str(record.get("transcript_text", "")))})
 
@@ -470,16 +481,14 @@ async def process_call_transcript(payload: InboundInput, gc_id: str, trace_id: s
         )
         if existing_job_id and not created_draft_ids:
             analysis = _analysis_from_record(existing_record)
-            review_draft = _build_review_draft(
-                analysis=analysis,
-                transcript_id=str(existing_record.get("id", "")).strip(),
-                state=state.model_copy(update={"active_job_id": existing_job_id}),
-                job_name=_job_name_for_id(jobs, existing_job_id),
-                linked_quote_id=existing_quote_id,
-            )
             try:
-                await queries.insert_drafts([review_draft], gc_id)
-                created_draft_ids = [review_draft.id]
+                created_draft_ids = await _ensure_review_draft(
+                    gc_id=gc_id,
+                    transcript_record=existing_record,
+                    analysis=analysis,
+                    state=state.model_copy(update={"active_job_id": existing_job_id}),
+                    jobs=jobs,
+                )
                 await queries.update_call_transcript(
                     str(existing_record.get("id", "")).strip(),
                     gc_id,
@@ -632,17 +641,19 @@ async def process_call_transcript(payload: InboundInput, gc_id: str, trace_id: s
 
     created_draft_ids: list[str] = []
     if linked_job_id:
-        job_name = _job_name_for_id(jobs, linked_job_id)
-        review_draft = _build_review_draft(
-            analysis=analysis,
-            transcript_id=transcript_id,
-            state=state,
-            job_name=job_name,
-            linked_quote_id=linked_quote_id,
-        )
         try:
-            await queries.insert_drafts([review_draft], gc_id)
-            created_draft_ids.append(review_draft.id)
+            created_draft_ids = await _ensure_review_draft(
+                gc_id=gc_id,
+                transcript_record={
+                    "id": transcript_id,
+                    "job_id": linked_job_id,
+                    "quote_id": linked_quote_id,
+                    "trace_id": trace_id,
+                },
+                analysis=analysis,
+                state=state,
+                jobs=jobs,
+            )
         except DatabaseError as exc:
             errors.append(f"queue draft creation failed: {exc}")
             _record_trace_event(
@@ -677,4 +688,133 @@ async def process_call_transcript(payload: InboundInput, gc_id: str, trace_id: s
     ).model_dump(mode="json")
 
 
-__all__ = ["process_call_transcript", "get_transcript_quote_prefill"]
+async def link_transcript_to_job(transcript_id: str, gc_id: str, job_id: str) -> dict[str, Any] | None:
+    """Link a persisted transcript to a job and create a review draft if needed."""
+    transcript = await queries.get_call_transcript_by_id(transcript_id, gc_id)
+    if transcript is None:
+        return None
+
+    jobs = await queries.get_active_jobs(gc_id)
+    linked_job = next((job for job in jobs if job.id == job_id.strip()), None)
+    if linked_job is None:
+        raise DatabaseError("job_id not found")
+
+    metadata = dict(transcript.get("metadata") or {})
+    metadata["review_state"] = "pending"
+    metadata["match_source"] = metadata.get("match_source") or "manual_link"
+    await queries.update_call_transcript(
+        transcript_id,
+        gc_id,
+        job_id=linked_job.id,
+        metadata=metadata,
+    )
+    transcript = await queries.get_call_transcript_by_id(transcript_id, gc_id)
+    if transcript is None:
+        return None
+
+    analysis = _analysis_from_record(transcript)
+    created_draft_ids = await _ensure_review_draft(
+        gc_id=gc_id,
+        transcript_record=transcript,
+        analysis=analysis,
+        state=AgentState(
+            mode="transcript",
+            input_type="voice",
+            raw_input=str(transcript.get("transcript_text", "")).strip(),
+            gc_id=gc_id,
+            active_job_id=linked_job.id,
+            jobs=jobs,
+            trace_id=str(transcript.get("trace_id", "")).strip(),
+            from_number=str(transcript.get("caller_phone", "")).strip(),
+        ),
+        jobs=jobs,
+    )
+    if created_draft_ids:
+        metadata["created_draft_ids"] = created_draft_ids
+        await queries.update_call_transcript(transcript_id, gc_id, metadata=metadata)
+
+    return {
+        "transcript_id": transcript_id,
+        "job_id": linked_job.id,
+        "job_name": linked_job.name,
+        "created_draft_ids": created_draft_ids,
+    }
+
+
+async def mark_transcript_reviewed(transcript_id: str, gc_id: str) -> dict[str, Any] | None:
+    """Mark an unlinked transcript inbox item as reviewed."""
+    return await queries.set_call_transcript_review_state(transcript_id, gc_id, "reviewed")
+
+
+async def discard_transcript(transcript_id: str, gc_id: str) -> dict[str, Any] | None:
+    """Mark an unlinked transcript inbox item as discarded."""
+    return await queries.set_call_transcript_review_state(
+        transcript_id,
+        gc_id,
+        "discarded",
+        extra_metadata={"discarded_reason": "manual_queue_discard"},
+    )
+
+
+async def log_transcript_as_update(transcript_id: str, gc_id: str) -> dict[str, Any] | None:
+    """Parse a linked transcript as an operational update and write update-log + queue outputs."""
+    transcript = await queries.get_call_transcript_by_id(transcript_id, gc_id)
+    if transcript is None:
+        return None
+
+    linked_job_id = str(transcript.get("job_id", "")).strip()
+    if not linked_job_id:
+        raise DatabaseError("transcript must be linked to a job before logging as update")
+
+    jobs = await queries.get_active_jobs(gc_id)
+    state = AgentState(
+        mode="update",
+        input_type="voice",
+        raw_input=str(transcript.get("transcript_text", "")).strip(),
+        from_number=str(transcript.get("caller_phone", "")).strip(),
+        gc_id=gc_id,
+        jobs=jobs,
+        active_job_id=linked_job_id,
+        trace_id=str(transcript.get("trace_id", "")).strip() or uuid4().hex,
+        thread_id=str(transcript.get("call_id", "")).strip() or str(transcript.get("id", "")).strip(),
+    )
+    parse_result = await _PARSE_UPDATE(state)
+    parsed_intent = parse_result.get("parsed_intent")
+    errors = [str(item).strip() for item in parse_result.get("errors", []) if str(item).strip()]
+    if parsed_intent is not None:
+        state = state.model_copy(update={"parsed_intent": parsed_intent})
+        risk_result = await _FLAG_RISKS(state)
+        state = state.model_copy(
+            update={
+                "risk_flags": [str(item).strip() for item in risk_result.get("risk_flags", []) if str(item).strip()],
+                "errors": errors + [str(item).strip() for item in risk_result.get("errors", []) if str(item).strip()],
+            }
+        )
+    else:
+        state = state.model_copy(update={"errors": errors})
+
+    draft_result = await draft_actions(state)
+    created_draft_ids = [draft.id for draft in draft_result.get("drafts_created", []) if isinstance(draft, Draft)]
+    metadata = dict(transcript.get("metadata") or {})
+    metadata["review_state"] = "logged_update"
+    metadata["logged_update_trace_id"] = state.trace_id
+    metadata["logged_update_draft_ids"] = created_draft_ids
+    await queries.update_call_transcript(transcript_id, gc_id, metadata=metadata)
+
+    return {
+        "transcript_id": transcript_id,
+        "job_id": linked_job_id,
+        "trace_id": state.trace_id,
+        "created_draft_ids": created_draft_ids,
+        "errors": state.errors,
+    }
+
+
+__all__ = [
+    "process_call_transcript",
+    "get_transcript_quote_prefill",
+    "link_transcript_to_job",
+    "mark_transcript_reviewed",
+    "discard_transcript",
+    "log_transcript_as_update",
+]

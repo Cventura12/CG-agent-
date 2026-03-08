@@ -65,8 +65,13 @@ async def test_internal_queue_serializes_transcript_review_drafts(monkeypatch: p
             )
         ]
 
+    async def _fake_list_unlinked_transcript_inbox(_: str, limit: int = 25) -> list[dict[str, object]]:
+        assert limit == 25
+        return []
+
     monkeypatch.setattr(queue_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
     monkeypatch.setattr(queue_module.queries, "get_queued_drafts", _fake_get_queued_drafts)
+    monkeypatch.setattr(queue_module.queries, "list_unlinked_transcript_inbox", _fake_list_unlinked_transcript_inbox)
 
     _, client = _build_test_client()
     async with client:
@@ -76,6 +81,7 @@ async def test_internal_queue_serializes_transcript_review_drafts(monkeypatch: p
     payload = response.json()
     assert payload["success"] is True
     draft = payload["data"]["jobs"][0]["drafts"][0]
+    assert payload["data"]["inbox"]["transcripts"] == []
     assert draft["type"] == "transcript-review"
     assert draft["transcript"]["transcript_id"] == "ct-1"
     assert draft["transcript"]["caller_label"] == "Taylor Brooks - +14235550101"
@@ -135,8 +141,13 @@ async def test_internal_queue_serializes_transcript_and_standard_drafts_together
             ),
         ]
 
+    async def _fake_list_unlinked_transcript_inbox(_: str, limit: int = 25) -> list[dict[str, object]]:
+        assert limit == 25
+        return []
+
     monkeypatch.setattr(queue_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
     monkeypatch.setattr(queue_module.queries, "get_queued_drafts", _fake_get_queued_drafts)
+    monkeypatch.setattr(queue_module.queries, "list_unlinked_transcript_inbox", _fake_list_unlinked_transcript_inbox)
 
     _, client = _build_test_client()
     async with client:
@@ -150,3 +161,57 @@ async def test_internal_queue_serializes_transcript_and_standard_drafts_together
     assert drafts[0]["transcript"]["transcript_id"] == "ct-1"
     assert drafts[1]["type"] == "owner-update"
     assert drafts[1]["transcript"] is None
+
+
+@pytest.mark.asyncio
+async def test_internal_queue_serializes_unlinked_transcript_inbox(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _fake_get_gc_by_clerk_user_id(_: str) -> str | None:
+        return "00000000-0000-0000-0000-000000000001"
+
+    async def _fake_get_queued_drafts(_: str) -> list[Draft]:
+        return []
+
+    async def _fake_list_unlinked_transcript_inbox(_: str, limit: int = 25) -> list[dict[str, object]]:
+        assert limit == 25
+        return [
+            {
+                "transcript_id": "ct-inbox-1",
+                "trace_id": "trace-inbox-1",
+                "caller_label": "Taylor Brooks - +14235550101",
+                "caller_phone": "+14235550101",
+                "source": "call_transcript",
+                "provider": "twilio",
+                "summary": "Caller needs a first-pass estimate before Friday.",
+                "classification": "estimate_request",
+                "urgency": "high",
+                "confidence": 88,
+                "recommended_actions": ["Create quote draft"],
+                "risk_flags": ["Tight turnaround"],
+                "missing_information": ["Exact square footage"],
+                "transcript_text": "Can you send me a first-pass estimate before Friday?",
+                "linked_quote_id": "",
+                "related_queue_item_ids": [],
+                "created_at": "2026-03-06T12:00:00+00:00",
+                "recording_url": "",
+                "started_at": None,
+                "duration_seconds": 90,
+                "match_source": "",
+                "review_state": "pending",
+            }
+        ]
+
+    monkeypatch.setattr(queue_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
+    monkeypatch.setattr(queue_module.queries, "get_queued_drafts", _fake_get_queued_drafts)
+    monkeypatch.setattr(queue_module.queries, "list_unlinked_transcript_inbox", _fake_list_unlinked_transcript_inbox)
+
+    _, client = _build_test_client()
+    async with client:
+        response = await client.get("/api/v1/queue")
+
+    assert response.status_code == 200
+    payload = response.json()
+    inbox_item = payload["data"]["inbox"]["transcripts"][0]
+    assert payload["data"]["jobs"] == []
+    assert inbox_item["transcript_id"] == "ct-inbox-1"
+    assert inbox_item["summary"] == "Caller needs a first-pass estimate before Friday."
+    assert inbox_item["classification"] == "estimate_request"

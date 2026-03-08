@@ -18,6 +18,7 @@ from gc_agent.db.queries import DatabaseError
 from gc_agent.email_delivery import send_email_message
 from gc_agent.nodes.followup_trigger import ensure_quote_followup, stop_quote_followup
 from gc_agent.nodes.send_and_track import send_and_track
+from gc_agent.spreadsheet_export import build_quote_xlsx
 from gc_agent.nodes.update_memory import build_prompt_tuning_signals, update_memory
 from gc_agent.state import AgentState, Draft
 from gc_agent.telemetry import write_agent_trace
@@ -331,7 +332,7 @@ async def _create_quote_response(
         )
 
     quote_id = session_id.strip() or str(uuid4())
-    estimate_confidence = _estimate_confidence(state)
+    estimate_confidence = _estimate_confidence(state, transcript_record=transcript_record)
     assumptions_raw = state.materials.get("assumptions")
     assumptions = (
         [str(item).strip() for item in assumptions_raw if str(item).strip()]
@@ -421,6 +422,11 @@ async def _create_quote_response(
         "quote_draft": quote_draft,
         "rendered_quote": state.rendered_quote,
         "estimate_confidence": estimate_confidence,
+        "review_required": bool(estimate_confidence.get("review_required", True)),
+        "send_blocked": bool(estimate_confidence.get("send_blocked", True)),
+        "blocking_reasons": list(estimate_confidence.get("blocking_reasons", [])),
+        "missing_information": list(estimate_confidence.get("missing_information", [])),
+        "evidence_signals": list(estimate_confidence.get("evidence_signals", [])),
         "assumptions": assumptions,
         "clarification_questions": clarification_questions,
         "cold_start": cold_start,
@@ -430,7 +436,7 @@ async def _create_quote_response(
     }
 
 
-def _estimate_confidence(state: AgentState) -> dict[str, Any]:
+def _estimate_confidence(state: AgentState, *, transcript_record: dict[str, Any] | None = None) -> dict[str, Any]:
     """Compute user-facing estimate confidence based on extraction/data completeness."""
     extraction_conf = str(state.job_scope.get("extraction_confidence", "medium")).strip().lower()
     if extraction_conf not in {"high", "medium", "low"}:
@@ -448,29 +454,74 @@ def _estimate_confidence(state: AgentState) -> dict[str, Any]:
         if isinstance(missing_prices_raw, list)
         else []
     )
+    transcript_missing = []
+    transcript_extracted = (
+        transcript_record.get("extracted_json")
+        if isinstance(transcript_record, dict) and isinstance(transcript_record.get("extracted_json"), dict)
+        else {}
+    )
+    transcript_missing_raw = transcript_extracted.get("missing_information") if isinstance(transcript_extracted, dict) else []
+    if isinstance(transcript_missing_raw, list):
+        transcript_missing = [str(item).strip() for item in transcript_missing_raw if str(item).strip()]
+
+    pricing_context = state.memory_context.get("pricing_context")
+    pricing_context_count = len(pricing_context) if isinstance(pricing_context, dict) else 0
+    similar_jobs = state.memory_context.get("similar_jobs")
+    similar_job_count = len(similar_jobs) if isinstance(similar_jobs, list) else 0
 
     base_score = {"high": 88, "medium": 70, "low": 52}[extraction_conf]
     score = base_score
     score -= min(len(missing_fields) * 5, 25)
     score -= min(len(missing_prices) * 4, 20)
+    score -= min(len(transcript_missing) * 3, 12)
     if state.clarification_needed:
         score -= 8
     if state.errors:
         score -= 12
+    if pricing_context_count >= 2:
+        score += 6
+    if similar_job_count >= 1:
+        score += 4
     score = max(10, min(score, 98))
 
     level = "high" if score >= 80 else "medium" if score >= 60 else "low"
     reasons: list[str] = [f"Extraction confidence from field input: {extraction_conf}."]
+    evidence_signals: list[str] = []
+    if pricing_context_count:
+        evidence_signals.append(f"Contractor pricing context matched {pricing_context_count} pricing signals.")
+    if similar_job_count:
+        evidence_signals.append(f"Historical memory found {similar_job_count} comparable job example(s).")
+    if transcript_record:
+        evidence_signals.append("Estimate request was linked to a stored call transcript.")
     if missing_fields:
         reasons.append(f"Missing scope fields: {', '.join(missing_fields[:4])}.")
     if missing_prices:
         reasons.append(f"Missing price inputs: {', '.join(missing_prices[:4])}.")
+    if transcript_missing:
+        reasons.append(f"Transcript left open details: {', '.join(transcript_missing[:4])}.")
     if state.clarification_needed:
         reasons.append("Clarification questions are still open.")
     if state.errors:
         reasons.append("One or more node errors were recorded during generation.")
     if len(reasons) == 1:
         reasons.append("Key scope and pricing inputs were available.")
+    if not evidence_signals:
+        evidence_signals.append("Estimate relies primarily on current field input and contractor defaults.")
+
+    missing_information = []
+    for item in [*missing_fields, *missing_prices, *transcript_missing, *state.clarification_questions]:
+        normalized = str(item).strip()
+        if normalized and normalized not in missing_information:
+            missing_information.append(normalized)
+
+    review_required = level != "high" or bool(missing_information) or bool(state.errors) or state.clarification_needed
+    blocking_reasons = []
+    if review_required:
+        blocking_reasons.append("Approve or edit the quote before sending it to the customer.")
+    if missing_information:
+        blocking_reasons.append("Confirm the missing job details before treating this quote as final.")
+    if state.errors:
+        blocking_reasons.append("Generation recorded runtime errors. Review the draft carefully.")
 
     return {
         "level": level,
@@ -479,6 +530,11 @@ def _estimate_confidence(state: AgentState) -> dict[str, Any]:
         "missing_fields": missing_fields,
         "missing_prices": missing_prices,
         "reasons": reasons,
+        "review_required": review_required,
+        "send_blocked": review_required,
+        "blocking_reasons": blocking_reasons,
+        "missing_information": missing_information,
+        "evidence_signals": evidence_signals,
     }
 
 
@@ -624,6 +680,45 @@ async def get_quote_pdf(
     )
 
 
+@router.get("/quote/{quote_id}/export/xlsx")
+async def export_quote_xlsx(
+    quote_id: str,
+    contractor_id: str = Query(..., min_length=1),
+) -> Response:
+    """Render and return a stored quote draft as an XLSX document."""
+    try:
+        record = await queries.get_quote_draft_record(quote_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="quote_id not found")
+
+    if str(record.get("gc_id", "")).strip() != contractor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="quote does not belong to contractor")
+
+    quote_source = _select_quote_source(record, context="xlsx_export")
+    xlsx_bytes = build_quote_xlsx(
+        quote_id,
+        quote_source,
+        approval_status=str(record.get("approval_status", "")).strip(),
+        trace_id=str(record.get("trace_id", "")).strip(),
+    )
+    filename = f"gc-agent-quote-{quote_id}.xlsx"
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+            "X-GC-Trace-Id": str(record.get("trace_id", "")).strip(),
+        },
+    )
+
+
 @router.get("/quote/{quote_id}/delivery")
 async def get_quote_delivery(
     quote_id: str,
@@ -762,6 +857,12 @@ async def send_quote_to_client(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="quote_id not found")
     if str(record.get("gc_id", "")).strip() != payload.contractor_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="quote does not belong to contractor")
+    approval_status = str(record.get("approval_status", "")).strip().lower()
+    if approval_status not in {"approved", "edited"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Approve or edit the quote before sending it to the customer",
+        )
 
     channel = payload.channel.strip().lower()
     if channel not in {"whatsapp", "sms", "email"}:
@@ -1324,6 +1425,7 @@ __all__ = [
     "get_quote_delivery",
     "get_quote_followup",
     "get_quote_pdf",
+    "export_quote_xlsx",
     "graph",
     "health",
     "open_router",

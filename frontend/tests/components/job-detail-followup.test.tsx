@@ -27,6 +27,7 @@ vi.mock("../../src/api/jobs", () => ({
       open_items: [],
     },
     recent_updates: [],
+    call_history: [],
     audit_timeline: [],
     followup_state: {
       open_item_id: "followup-1",
@@ -54,6 +55,7 @@ vi.mock("../../src/hooks/useQueue", () => ({
     isLoading: false,
     data: {
       jobs: [],
+      inbox: { transcripts: [] },
     },
     dataUpdatedAt: 0,
   }),

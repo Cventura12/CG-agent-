@@ -112,6 +112,26 @@ export async function fetchQuotePdf(quoteId: string): Promise<Blob> {
   return new Blob([response.data], { type: "application/pdf" });
 }
 
+export async function fetchQuoteXlsx(quoteId: string): Promise<Blob> {
+  if (!betaApiKey) {
+    throw new Error("VITE_BETA_API_KEY is required for quote export requests");
+  }
+
+  const response = await publicApiClient.get<ArrayBuffer>(`/quote/${quoteId}/export/xlsx`, {
+    params: {
+      contractor_id: betaContractorId,
+    },
+    headers: {
+      "X-API-Key": betaApiKey,
+    },
+    responseType: "arraybuffer",
+  });
+
+  return new Blob([response.data], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+}
+
 export async function fetchQuoteDelivery(quoteId: string): Promise<QuoteDeliveryResponse> {
   if (!betaApiKey) {
     throw new Error("VITE_BETA_API_KEY is required for quote delivery history");

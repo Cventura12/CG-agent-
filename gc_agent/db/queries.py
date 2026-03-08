@@ -9,7 +9,15 @@ from typing import Any, Optional
 from uuid import uuid4
 
 from gc_agent.db.client import get_client
-from gc_agent.state import CallTranscriptRecord, Draft, DraftTranscriptContext, Job, OpenItem, ParsedIntent
+from gc_agent.state import (
+    CallTranscriptRecord,
+    Draft,
+    DraftTranscriptContext,
+    Job,
+    OpenItem,
+    ParsedIntent,
+    TranscriptInboxItem,
+)
 
 
 class DatabaseError(RuntimeError):
@@ -293,6 +301,12 @@ def _normalize_transcript_urgency(value: Any) -> str:
     return normalized if normalized in {"low", "normal", "high"} else "normal"
 
 
+def _normalize_transcript_review_state(value: Any) -> str:
+    """Clamp transcript review-state values used by inbox triage."""
+    normalized = str(value or "").strip().lower()
+    return normalized if normalized in {"pending", "reviewed", "discarded", "logged_update"} else "pending"
+
+
 def _build_draft_transcript_context(row: dict[str, Any]) -> DraftTranscriptContext:
     """Build queue-friendly transcript metadata from a transcript record row."""
     extracted_json = row.get("extracted_json") if isinstance(row.get("extracted_json"), dict) else {}
@@ -328,6 +342,37 @@ def _build_draft_transcript_context(row: dict[str, Any]) -> DraftTranscriptConte
         "duration_seconds": _optional_int(row.get("duration_seconds")),
     }
     return DraftTranscriptContext.model_validate(payload)
+
+
+def _build_transcript_inbox_item(row: dict[str, Any]) -> TranscriptInboxItem:
+    """Build one queue-inbox transcript payload from a persisted transcript record."""
+    context = _build_draft_transcript_context(row)
+    metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    payload = {
+        "transcript_id": context.transcript_id,
+        "trace_id": str(row.get("trace_id", "")).strip(),
+        "caller_label": context.caller_label,
+        "caller_phone": context.caller_phone,
+        "source": context.source,
+        "provider": context.provider,
+        "summary": context.summary or "Manual transcript review needed.",
+        "classification": context.classification,
+        "urgency": context.urgency,
+        "confidence": context.confidence,
+        "recommended_actions": list(context.recommended_actions),
+        "risk_flags": list(context.risk_flags),
+        "missing_information": list(context.missing_information),
+        "transcript_text": context.transcript_text,
+        "linked_quote_id": context.linked_quote_id,
+        "related_queue_item_ids": [],
+        "created_at": str(row.get("created_at", "")).strip() or None,
+        "recording_url": context.recording_url,
+        "started_at": context.started_at,
+        "duration_seconds": context.duration_seconds,
+        "match_source": str(metadata.get("match_source", "unlinked")).strip() or "unlinked",
+        "review_state": _normalize_transcript_review_state(metadata.get("review_state")),
+    }
+    return TranscriptInboxItem.model_validate(payload)
 
 
 def _transcript_summary_preview(summary: str, transcript_text: str, max_chars: int = 220) -> str:
@@ -1078,6 +1123,7 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
                         "trace_id": str(row.get("trace_id", "")).strip(),
                         "metadata": {
                             "input_type": str(row.get("input_type", "")).strip(),
+                            "raw_input": str(row.get("raw_input", "")).strip(),
                         },
                     }
                 )
@@ -1125,6 +1171,12 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
                             "quote_id": str(row.get("quote_id", "")).strip(),
                             "source": str(row.get("source", "")).strip(),
                             "provider": str(row.get("provider", "")).strip(),
+                            "transcript_text": str(row.get("transcript_text", "")).strip(),
+                            "risk_flags": _string_list(row.get("risk_flags")),
+                            "recommended_actions": _string_list(row.get("recommended_actions")),
+                            "missing_information": _string_list(extracted_json.get("missing_information")),
+                            "related_queue_item_ids": [],
+                            "recording_url": str(row.get("recording_url", "")).strip(),
                         },
                     }
                 )
@@ -1214,6 +1266,35 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
                             "metadata": {"quote_id": quote_id, "approval_status": approval_status},
                         }
                     )
+        except Exception:
+            pass
+
+        try:
+            followup_response = (
+                client.table("open_items")
+                .select("id,updated_at,status,description,trace_id,due_date")
+                .eq("gc_id", gc_value)
+                .eq("job_id", job_value)
+                .eq("type", "followup")
+                .order("updated_at", desc=True)
+                .limit(capped_limit)
+                .execute()
+            )
+            for row in list(followup_response.data or []):
+                events.append(
+                    {
+                        "id": f"followup-{str(row.get('id', '')).strip()}",
+                        "event_type": f"followup_{str(row.get('status', '')).strip().lower() or 'open'}",
+                        "timestamp": row.get("updated_at"),
+                        "title": "Follow-up updated",
+                        "summary": str(row.get("description", "")).strip() or "Quote follow-up status changed.",
+                        "trace_id": str(row.get("trace_id", "")).strip(),
+                        "metadata": {
+                            "status": str(row.get("status", "")).strip().lower(),
+                            "due_date": row.get("due_date"),
+                        },
+                    }
+                )
         except Exception:
             pass
 
@@ -1316,14 +1397,14 @@ async def get_usage_analytics(gc_id: str, window_days: int = 30) -> dict[str, An
 
         delivery_rows, delivery_error = _safe_rows(
             "quote_delivery_log",
-            "id,created_at,channel,delivery_status",
+            "id,quote_id,created_at,channel,delivery_status",
         )
         if delivery_error:
             warnings.append(delivery_error)
 
         queue_rows, queue_error = _safe_rows(
             "draft_queue",
-            "id,created_at,status,approval_status,was_edited",
+            "id,created_at,status,approval_status,was_edited,type",
         )
         if queue_error:
             warnings.append(queue_error)
@@ -1342,12 +1423,27 @@ async def get_usage_analytics(gc_id: str, window_days: int = 30) -> dict[str, An
         if trace_error:
             warnings.append(trace_error)
 
+        transcript_rows, transcript_error = _safe_rows_updated_at(
+            "call_transcripts",
+            "id,created_at,updated_at,job_id,quote_id,classification,trace_id",
+        )
+        if transcript_error:
+            warnings.append(transcript_error)
+
+        followup_rows, followup_error = _safe_rows_updated_at(
+            "open_items",
+            "id,updated_at,type,status,reminder_count,stop_reason,stopped_at,trace_id",
+        )
+        if followup_error:
+            warnings.append(followup_error)
+
         quotes_generated = len(quote_rows)
         quotes_approved = 0
         quotes_edited = 0
         quotes_discarded = 0
         memory_updates = 0
         quote_total_values: list[float] = []
+        quote_turnaround_minutes: list[float] = []
 
         for row in quote_rows:
             status = str(row.get("approval_status", "")).strip().lower()
@@ -1366,9 +1462,33 @@ async def get_usage_analytics(gc_id: str, window_days: int = 30) -> dict[str, An
                 if total > 0:
                     quote_total_values.append(total)
 
+            quote_id = str(row.get("id", "")).strip()
+            created_at = _parse_datetime(row.get("created_at"))
+            if quote_id and created_at is not None:
+                first_delivery = next(
+                    (
+                        delivery_row
+                        for delivery_row in delivery_rows
+                        if str(delivery_row.get("quote_id", "")).strip() == quote_id
+                        and _parse_datetime(delivery_row.get("created_at")) is not None
+                    ),
+                    None,
+                )
+                if first_delivery is not None:
+                    delivery_dt = _parse_datetime(first_delivery.get("created_at"))
+                    if delivery_dt is not None and delivery_dt >= created_at:
+                        quote_turnaround_minutes.append(
+                            round((delivery_dt - created_at).total_seconds() / 60, 2)
+                        )
+
         decisions_total = quotes_approved + quotes_edited + quotes_discarded
         approval_rate = round(((quotes_approved + quotes_edited) / decisions_total) * 100, 2) if decisions_total else 0.0
         avg_quote_value = round(sum(quote_total_values) / len(quote_total_values), 2) if quote_total_values else 0.0
+        avg_quote_turnaround_minutes = (
+            round(sum(quote_turnaround_minutes) / len(quote_turnaround_minutes), 2)
+            if quote_turnaround_minutes
+            else 0.0
+        )
 
         deliveries_sent = 0
         deliveries_failed = 0
@@ -1394,18 +1514,56 @@ async def get_usage_analytics(gc_id: str, window_days: int = 30) -> dict[str, An
         queue_approved = 0
         queue_discarded = 0
         queue_edited = 0
+        queue_by_type: dict[str, int] = {}
         for row in queue_rows:
             status = str(row.get("status", "")).strip().lower()
             approval_status = str(row.get("approval_status", "")).strip().lower()
             was_edited = bool(row.get("was_edited", False))
             if status in {"queued", "pending"}:
                 queue_pending += 1
+                draft_type = str(row.get("type", "")).strip().lower() or "unknown"
+                queue_by_type[draft_type] = queue_by_type.get(draft_type, 0) + 1
             if status == "approved":
                 queue_approved += 1
             if status == "discarded":
                 queue_discarded += 1
             if approval_status == "approved_with_edit" or was_edited:
                 queue_edited += 1
+
+        transcripts_ingested = len(transcript_rows)
+        transcripts_linked = 0
+        estimate_requests = 0
+        for row in transcript_rows:
+            if str(row.get("job_id", "")).strip() or str(row.get("quote_id", "")).strip():
+                transcripts_linked += 1
+            if str(row.get("classification", "")).strip().lower() == "estimate_request":
+                estimate_requests += 1
+        transcript_linkage_rate = (
+            round((transcripts_linked / transcripts_ingested) * 100, 2)
+            if transcripts_ingested
+            else 0.0
+        )
+        transcript_inbox = max(transcripts_ingested - transcripts_linked, 0)
+
+        followup_active = 0
+        followup_stopped = 0
+        followup_reminders_sent = 0
+        followup_completed = 0
+        for row in followup_rows:
+            if str(row.get("type", "")).strip().lower() != "followup":
+                continue
+            followup_reminders_sent += int(row.get("reminder_count") or 0)
+            if str(row.get("status", "")).strip().lower() in {"open", "in-progress", "overdue"}:
+                followup_active += 1
+            if row.get("stopped_at"):
+                followup_stopped += 1
+                if str(row.get("stop_reason", "")).strip().lower() not in {"manual_stop", "quote_discarded"}:
+                    followup_completed += 1
+        followup_effectiveness_pct = (
+            round((followup_completed / followup_stopped) * 100, 2)
+            if followup_stopped
+            else 0.0
+        )
 
         total_trace = len(trace_rows)
         trace_errors = 0
@@ -1438,7 +1596,9 @@ async def get_usage_analytics(gc_id: str, window_days: int = 30) -> dict[str, An
                 "edited": quotes_edited,
                 "discarded": quotes_discarded,
                 "approval_rate_pct": approval_rate,
+                "conversion_rate_pct": approval_rate,
                 "avg_quote_value": avg_quote_value,
+                "avg_turnaround_minutes": avg_quote_turnaround_minutes,
                 "memory_updates": memory_updates,
             },
             "delivery": {
@@ -1446,15 +1606,31 @@ async def get_usage_analytics(gc_id: str, window_days: int = 30) -> dict[str, An
                 "failed": deliveries_failed,
                 "channel_breakdown": channel_breakdown,
             },
+            "followup": {
+                "active": followup_active,
+                "stopped": followup_stopped,
+                "reminders_sent": followup_reminders_sent,
+                "effectiveness_rate_pct": followup_effectiveness_pct,
+            },
+            "transcripts": {
+                "ingested": transcripts_ingested,
+                "linked": transcripts_linked,
+                "unlinked": transcript_inbox,
+                "estimate_requests": estimate_requests,
+                "linkage_rate_pct": transcript_linkage_rate,
+            },
             "updates": {
                 "ingested": updates_ingested,
                 "drafts_suggested": drafts_suggested,
             },
             "queue": {
                 "pending": queue_pending,
+                "backlog": queue_pending + transcript_inbox,
+                "transcript_inbox": transcript_inbox,
                 "approved": queue_approved,
                 "discarded": queue_discarded,
                 "edited": queue_edited,
+                "by_type": queue_by_type,
             },
             "runtime": {
                 "trace_rows": total_trace,
@@ -1792,6 +1968,64 @@ async def list_recent_call_transcripts(gc_id: str, limit: int = 50) -> list[dict
 
     rows = await _run_db("list_recent_call_transcripts", _query)
     return [_build_call_transcript_record(row).model_dump(mode="json") for row in rows]
+
+
+async def find_recent_call_transcript_match(gc_id: str, caller_phone: str) -> Optional[dict[str, Any]]:
+    """Return the newest transcript for the same GC and normalized caller phone."""
+    gc_value = gc_id.strip()
+    normalized_phone = _normalize_phone_destination(caller_phone)
+    if not gc_value or not normalized_phone:
+        return None
+
+    transcripts = await list_recent_call_transcripts(gc_value, limit=75)
+    for row in transcripts:
+        if _normalize_phone_destination(str(row.get("caller_phone", "")).strip()) == normalized_phone:
+            return row
+    return None
+
+
+async def list_unlinked_transcript_inbox(gc_id: str, limit: int = 25) -> list[dict[str, Any]]:
+    """Return persisted but unlinked call transcripts that still need manual triage."""
+    gc_value = gc_id.strip()
+    if not gc_value:
+        return []
+
+    transcripts = await list_recent_call_transcripts(gc_value, limit=max(int(limit or 25), 1) * 3)
+    inbox: list[dict[str, Any]] = []
+    for row in transcripts:
+        if str(row.get("job_id", "")).strip():
+            continue
+        metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+        review_state = _normalize_transcript_review_state(metadata.get("review_state"))
+        if review_state in {"reviewed", "discarded", "logged_update"}:
+            continue
+        inbox_item = _build_transcript_inbox_item(row)
+        inbox.append(inbox_item.model_dump(mode="json"))
+        if len(inbox) >= max(int(limit or 25), 1):
+            break
+    return inbox
+
+
+async def set_call_transcript_review_state(
+    transcript_id: str,
+    gc_id: str,
+    review_state: str,
+    *,
+    extra_metadata: dict[str, Any] | None = None,
+) -> Optional[dict[str, Any]]:
+    """Persist transcript review-state metadata and return the updated record."""
+    record = await get_call_transcript_by_id(transcript_id, gc_id)
+    if record is None:
+        return None
+
+    metadata = dict(record.get("metadata") or {})
+    metadata["review_state"] = _normalize_transcript_review_state(review_state)
+    metadata["reviewed_at"] = _utcnow_iso()
+    if extra_metadata:
+        metadata.update(extra_metadata)
+
+    await update_call_transcript(transcript_id, gc_id, metadata=metadata)
+    return await get_call_transcript_by_id(transcript_id, gc_id)
 
 
 def _normalize_phone_destination(value: str) -> str:
@@ -2556,6 +2790,106 @@ async def upsert_onboarding_pricing(
     return await get_onboarding_pricing(gc_value)
 
 
+async def write_pricing_import_log(
+    *,
+    gc_id: str,
+    filename: str,
+    sheet_name: str,
+    source_type: str,
+    mapping: dict[str, Any],
+    imported_rows: list[dict[str, Any]],
+    skipped_rows: list[dict[str, Any]],
+    trace_id: str = "",
+) -> dict[str, Any]:
+    """Persist price-book import metadata and upsert normalized contractor pricing rows."""
+    from gc_agent.tools import supabase
+
+    gc_value = gc_id.strip()
+    if not gc_value:
+        raise DatabaseError("write_pricing_import_log failed: gc_id is required")
+
+    def _query() -> dict[str, Any]:
+        existing_profile = supabase.get_contractor_profile(gc_value) or {}
+        pricing_signals = dict(existing_profile.get("pricing_signals") or {})
+        imported_by_key: dict[str, dict[str, Any]] = {}
+
+        for row in imported_rows:
+            if not isinstance(row, dict):
+                continue
+            item_key = str(row.get("item_key", "")).strip()
+            unit = str(row.get("unit", "")).strip() or "unit"
+            unit_cost = round(_to_float(row.get("resolved_unit_cost") or row.get("unit_cost")), 2)
+            if not item_key or unit_cost <= 0:
+                continue
+
+            imported_by_key[item_key] = {
+                "item_key": item_key,
+                "unit": unit,
+                "unit_cost": unit_cost,
+            }
+
+            recognized_key = str(row.get("recognized_key", "")).strip()
+            if recognized_key:
+                pricing_signals[recognized_key] = unit_cost
+
+        persisted_rows = supabase.upsert_price_list_rows(
+            gc_value,
+            list(imported_by_key.values()),
+        )
+
+        if pricing_signals:
+            supabase.upsert_contractor_profile(
+                {
+                    "contractor_id": gc_value,
+                    "company_name": str(existing_profile.get("company_name", "")).strip(),
+                    "preferred_scope_language": list(existing_profile.get("preferred_scope_language") or []),
+                    "pricing_signals": pricing_signals,
+                    "material_preferences": dict(existing_profile.get("material_preferences") or {}),
+                    "notes": str(existing_profile.get("notes", "")).strip(),
+                }
+            )
+
+        log_id = f"pricing-import-{uuid4().hex[:12]}"
+        summary_json = {
+            "imported_item_keys": sorted(imported_by_key)[:50],
+            "skipped_rows": [
+                {
+                    "row_number": _to_int(row.get("row_number")),
+                    "reason": str(row.get("reason", "")).strip(),
+                    "item_name": str(row.get("item_name", "")).strip() or str(row.get("sku", "")).strip(),
+                }
+                for row in skipped_rows[:50]
+                if isinstance(row, dict)
+            ],
+        }
+
+        client = get_client()
+        client.table("pricing_import_log").insert(
+            {
+                "id": log_id,
+                "gc_id": gc_value,
+                "filename": str(filename or "").strip() or "pricing-sheet",
+                "sheet_name": str(sheet_name or "").strip() or None,
+                "source_type": str(source_type or "").strip() or "csv",
+                "mapping_json": dict(mapping or {}),
+                "summary_json": summary_json,
+                "imported_count": len(persisted_rows),
+                "skipped_count": len(skipped_rows),
+                "error_count": 0,
+                "trace_id": trace_id.strip() or None,
+            }
+        ).execute()
+
+        return {
+            "import_log_id": log_id,
+            "imported_count": len(persisted_rows),
+            "skipped_count": len(skipped_rows),
+            "error_count": 0,
+        }
+
+    return await _run_db("write_pricing_import_log", _query)
+
+
 async def write_update_log(
     gc_id: str,
     input_type: str,
@@ -2967,6 +3301,9 @@ __all__ = [
     "list_recent_call_transcripts",
     "get_related_transcript_review_draft_ids",
     "find_recent_quote_delivery_match",
+    "find_recent_call_transcript_match",
+    "list_unlinked_transcript_inbox",
+    "set_call_transcript_review_state",
     "upsert_quote_draft",
     "get_quote_draft_record",
     "get_quote_delivery_attempts",
@@ -2978,6 +3315,7 @@ __all__ = [
     "get_onboarding_defaults",
     "get_onboarding_pricing",
     "upsert_onboarding_pricing",
+    "write_pricing_import_log",
     "write_update_log",
     "get_gc_by_clerk_user_id",
     "get_gc_profile_by_clerk_user_id",

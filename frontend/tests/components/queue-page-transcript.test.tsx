@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -59,6 +59,9 @@ let mockQueueData = {
       ],
     },
   ],
+  inbox: {
+    transcripts: [],
+  },
 };
 
 vi.mock("@clerk/clerk-react", () => ({
@@ -70,6 +73,13 @@ vi.mock("../../src/api/queue", () => ({
   approveDraft: vi.fn(),
   editDraft: vi.fn(),
   discardDraft: vi.fn(),
+}));
+
+vi.mock("../../src/api/transcripts", () => ({
+  linkTranscriptToJob: vi.fn(),
+  markTranscriptReviewed: vi.fn(),
+  discardTranscript: vi.fn(),
+  logTranscriptAsUpdate: vi.fn(),
 }));
 
 vi.mock("../../src/hooks/useOnlineStatus", () => ({
@@ -126,61 +136,6 @@ function renderQueuePage() {
 
 describe("QueuePage transcript review cards", () => {
   it("renders transcript summary first and keeps raw transcript collapsible", async () => {
-    mockQueueData = {
-      jobs: [
-        {
-          job_id: "job-1",
-          job_name: "Miller Job",
-          drafts: [
-            {
-              id: "draft-transcript-1",
-              job_id: "job-1",
-              job_name: "Miller Job",
-              type: "transcript-review",
-              title: "Call transcript review",
-              content: "Transcript ID: ct-1\nSummary: Caller wants the revised quote before Friday.",
-              why: "Transcript classified as quote question with high urgency.",
-              status: "queued",
-              created_at: "2026-03-06T10:00:00+00:00",
-              trace_id: "trace-transcript-1",
-              transcript: {
-                transcript_id: "ct-1",
-                source: "call_transcript",
-                provider: "manual",
-                caller_label: "Taylor Brooks - +14235550101",
-                caller_phone: "+14235550101",
-                summary: "Caller wants a first-pass estimate before Friday.",
-                classification: "estimate_request",
-                urgency: "high",
-                confidence: 91,
-                recommended_actions: ["Create quote draft", "Confirm permit allowance"],
-                risk_flags: ["Client may stall approval without revised number."],
-                missing_information: ["Updated total with permit allowance"],
-                transcript_text: "Can you send me a first-pass estimate before Friday?",
-                linked_quote_id: "quote-9",
-                recording_url: "",
-                started_at: null,
-                duration_seconds: 114,
-              },
-            },
-            {
-              id: "draft-owner-1",
-              job_id: "job-1",
-              job_name: "Miller Job",
-              type: "owner-update",
-              title: "Owner update draft",
-              content: "Send progress update about framing timeline.",
-              why: "Owner is waiting on today's framing status.",
-              status: "queued",
-              created_at: "2026-03-06T11:00:00+00:00",
-              trace_id: "trace-owner-1",
-              transcript: null,
-            },
-          ],
-        },
-      ],
-    };
-
     renderQueuePage();
 
     expect(await screen.findByText(/Taylor Brooks/)).toBeInTheDocument();
@@ -202,61 +157,6 @@ describe("QueuePage transcript review cards", () => {
   });
 
   it("keeps standard queue drafts visible alongside transcript review items", async () => {
-    mockQueueData = {
-      jobs: [
-        {
-          job_id: "job-1",
-          job_name: "Miller Job",
-          drafts: [
-            {
-              id: "draft-transcript-1",
-              job_id: "job-1",
-              job_name: "Miller Job",
-              type: "transcript-review",
-              title: "Call transcript review",
-              content: "Transcript ID: ct-1\nSummary: Caller wants the revised quote before Friday.",
-              why: "Transcript classified as quote question with high urgency.",
-              status: "queued",
-              created_at: "2026-03-06T10:00:00+00:00",
-              trace_id: "trace-transcript-1",
-              transcript: {
-                transcript_id: "ct-1",
-                source: "call_transcript",
-                provider: "manual",
-                caller_label: "Taylor Brooks - +14235550101",
-                caller_phone: "+14235550101",
-                summary: "Caller wants a first-pass estimate before Friday.",
-                classification: "estimate_request",
-                urgency: "high",
-                confidence: 91,
-                recommended_actions: ["Create quote draft", "Confirm permit allowance"],
-                risk_flags: ["Client may stall approval without revised number."],
-                missing_information: ["Updated total with permit allowance"],
-                transcript_text: "Can you send me a first-pass estimate before Friday?",
-                linked_quote_id: "quote-9",
-                recording_url: "",
-                started_at: null,
-                duration_seconds: 114,
-              },
-            },
-            {
-              id: "draft-owner-1",
-              job_id: "job-1",
-              job_name: "Miller Job",
-              type: "owner-update",
-              title: "Owner update draft",
-              content: "Send progress update about framing timeline.",
-              why: "Owner is waiting on today's framing status.",
-              status: "queued",
-              created_at: "2026-03-06T11:00:00+00:00",
-              trace_id: "trace-owner-1",
-              transcript: null,
-            },
-          ],
-        },
-      ],
-    };
-
     renderQueuePage();
 
     expect(await screen.findByText(/Taylor Brooks/)).toBeInTheDocument();
@@ -312,6 +212,9 @@ describe("QueuePage transcript review cards", () => {
           ],
         },
       ],
+      inbox: {
+        transcripts: [],
+      },
     };
 
     renderQueuePage();
@@ -320,10 +223,53 @@ describe("QueuePage transcript review cards", () => {
     expect(screen.getByText("Manual transcript review needed.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Inbound call transcript"));
-
-    expect(await screen.findByText("Inbound call transcript")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "View transcript" }));
     expect(await screen.findByText("Transcript text unavailable.")).toBeInTheDocument();
   });
-});
 
+  it("renders unlinked transcript inbox items before the job-backed queue", async () => {
+    mockQueueData = {
+      jobs: [],
+      inbox: {
+        transcripts: [
+          {
+            transcript_id: "ct-inbox-1",
+            trace_id: "trace-inbox-1",
+            caller_label: "Taylor Brooks - +14235550101",
+            caller_phone: "+14235550101",
+            source: "call_transcript",
+            provider: "twilio",
+            summary: "Caller needs a first-pass estimate before Friday.",
+            classification: "estimate_request",
+            urgency: "high",
+            confidence: 88,
+            recommended_actions: ["Create quote draft"],
+            risk_flags: ["Tight turnaround"],
+            missing_information: ["Exact square footage"],
+            transcript_text: "Can you send me a first-pass estimate before Friday?",
+            linked_quote_id: "",
+            related_queue_item_ids: [],
+            created_at: "2026-03-06T10:00:00+00:00",
+            recording_url: "",
+            started_at: null,
+            duration_seconds: 90,
+            match_source: "",
+            review_state: "pending",
+          },
+        ],
+      },
+    };
+
+    renderQueuePage();
+
+    expect(await screen.findByText("Transcript Inbox")).toBeInTheDocument();
+    expect(screen.getByText("Caller needs a first-pass estimate before Friday.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Link to job" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mark reviewed" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create quote draft" })).toHaveAttribute(
+      "href",
+      "/quote?transcript_id=ct-inbox-1"
+    );
+    expect(screen.queryByText("Can you send me a first-pass estimate before Friday?")).not.toBeInTheDocument();
+  });
+});

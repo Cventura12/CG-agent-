@@ -510,6 +510,56 @@ def upsert_price_list_entries(contractor_id: str, pricing: dict[str, Any]) -> di
     return persisted
 
 
+def upsert_price_list_rows(contractor_id: str, rows: list[dict[str, Any]]) -> list[PriceListRow]:
+    """Upsert explicit contractor pricing rows while preserving units from imports."""
+    client = _get_client_or_none()
+    contractor_value = contractor_id.strip()
+    if client is None or not contractor_value or not isinstance(rows, list):
+        return []
+
+    existing_rows = (
+        client.table("price_list")
+        .select("id,item_key")
+        .eq("contractor_id", contractor_value)
+        .execute()
+    )
+    existing_ids = {
+        str(row.get("item_key", "")).strip(): str(row.get("id", "")).strip()
+        for row in _rows(existing_rows)
+        if str(row.get("item_key", "")).strip()
+    }
+
+    payloads: list[PriceListRow] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        item_key = str(row.get("item_key", "")).strip()
+        unit = str(row.get("unit", "")).strip() or "unit"
+        unit_cost = round(_to_float(row.get("unit_cost")), 2)
+        if not item_key or unit_cost <= 0:
+            continue
+
+        price_id = existing_ids.get(item_key) or f"price-{uuid4().hex[:12]}"
+        payload: PriceListRow = {
+            "id": price_id,
+            "contractor_id": contractor_value,
+            "item_key": item_key,
+            "unit_cost": unit_cost,
+            "unit": unit,
+            "updated_at": _utcnow_iso(),
+        }
+        if item_key not in existing_ids:
+            payload["created_at"] = payload["updated_at"]
+        payloads.append(payload)
+        existing_ids[item_key] = price_id
+
+    if not payloads:
+        return []
+
+    client.table("price_list").upsert(payloads, on_conflict="id").execute()
+    return payloads
+
+
 def list_job_memory(contractor_id: str) -> list[JobMemoryRow]:
     """Return recent job_memory rows for a contractor."""
     client = _get_client_or_none()
@@ -816,4 +866,5 @@ __all__ = [
     "upsert_estimating_memory",
     "upsert_job",
     "upsert_price_list_entries",
+    "upsert_price_list_rows",
 ]

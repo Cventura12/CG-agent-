@@ -57,10 +57,11 @@ async def process_normalized_input(
 ) -> dict[str, object]:
     """Dispatch one normalized payload into the existing runtime paths."""
     effective_trace_id = trace_id.strip() or payload.external_id.strip() or uuid4().hex
-    normalized_state = to_agent_state(payload, trace_id=effective_trace_id, gc_id=resolved_gc_id)
 
     if payload.intent == "transcript" or payload.surface == "call_transcript":
         return await _process_call_transcript(payload, resolved_gc_id, effective_trace_id)
+
+    normalized_state = to_agent_state(payload, trace_id=effective_trace_id, gc_id=resolved_gc_id)
 
     if payload.intent == "update":
         graph_module = import_module("gc_agent.graph")

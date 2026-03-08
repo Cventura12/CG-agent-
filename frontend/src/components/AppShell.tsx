@@ -51,7 +51,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const queueCount = (queueQuery.data?.jobs ?? []).reduce((sum, group) => sum + group.drafts.length, 0);
+  const queueCount =
+    (queueQuery.data?.jobs ?? []).reduce((sum, group) => sum + group.drafts.length, 0) +
+    (queueQuery.data?.inbox?.transcripts.length ?? 0);
   const operatorName = bypassAuth
     ? "Demo Operator"
     : user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Signed-in operator";

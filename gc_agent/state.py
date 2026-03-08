@@ -178,6 +178,33 @@ class DraftTranscriptContext(BaseModel):
     duration_seconds: int | None = None
 
 
+class TranscriptInboxItem(BaseModel):
+    """Queue inbox representation for unlinked or manually triaged transcripts."""
+
+    transcript_id: str
+    trace_id: str = ""
+    caller_label: str = ""
+    caller_phone: str = ""
+    source: str = ""
+    provider: str = ""
+    summary: str = ""
+    classification: TranscriptClassification = "unknown"
+    urgency: TranscriptUrgency = "normal"
+    confidence: float | None = None
+    recommended_actions: list[str] = Field(default_factory=list)
+    risk_flags: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    transcript_text: str = ""
+    linked_quote_id: str = ""
+    related_queue_item_ids: list[str] = Field(default_factory=list)
+    created_at: str | None = None
+    recording_url: str = ""
+    started_at: str | None = None
+    duration_seconds: int | None = None
+    match_source: str = "unlinked"
+    review_state: Literal["pending", "reviewed", "discarded", "logged_update"] = "pending"
+
+
 class TranscriptQuotePrefill(BaseModel):
     """Quote-workspace prefill derived from a persisted call transcript."""
 
@@ -277,6 +304,7 @@ __all__ = [
     "CallTranscriptRecord",
     "CallTranscriptAnalysis",
     "DraftTranscriptContext",
+    "TranscriptInboxItem",
     "TranscriptQuotePrefill",
     "TranscriptIngestResult",
     "AgentState",
