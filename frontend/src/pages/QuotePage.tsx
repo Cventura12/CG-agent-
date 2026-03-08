@@ -408,7 +408,6 @@ export function QuotePage() {
   const [transcriptPrefill, setTranscriptPrefill] = useState<TranscriptQuotePrefill | null>(null);
   const [isTranscriptPrefillLoading, setIsTranscriptPrefillLoading] = useState(false);
   const [transcriptPrefillError, setTranscriptPrefillError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"notes" | "voice" | "upload">("notes");
   const location = useLocation();
   const navigate = useNavigate();
   const apiReady = hasBetaApiCredentials();
@@ -470,7 +469,6 @@ export function QuotePage() {
         setDeliveryMessage(null);
         setFollowupState(null);
         setFollowupMessage(null);
-        setTab("notes");
         setNotes(payload.quote_input);
       } catch (error) {
         const message =
@@ -1176,18 +1174,6 @@ export function QuotePage() {
                 <span className="pid">{apiReady ? "PUBLIC QUOTE API READY" : "API NOT READY"}</span>
               </div>
 
-              <div className="qitabs">
-                <span className={`qit ${tab === "notes" ? "active" : ""}`} onClick={() => setTab("notes")}>
-                  ✎ Typed Notes
-                </span>
-                <span className={`qit ${tab === "voice" ? "active" : ""}`} onClick={() => setTab("voice")}>
-                  ⏺ Transcript
-                </span>
-                <span className={`qit ${tab === "upload" ? "active" : ""}`} onClick={() => setTab("upload")}>
-                  ⬆ File / Photo
-                </span>
-              </div>
-
               <div className="pb lg">
                 <div
                   className="sp"
@@ -1354,166 +1340,103 @@ export function QuotePage() {
                   </div>
                 </div>
 
-                {tab === "notes" ? (
-                  <div className="vs">
-                    <div>
-                      <label className="lbl" htmlFor="quote-notes">
-                        Transcript / field notes
-                      </label>
-                      <textarea
-                        id="quote-notes"
-                        className="txta"
-                        rows={6}
-                        value={notes}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          latestTranscriptRef.current = value;
-                          setNotes(value);
-                        }}
-                        placeholder="Scope, measurements, materials, site conditions, customer requests..."
-                      />
-                    </div>
+                <div className="vs">
+                  <div>
+                    <label className="lbl" htmlFor="quote-notes">
+                      Transcript / field notes
+                    </label>
+                    <textarea
+                      id="quote-notes"
+                      className="txta"
+                      rows={7}
+                      value={notes}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        latestTranscriptRef.current = value;
+                        setNotes(value);
+                      }}
+                      placeholder="Scope, measurements, materials, site conditions, customer requests..."
+                    />
+                  </div>
 
+                  <div
+                    style={{
+                      border: "1px solid var(--wire)",
+                      background: "var(--ink2)",
+                      padding: 12,
+                    }}
+                  >
+                    <div className="sp" style={{ marginBottom: 10, gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      <div style={{ maxWidth: 420 }}>
+                        <div className="lbl" style={{ marginBottom: 2 }}>
+                          Add voice note
+                        </div>
+                        <div style={{ fontSize: 12, color: "var(--fog)", lineHeight: 1.7 }}>
+                          Hold to record and append the transcript into the same notes field. If live voice is unavailable, paste the transcript above.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onPointerDown={beginRecording}
+                        onPointerUp={stopRecordingAndSend}
+                        onPointerLeave={stopRecordingAndSend}
+                        onPointerCancel={stopRecordingAndSend}
+                        disabled={!voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing}
+                        className="btn bw"
+                        style={{ touchAction: "none", minWidth: 180, justifyContent: "center" }}
+                      >
+                        {isRecording ? (
+                          <>
+                            <Square className="h-4 w-4" aria-hidden="true" />
+                            Recording now
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-4 w-4" aria-hidden="true" />
+                            Hold to record
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <div
                       style={{
-                        border: "1px solid var(--wire)",
-                        background: "var(--ink2)",
-                        padding: 12,
+                        fontFamily: "'Syne Mono', monospace",
+                        fontSize: 8,
+                        color: "var(--fog)",
+                        letterSpacing: "0.08em",
                       }}
                     >
-                      <div className="sp" style={{ marginBottom: 8 }}>
-                        <div>
-                          <div className="lbl" style={{ marginBottom: 2 }}>
-                            Optional file
-                          </div>
-                          <div style={{ fontSize: 12, color: "var(--fog)" }}>
-                            Add one PDF or jobsite photo. The agent will read it together with your notes.
-                          </div>
-                        </div>
-                        <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
-                          <label htmlFor="quote-upload" className="btn bw sm">
-                            {selectedUploadFile ? "Replace file" : "Choose file"}
-                          </label>
-                          {selectedUploadFile ? (
-                            <button type="button" className="btn bw sm" onClick={clearSelectedUpload}>
-                              Remove
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <input
-                        ref={uploadInputRef}
-                        id="quote-upload"
-                        type="file"
-                        accept=".pdf,image/png,image/jpeg,application/pdf"
-                        onChange={handleUploadSelection}
-                        className="sr-only"
-                      />
-
-                      <div style={{ fontSize: 12, color: selectedUploadFile ? "var(--cream)" : "var(--fog)" }}>
-                        {selectedUploadFile ? `Attached: ${selectedUploadFile.name}` : "No file attached. Notes-only quotes still work."}
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <button
-                        type="button"
-                        className="cta"
-                        onClick={handleManualSubmit}
-                        disabled={
-                          !apiReady ||
-                          (!notes.trim() && !selectedUploadFile) ||
-                          (!isOnline && Boolean(selectedUploadFile)) ||
-                          quoteMutation.isPending ||
-                          isQueueSyncing
-                        }
-                      >
-                        {quoteMutation.isPending
-                          ? "RUNNING AGENT..."
-                          : !isOnline && selectedUploadFile
-                            ? "UPLOAD NEEDS CONNECTION"
-                            : selectedUploadFile
-                              ? "Upload & run agent"
-                              : !isOnline
-                                ? "SAVE OFFLINE"
-                                : "GENERATE QUOTE →"}
-                      </button>
+                      {helperText.toUpperCase()}
                     </div>
                   </div>
-                ) : null}
-                {tab === "voice" ? (
-                  <div className="vs">
-                    <div className="alert ainfo" style={{ fontSize: 11 }}>
-                      <span>◈</span>
-                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "0.5px", lineHeight: 1.7 }}>
-                        {helperText.toUpperCase()}
-                      </span>
+
+                  <div
+                    style={{
+                      border: "1px solid var(--wire)",
+                      background: "var(--ink2)",
+                      padding: 12,
+                    }}
+                  >
+                    <div className="sp" style={{ marginBottom: 8, gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      <div>
+                        <div className="lbl" style={{ marginBottom: 2 }}>
+                          Optional file
+                        </div>
+                        <div style={{ fontSize: 12, color: "var(--fog)", lineHeight: 1.7 }}>
+                          Add one PDF or jobsite photo. The agent will read it together with your notes.
+                        </div>
+                      </div>
+                      <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                        <label htmlFor="quote-upload" className="btn bw sm">
+                          {selectedUploadFile ? "Replace file" : "Choose file"}
+                        </label>
+                        {selectedUploadFile ? (
+                          <button type="button" className="btn bw sm" onClick={clearSelectedUpload}>
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onPointerDown={beginRecording}
-                      onPointerUp={stopRecordingAndSend}
-                      onPointerLeave={stopRecordingAndSend}
-                      onPointerCancel={stopRecordingAndSend}
-                      disabled={!voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing}
-                      className="dropz"
-                      style={{ touchAction: "none", padding: 28 }}
-                    >
-                      <div style={{ fontSize: 26, marginBottom: 8, opacity: 0.85 }}>
-                        {isRecording ? <Square className="mx-auto h-6 w-6" aria-hidden="true" /> : <Mic className="mx-auto h-6 w-6" aria-hidden="true" />}
-                      </div>
-                      <div style={{ color: "var(--cream)", fontWeight: 500, marginBottom: 4, fontSize: 13 }}>
-                        {isRecording ? "Recording now" : "Hold to record"}
-                      </div>
-                      <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.2px" }}>
-                        {isRecording ? "RELEASE TO SEND" : "PRESS · TALK · RELEASE"}
-                      </div>
-                    </button>
-
-                    <div>
-                      <label className="lbl" htmlFor="quote-notes-voice">
-                        Transcript / field notes
-                      </label>
-                      <textarea
-                        id="quote-notes-voice"
-                        className="txta"
-                        rows={5}
-                        value={notes}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          latestTranscriptRef.current = value;
-                          setNotes(value);
-                        }}
-                        placeholder="Paste transcript here if live voice is unavailable..."
-                      />
-                    </div>
-
-                    <div style={{ textAlign: "right" }}>
-                      <button
-                        type="button"
-                        className="cta"
-                        onClick={handleManualSubmit}
-                        disabled={!apiReady || !notes.trim() || quoteMutation.isPending || isQueueSyncing}
-                      >
-                        PROCESS TRANSCRIPT →
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-
-                {tab === "upload" ? (
-                  <div className="vs">
-                    <label htmlFor="quote-upload" className="dropz">
-                      <div style={{ fontSize: 26, marginBottom: 8, opacity: 0.4 }}>⬆</div>
-                      <div style={{ color: "var(--cream)", fontWeight: 500, marginBottom: 4, fontSize: 13 }}>
-                        {selectedUploadFile ? selectedUploadFile.name : "Drop files or click to upload"}
-                      </div>
-                      <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.2px" }}>
-                        PDF · PHOTOS · HANDWRITTEN NOTES
-                      </div>
-                    </label>
 
                     <input
                       ref={uploadInputRef}
@@ -1524,56 +1447,36 @@ export function QuotePage() {
                       className="sr-only"
                     />
 
-                    <div>
-                      <label className="lbl" htmlFor="quote-notes-upload">
-                        Transcript / field notes
-                      </label>
-                      <textarea
-                        id="quote-notes-upload"
-                        className="txta"
-                        rows={5}
-                        value={notes}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          latestTranscriptRef.current = value;
-                          setNotes(value);
-                        }}
-                        placeholder="Add typed context to help the uploaded scope..."
-                      />
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                      {selectedUploadFile ? (
-                        <button type="button" className="btn bw" onClick={clearSelectedUpload}>
-                          Remove file
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: 12, color: "var(--fog)" }}>No file attached yet.</span>
-                      )}
-
-                      <button
-                        type="button"
-                        className="cta"
-                        onClick={handleManualSubmit}
-                        disabled={
-                          !apiReady ||
-                          (!notes.trim() && !selectedUploadFile) ||
-                          (!isOnline && Boolean(selectedUploadFile)) ||
-                          quoteMutation.isPending ||
-                          isQueueSyncing
-                        }
-                      >
-                        {quoteMutation.isPending
-                          ? "RUNNING AGENT..."
-                          : !isOnline && selectedUploadFile
-                            ? "UPLOAD NEEDS CONNECTION"
-                            : selectedUploadFile
-                              ? "Upload & run agent"
-                              : "PROCESS FILES →"}
-                      </button>
+                    <div style={{ fontSize: 12, color: selectedUploadFile ? "var(--cream)" : "var(--fog)" }}>
+                      {selectedUploadFile ? `Attached: ${selectedUploadFile.name}` : "No file attached. Notes-only quotes still work."}
                     </div>
                   </div>
-                ) : null}
+
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      type="button"
+                      className="cta"
+                      onClick={handleManualSubmit}
+                      disabled={
+                        !apiReady ||
+                        (!notes.trim() && !selectedUploadFile) ||
+                        (!isOnline && Boolean(selectedUploadFile)) ||
+                        quoteMutation.isPending ||
+                        isQueueSyncing
+                      }
+                    >
+                      {quoteMutation.isPending
+                        ? "RUNNING AGENT..."
+                        : !isOnline && selectedUploadFile
+                          ? "UPLOAD NEEDS CONNECTION"
+                          : selectedUploadFile
+                            ? "Upload & run agent"
+                            : !isOnline
+                              ? "SAVE OFFLINE"
+                              : "GENERATE QUOTE →"}
+                    </button>
+                  </div>
+                </div>
 
                 {captureError ? (
                   <div className="alert awarn" style={{ marginTop: 12 }}>
