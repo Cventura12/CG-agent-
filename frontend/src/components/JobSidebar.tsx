@@ -12,12 +12,12 @@ type JobSidebarProps = {
 
 function healthDotClass(health: Job["health"]): string {
   if (health === "blocked") {
-    return "bg-red-400";
+    return "bg-red-500";
   }
   if (health === "at-risk") {
-    return "bg-yellow";
+    return "bg-amber-500";
   }
-  return "bg-green";
+  return "bg-emerald-500";
 }
 
 function truncateLabel(value: string, maxChars: number): string {
@@ -104,8 +104,8 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
             "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs transition",
             "whitespace-nowrap",
             selectedJobId === null
-              ? "border-orange bg-orange/10 text-text"
-              : "border-border bg-surface/60 text-muted"
+              ? "border-blue-200 bg-blue-50 text-slate-900"
+              : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-900"
           )}
         >
           <span className="font-medium">All Jobs</span>
@@ -124,15 +124,15 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
                 "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs transition",
                 "whitespace-nowrap",
                 selectedJobId === job.id
-                  ? "border-orange bg-orange/10 text-text"
-                  : "border-border bg-surface/60 text-muted"
+                  ? "border-blue-200 bg-blue-50 text-slate-900"
+                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-900"
               )}
               title={job.name}
             >
               <span className={clsx("h-2 w-2 rounded-full", healthDotClass(job.health))} />
               <span className="font-medium">{truncateLabel(job.name, 12)}</span>
               {pendingDrafts > 0 ? (
-                <span className="rounded-full border border-orange/70 bg-orange/10 px-1.5 py-0.5 text-[10px] text-orange">
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                   {pendingDrafts}
                 </span>
               ) : null}
@@ -155,12 +155,12 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
           className={clsx(
             "w-full rounded-[1.35rem] border px-4 py-3 text-left text-sm transition",
             selectedJobId === null
-              ? "border-orange/55 bg-orange/10"
-              : "border-border/80 bg-surface/72 hover:border-orange/35"
+              ? "border-blue-200 bg-blue-50"
+              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
           )}
         >
-          <p className="font-medium text-text">All Jobs</p>
-          <p className="mt-0.5 text-xs text-muted">Show all pending drafts</p>
+          <p className="font-medium text-slate-900">All Jobs</p>
+          <p className="mt-0.5 text-xs text-slate-500">Show all pending drafts</p>
         </button>
 
         {jobs.map((job) => {
@@ -177,26 +177,26 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
               className={clsx(
                 "w-full rounded-[1.35rem] border px-4 py-3 text-left text-sm transition",
                 selectedJobId === job.id
-                  ? "border-orange/55 bg-orange/10"
-                  : "border-border/80 bg-surface/72 hover:border-orange/35"
+                  ? "border-blue-200 bg-blue-50"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
               )}
               title={job.name}
             >
               <div className="flex items-center gap-2">
                 <span className={clsx("h-2.5 w-2.5 rounded-full", healthDotClass(job.health))} />
-                <span className="truncate font-medium text-text">{truncateLabel(job.name, 28)}</span>
+                <span className="truncate font-medium text-slate-900">{truncateLabel(job.name, 28)}</span>
               </div>
-              <p className="mt-1 text-xs text-muted">{job.type}</p>
+              <p className="mt-1 text-xs text-slate-500">{job.type}</p>
 
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {openCount > 0 ? (
-                  <span className="rounded-full border border-border bg-bg px-2 py-0.5 text-[11px] text-muted">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
                     {openCount} open
                   </span>
                 ) : null}
 
                 {pendingDrafts > 0 ? (
-                  <span className="rounded-full border border-orange/70 bg-orange/10 px-2 py-0.5 text-[11px] text-orange">
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
                     {pendingDrafts} pending
                   </span>
                 ) : null}

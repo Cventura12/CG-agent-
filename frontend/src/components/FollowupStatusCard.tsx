@@ -28,18 +28,18 @@ function formatTimestamp(value: string | null): string {
 
 function toneClass(status: QuoteFollowupState["status"] | "loading"): string {
   if (status === "scheduled") {
-    return "border-green/40 bg-green/10";
+    return "border border-emerald-200 bg-emerald-50";
   }
   if (status === "stopped") {
-    return "border-red-400/40 bg-red-400/10";
+    return "border border-orange-200 bg-orange-50";
   }
   if (status === "pending_destination") {
-    return "border-yellow/50 bg-yellow/10";
+    return "border border-slate-200 bg-slate-50";
   }
   if (status === "loading") {
-    return "border-border/80 bg-surface/72";
+    return "border border-slate-200 bg-slate-50";
   }
-  return "border-border/80 bg-surface/72";
+  return "border border-slate-200 bg-slate-50";
 }
 
 function summaryText(followup: QuoteFollowupState | null | undefined): string {
@@ -123,11 +123,11 @@ export function FollowupStatusCard({
       <div className={clsx("surface-panel-subtle px-4 py-4", toneClass("loading"))}>
         <div className="flex items-center justify-between gap-3">
           <p className="kicker">{title}</p>
-          <span className="terminal-mini-chip border-border/80 bg-bg/60 text-muted">
+          <span className="terminal-mini-chip border-slate-200 bg-white text-slate-500">
             Loading
           </span>
         </div>
-        <p className="mt-3 text-sm text-muted">Checking the latest reminder schedule...</p>
+        <p className="mt-3 text-sm text-slate-500">Checking the latest reminder schedule...</p>
       </div>
     );
   }
@@ -163,7 +163,7 @@ export function FollowupStatusCard({
               {isStopping ? "Stopping..." : "Stop follow-up"}
             </button>
           ) : null}
-          <span className="terminal-mini-chip border-border/80 bg-bg/55 text-text/90">
+          <span className="terminal-mini-chip border-slate-200 bg-white text-slate-700">
             {statusLabel(effective)}
           </span>
         </div>
@@ -195,11 +195,11 @@ export function FollowupStatusCard({
       </div>
 
       {effective.status === "stopped" ? (
-        <div className="mt-4 border border-border/70 bg-bg/50 px-3 py-3" style={{ borderRadius: 2 }}>
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-3">
           <p className="data-label">Why it stopped</p>
           <p className="mt-1 text-sm text-text">{stopReasonText(effective.stop_reason)}</p>
           {effective.stopped_at ? (
-            <p className="mt-1 text-xs text-muted">Stopped {formatTimestamp(effective.stopped_at)}</p>
+            <p className="mt-1 text-xs text-slate-500">Stopped {formatTimestamp(effective.stopped_at)}</p>
           ) : null}
         </div>
       ) : null}

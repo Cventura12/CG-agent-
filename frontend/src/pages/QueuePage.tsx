@@ -762,6 +762,18 @@ export function QueuePage() {
 
                       <p className="mt-4 text-[17px] leading-8 text-slate-900">{isTranscriptDraft ? transcriptSummary(draft) : draft.why}</p>
                       <p className="mt-3 text-[15px] leading-7 text-slate-500">{isTranscriptDraft ? transcriptActionLabel(draft) : `Needs attention: ${nextActionLabel(draft.type)}`}</p>
+                      {isTranscriptDraft && transcript?.recommended_actions?.length ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {transcript.recommended_actions.slice(0, 2).map((action) => (
+                            <span
+                              key={`${draft.id}-collapsed-${action}`}
+                              className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-[#2453d4]"
+                            >
+                              {action}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-right shadow-sm">

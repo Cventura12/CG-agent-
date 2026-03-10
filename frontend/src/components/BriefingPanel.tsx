@@ -11,18 +11,18 @@ type BriefingPanelProps = {
 function lineColorClass(line: string): string {
   const normalized = line.trimStart().toUpperCase();
   if (normalized.startsWith("READY FOR")) {
-    return "text-orange";
+    return "text-orange-600";
   }
   if (normalized.startsWith("ACTION")) {
-    return "text-red-400";
+    return "text-red-600";
   }
   if (normalized.startsWith("WATCH")) {
-    return "text-yellow";
+    return "text-amber-600";
   }
   if (normalized.startsWith("ON TRACK")) {
-    return "text-green";
+    return "text-emerald-600";
   }
-  return "text-muted";
+  return "text-slate-500";
 }
 
 export function BriefingPanel({ gcId }: BriefingPanelProps) {
@@ -50,10 +50,10 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
           className="min-w-0 flex-1 text-left sm:cursor-default"
         >
           <p className="kicker">Morning briefing</p>
-          <p className="mt-2 font-display text-[1.45rem] uppercase leading-none tracking-[0.06em] text-text">
+          <p className="mt-2 font-display text-[1.35rem] uppercase leading-none tracking-[0.04em] text-slate-950">
             Daily pulse
           </p>
-          <p className="mt-2 text-xs text-muted">{generatedAt}</p>
+          <p className="mt-2 text-xs text-slate-500">{generatedAt}</p>
         </button>
 
         <div className="flex items-center gap-2">
@@ -62,8 +62,8 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
             onClick={() => void briefingQuery.refetch()}
             disabled={briefingQuery.isFetching || !gcId}
             className={clsx(
-              "rounded-xl border border-border bg-bg/55 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text",
-              "transition-colors hover:border-orange hover:text-orange disabled:cursor-not-allowed disabled:opacity-60"
+              "rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700",
+              "transition-colors hover:border-orange-300 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
             )}
           >
             {briefingQuery.isFetching ? "Refreshing..." : "Refresh"}
@@ -71,7 +71,7 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
           <button
             type="button"
             onClick={() => setIsExpandedMobile((value) => !value)}
-            className="rounded-xl border border-border bg-bg/55 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted sm:hidden"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500 sm:hidden"
           >
             {isExpandedMobile ? "Hide" : "Show"}
           </button>
@@ -80,23 +80,23 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
 
       <div
         className={clsx(
-          "border-t border-border/80 px-4 pb-4 pt-4 sm:px-5",
+          "border-t border-slate-200 px-4 pb-4 pt-4 sm:px-5",
           isExpandedMobile ? "block" : "hidden",
           "sm:block"
         )}
       >
         {briefingQuery.isLoading ? (
-          <p className="animate-pulse font-mono text-sm text-muted">Generating briefing...</p>
+          <p className="animate-pulse font-mono text-sm text-slate-500">Generating briefing...</p>
         ) : null}
 
         {!briefingQuery.isLoading && briefingQuery.isError ? (
-          <p className="rounded-[1.2rem] border border-red-400/30 bg-red-400/10 px-3 py-3 font-mono text-sm text-red-200">
+          <p className="rounded-[1.2rem] border border-red-200 bg-red-50 px-3 py-3 font-mono text-sm text-red-600">
             Briefing unavailable. Check back after the next refresh.
           </p>
         ) : null}
 
         {!briefingQuery.isLoading && !briefingQuery.isError ? (
-          <pre className="rounded-[1.2rem] border border-border/70 bg-bg/55 p-4 whitespace-pre-wrap font-mono text-sm leading-7">
+          <pre className="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-4 whitespace-pre-wrap font-mono text-sm leading-7 text-slate-700">
             {lines.map((line: string, index: number) => (
               <span key={`${index}-${line}`} className={lineColorClass(line)}>
                 {line}

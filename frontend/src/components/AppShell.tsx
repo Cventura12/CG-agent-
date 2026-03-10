@@ -163,14 +163,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-4">
               <Link
                 to="/quote"
-                className="inline-flex h-11 items-center gap-3 rounded-xl border border-slate-900 bg-white px-4 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
+                className="inline-flex h-10 items-center gap-2.5 rounded-xl border border-slate-900 bg-white px-4 text-[14px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
               >
                 <FileText className="h-5 w-5" aria-hidden="true" />
                 <span>Quick Quote</span>
               </Link>
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-transparent bg-white text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-transparent bg-white text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" aria-hidden="true" />

@@ -44,12 +44,12 @@ export function PageHeader({
               className={clsx(
                 "stat-cell",
                 stat.tone === "success"
-                  ? "text-green"
+                  ? "text-emerald-600"
                   : stat.tone === "warning"
-                    ? "text-yellow"
+                    ? "text-amber-600"
                     : stat.tone === "danger"
-                      ? "text-red-300"
-                      : "text-text"
+                      ? "text-red-600"
+                      : "text-slate-900"
               )}
             >
               <p className="data-label">{stat.label}</p>

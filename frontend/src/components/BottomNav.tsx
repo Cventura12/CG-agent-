@@ -45,7 +45,7 @@ export function BottomNav({ queueCount = 0 }: { queueCount?: number }) {
             <Link
               key={item.href}
               to={item.href}
-              className={`relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold no-underline transition ${
+              className={`relative flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold no-underline transition ${
                 isActive ? "bg-blue-50 text-[#2453d4]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               }`}
             >

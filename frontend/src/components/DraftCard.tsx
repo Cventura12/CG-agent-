@@ -21,13 +21,13 @@ type PendingAction = "approve" | "discard" | "save" | null;
 
 function typeBadgeClass(type: DraftType): string {
   const mapping: Record<DraftType, string> = {
-    CO: "border-yellow/60 bg-yellow/15 text-yellow",
-    RFI: "border-green/60 bg-green/15 text-green",
-    "sub-message": "border-orange/70 bg-orange/15 text-orange",
-    "follow-up": "border-red-400/60 bg-red-400/10 text-red-300",
-    "owner-update": "border-steel/60 bg-steel/15 text-steel",
-    "material-order": "border-muted/60 bg-muted/15 text-muted",
-    "transcript-review": "border-orange/70 bg-orange/15 text-orange",
+    CO: "border-amber-200 bg-amber-50 text-amber-700",
+    RFI: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    "sub-message": "border-orange-200 bg-orange-50 text-orange-600",
+    "follow-up": "border-orange-200 bg-orange-50 text-orange-600",
+    "owner-update": "border-slate-200 bg-slate-100 text-slate-600",
+    "material-order": "border-blue-200 bg-blue-50 text-[#2453d4]",
+    "transcript-review": "border-violet-200 bg-violet-50 text-violet-700",
   };
   return mapping[type];
 }
@@ -125,7 +125,7 @@ export function DraftCard({
   return (
     <article
       className={clsx(
-        "mx-auto w-full max-w-none rounded-[1.5rem] border border-border/80 bg-surface/88 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)] transition-all duration-200",
+        "mx-auto w-full max-w-none rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200",
         isApproved && "opacity-60",
         isDiscarded && "opacity-30",
         isExiting && "translate-y-2 scale-[0.98] opacity-0"
@@ -148,14 +148,14 @@ export function DraftCard({
         >
           {draft.title}
         </h3>
-        <div className="mt-1 flex flex-col gap-1 text-xs text-muted sm:flex-row sm:items-center sm:gap-3">
+        <div className="mt-1 flex flex-col gap-1 text-xs text-slate-500 sm:flex-row sm:items-center sm:gap-3">
           <span>{draft.job_name}</span>
           <span>Recipient: {recipientLabel(draft.type)}</span>
           <span>{sendByLabel(draft.created_at)}</span>
         </div>
       </header>
 
-      <p className="mb-3 italic text-sm text-muted">{draft.why}</p>
+      <p className="mb-3 italic text-sm text-slate-500">{draft.why}</p>
 
       {isEditing ? (
         <div className="mb-4 space-y-3">
@@ -172,7 +172,7 @@ export function DraftCard({
               aria-label="Save draft edits"
               onClick={handleSaveEdit}
               disabled={isLoading}
-              className="rounded-xl bg-green px-3 py-2 text-sm font-medium text-bg transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Save Changes
             </button>
@@ -193,11 +193,11 @@ export function DraftCard({
       ) : (
         <div className="mb-4">
           {wasEdited ? (
-            <div className="mb-3 rounded-xl border border-steel/40 bg-steel/10 px-3 py-2 text-xs text-steel">
+            <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-[#2453d4]">
               Edits saved. Review and approve when ready.
             </div>
           ) : null}
-          <p className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text/90">
+          <p className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-slate-700">
             {previewText}
           </p>
           {hasOverflow ? (
@@ -205,7 +205,7 @@ export function DraftCard({
               type="button"
               aria-label={isExpanded ? "Collapse draft content" : "Expand draft content"}
               onClick={() => setIsExpanded((current) => !current)}
-              className="mt-2 font-mono text-xs uppercase tracking-wider text-orange transition-all duration-200 hover:text-text"
+              className="mt-2 font-mono text-xs uppercase tracking-wider text-orange-600 transition-all duration-200 hover:text-slate-900"
             >
               {isExpanded ? "Show less" : "Read more"}
             </button>
@@ -214,14 +214,14 @@ export function DraftCard({
       )}
 
       {isApproved ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-green/50 bg-green/10 px-3 py-2 text-sm text-green">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           <span>Approved</span>
         </div>
       ) : null}
 
       {isDiscarded ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-red-400/40 bg-red-400/10 px-3 py-2 text-sm text-red-300">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-600">
           <Trash2 className="h-4 w-4" aria-hidden="true" />
           <span>Discarded</span>
         </div>
@@ -234,7 +234,7 @@ export function DraftCard({
             aria-label="Approve draft"
             onClick={handleApprove}
             disabled={isLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-green px-3 py-2 text-sm font-medium text-bg transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {showApproveSpinner ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
             <span>Approve</span>
@@ -245,7 +245,7 @@ export function DraftCard({
             aria-label="Edit draft"
             onClick={() => setIsEditing(true)}
             disabled={isLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text transition-all duration-200 hover:border-steel disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 transition-all duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Pencil className="h-4 w-4" aria-hidden="true" />
             <span>Edit</span>
@@ -256,7 +256,7 @@ export function DraftCard({
             aria-label="Discard draft"
             onClick={handleDiscard}
             disabled={isLoading}
-            className="inline-flex items-center justify-center rounded-xl border border-transparent p-2 text-muted transition-all duration-200 hover:border-border hover:text-text disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-xl border border-transparent p-2 text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {showDiscardSpinner ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
