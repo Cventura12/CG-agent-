@@ -4,17 +4,17 @@ var config = {
     theme: {
         extend: {
             colors: {
-                bg: "#0A0F11",
-                surface: "#12191B",
-                border: "#283235",
-                text: "#EEE8DE",
-                muted: "#93A0A4",
-                orange: "#D9772B",
-                green: "#5BB983",
-                steel: "#6F93AD",
-                yellow: "#D2A04B",
-                panel: "#182124",
-                ember: "#C96B30",
+                bg: "#F4F7FB",
+                surface: "#FFFFFF",
+                border: "#DBE3EF",
+                text: "#0F172A",
+                muted: "#64748B",
+                orange: "#F97316",
+                green: "#16A34A",
+                steel: "#94A3B8",
+                yellow: "#F59E0B",
+                panel: "#EEF4FF",
+                ember: "#2453D4",
             },
             fontFamily: {
                 sans: ["DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],

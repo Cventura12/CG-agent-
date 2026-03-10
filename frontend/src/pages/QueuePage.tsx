@@ -1,6 +1,14 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  ClipboardList,
+  Plus,
+  RefreshCcw,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { approveAll, approveDraft, discardDraft, editDraft } from "../api/queue";
@@ -13,7 +21,7 @@ import {
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
-import type { Draft, QueuePayload } from "../types";
+import type { Draft, QueuePayload, TranscriptInboxItem } from "../types";
 
 type QueueMutationContext = {
   previousQueue: QueuePayload | undefined;
@@ -43,40 +51,39 @@ function formatCreatedAt(value: string): string {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
-
-function healthTone(health: string | undefined): "good" | "warn" | "risk" {
-  if (health === "blocked") return "risk";
-  if (health === "at-risk") return "warn";
-  return "good";
+  return parsed.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function statusTone(status: string): string {
   const normalized = status.toLowerCase();
-  if (normalized.includes("approved")) return "tg";
-  if (normalized.includes("discard")) return "tr";
-  if (normalized.includes("edit")) return "ta";
-  return "tb";
+  if (normalized.includes("approved")) return "border border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (normalized.includes("discard")) return "border border-orange-200 bg-orange-50 text-orange-600";
+  if (normalized.includes("edit")) return "border border-blue-200 bg-blue-50 text-[#2453d4]";
+  return "border border-slate-200 bg-slate-100 text-slate-600";
 }
 
 function draftTone(type: string): string {
-  if (type === "follow-up") return "ta";
-  if (type === "material-order") return "tb";
-  if (type === "transcript-review") return "tb";
-  return "ts";
+  if (type === "follow-up") return "border border-orange-200 bg-orange-50 text-orange-600";
+  if (type === "material-order") return "border border-blue-200 bg-blue-50 text-[#2453d4]";
+  if (type === "transcript-review") return "border border-violet-200 bg-violet-50 text-violet-700";
+  return "border border-slate-200 bg-slate-100 text-slate-600";
 }
 
 function transcriptUrgencyTone(urgency: string | undefined): string {
   const normalized = (urgency ?? "").trim().toLowerCase();
-  if (normalized === "high") return "tr";
-  if (normalized === "low") return "ts";
-  return "ta";
+  if (normalized === "high") return "border border-orange-200 bg-orange-50 text-orange-600";
+  if (normalized === "low") return "border border-slate-200 bg-slate-100 text-slate-600";
+  return "border border-amber-200 bg-amber-50 text-amber-700";
 }
 
 function classificationLabel(value: string | undefined): string {
   const normalized = (value ?? "").trim();
-  if (!normalized) return "Unknown";
+  if (!normalized) return "unknown";
   return normalized.replace(/_/g, " ");
 }
 
@@ -126,6 +133,44 @@ function transcriptRawText(draft: Draft): string {
   return draft.transcript?.transcript_text || "Transcript text unavailable.";
 }
 
+function inboxCallerLabel(transcript: TranscriptInboxItem): string {
+  return transcript.caller_label || "Inbound call transcript";
+}
+
+function inboxSummary(transcript: TranscriptInboxItem): string {
+  return transcript.summary || "Manual transcript review needed.";
+}
+
+function inboxActionCopy(transcript: TranscriptInboxItem): string {
+  return (
+    transcript.recommended_actions[0] ||
+    (transcript.match_source
+      ? `Needs routing from ${transcript.match_source.replace(/_/g, " ")}`
+      : "Transcript needs routing before it becomes job work.")
+  );
+}
+
+function inboxRawText(transcript: TranscriptInboxItem): string {
+  return transcript.transcript_text || "Transcript text unavailable.";
+}
+
+function nextActionLabel(type: Draft["type"]): string {
+  switch (type) {
+    case "follow-up":
+      return "Review follow-up";
+    case "material-order":
+      return "Review pricing";
+    case "owner-update":
+      return "Send update";
+    case "sub-message":
+      return "Review message";
+    case "transcript-review":
+      return "Route transcript";
+    default:
+      return "Review draft";
+  }
+}
+
 export function QueuePage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -150,7 +195,6 @@ export function QueuePage() {
   const transcriptInbox = queueQuery.data?.inbox?.transcripts ?? [];
   const jobs = jobsQuery.data?.jobs ?? [];
 
-  const jobsById = useMemo(() => new Map(jobs.map((job) => [job.id, job])), [jobs]);
   const pendingCount = useMemo(
     () => queueGroups.reduce((total, group) => total + group.drafts.length, 0) + transcriptInbox.length,
     [queueGroups, transcriptInbox]
@@ -185,18 +229,25 @@ export function QueuePage() {
       group.drafts.map((draft) => ({
         draft,
         group,
-        job: jobsById.get(group.job_id) ?? null,
       }))
     );
-  }, [jobsById, visibleGroups]);
+  }, [visibleGroups]);
 
-  const draftCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const group of queueGroups) {
-      counts[group.job_id] = group.drafts.length;
-    }
-    return counts;
-  }, [queueGroups]);
+  const jobFilterButtons = useMemo(
+    () => [
+      {
+        job_id: null as string | null,
+        job_name: "All queue items",
+        count: queueGroups.reduce((sum, group) => sum + group.drafts.length, 0),
+      },
+      ...queueGroups.map((group) => ({
+        job_id: group.job_id,
+        job_name: group.job_name,
+        count: group.drafts.length,
+      })),
+    ],
+    [queueGroups]
+  );
 
   const scheduleExitCleanup = (draftId: string) => {
     const existingTimer = exitTimersRef.current[draftId];
@@ -261,7 +312,6 @@ export function QueuePage() {
       setErrorMessage("Could not save edit. Changes were reverted.");
     },
   });
-
   const discardMutation = useMutation({
     mutationFn: ({ draftId }: DraftMutationVars) => discardDraft(draftId),
     onMutate: async (): Promise<QueueMutationContext> => {
@@ -368,54 +418,121 @@ export function QueuePage() {
 
   return (
     <div className="pw">
-      <div className="ph">
-        <div className="ph-row">
-          <div>
-            <div className="eyebrow">Draft Management</div>
-            <div className="ptitle">Queue</div>
-            <div className="psub">{pendingCount} drafts pending review · {isOnline ? "Live runtime" : "Offline cache"}</div>
-          </div>
-          <div className="hs" style={{ gap: 8, flexWrap: "wrap" }}>
-            <Link to="/quote" className="cta him">+ NEW QUOTE</Link>
-            {pendingCount > 1 ? (
-              <button type="button" className="btn bw" onClick={() => approveAllMutation.mutate()} disabled={approveAllMutation.isPending}>
-                {approveAllMutation.isPending ? "Approving..." : "Approve all"}
-              </button>
-            ) : null}
-          </div>
+      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Queue</h1>
+          <p className="mt-3 text-[18px] text-slate-500">
+            Review quotes, updates, and call transcripts before they become customer-facing work.
+          </p>
+          <p className="mt-2 text-sm font-medium text-slate-400">
+            {pendingCount} items waiting · {isOnline ? "Live runtime" : "Offline cache"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {pendingCount > 1 ? (
+            <button
+              type="button"
+              className="inline-flex h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => approveAllMutation.mutate()}
+              disabled={approveAllMutation.isPending}
+            >
+              {approveAllMutation.isPending ? "Approving..." : "Approve all"}
+            </button>
+          ) : null}
+          <Link
+            to="/quote"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#2453d4] px-5 text-[15px] font-semibold text-white no-underline shadow-[0_8px_18px_rgba(37,83,212,0.18)] transition hover:bg-[#1f46b3]"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>New Quote</span>
+          </Link>
         </div>
       </div>
 
-      <div className="tabrow">
-        <span className={`tabt ${selectedJobId === null ? "active" : ""}`} onClick={() => setSelectedJobId(null)}>all</span>
-        {queueGroups.slice(0, 5).map((group) => (
-          <span key={group.job_id} className={`tabt ${selectedJobId === group.job_id ? "active" : ""}`} onClick={() => setSelectedJobId(group.job_id)}>
-            {group.job_name}
-          </span>
+      <div className="grid gap-5 md:grid-cols-4">
+        {[
+          {
+            label: "Pending reviews",
+            value: pendingCount,
+            detail: pendingCount > 0 ? "Action needed" : "Queue clear",
+            accent: "text-orange-500",
+          },
+          {
+            label: "Transcript inbox",
+            value: transcriptInbox.length,
+            detail: transcriptInbox.length > 0 ? "Needs routing" : "No unlinked calls",
+            accent: "text-slate-500",
+          },
+          {
+            label: "Job-backed drafts",
+            value: queueGroups.reduce((sum, group) => sum + group.drafts.length, 0),
+            detail: queueGroups.length > 0 ? "Grouped by active job" : "No job drafts",
+            accent: "text-slate-500",
+          },
+          {
+            label: "Jobs in motion",
+            value: jobs.filter((job) => job.status !== "complete").length,
+            detail: jobs.length > 0 ? "Live contractor workload" : "No jobs found",
+            accent: "text-slate-500",
+          },
+        ].map((card) => (
+          <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div className="text-[15px] font-medium text-slate-500">{card.label}</div>
+            <div className="mt-5 flex items-end gap-3">
+              <div className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">{card.value}</div>
+              <div className={`mb-2 text-[15px] font-medium ${card.accent}`}>{card.detail}</div>
+            </div>
+          </div>
         ))}
       </div>
 
+      <div className="mt-8 flex flex-wrap gap-3">
+        {jobFilterButtons.map((group) => {
+          const isActive = selectedJobId === group.job_id;
+          return (
+            <button
+              key={group.job_id ?? "all"}
+              type="button"
+              onClick={() => setSelectedJobId(group.job_id)}
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-semibold transition ${
+                isActive
+                  ? "border-[#2453d4] bg-[#2453d4] text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              <span>{group.job_name}</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                {group.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {errorMessage ? (
-        <div className="alert awarn" style={{ marginBottom: 14 }}>
-          <span>?</span>
-          <div>{errorMessage}</div>
+        <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[15px] text-orange-700">
+          {errorMessage}
         </div>
       ) : null}
 
       {queueQuery.isError ? (
-        <div className="alert awarn" style={{ marginBottom: 14 }}>
-          <span>?</span>
-          <div>Queue unavailable. Try again shortly.</div>
+        <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[15px] text-orange-700">
+          Queue unavailable. Try again shortly.
         </div>
       ) : null}
 
       {transcriptInbox.length > 0 ? (
-        <div className="panel" style={{ marginBottom: 14 }}>
-          <div className="ph2 sp">
-            <span className="ptl">Transcript Inbox</span>
-            <span className="tag ta">{transcriptInbox.length}</span>
+        <section className="mt-8 overflow-hidden rounded-[28px] border border-orange-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-orange-100 bg-orange-50/60 px-7 py-5">
+            <div className="flex items-center gap-3 text-[20px] font-semibold text-slate-950">
+              <AlertTriangle className="h-5 w-5 text-orange-500" aria-hidden="true" />
+              <span>Transcript Inbox</span>
+            </div>
+            <span className="rounded-xl border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-900">
+              {transcriptInbox.length}
+            </span>
           </div>
-          <div className="pb vs">
+          <div className="space-y-5 px-7 py-7">
             {transcriptInbox.map((transcript) => {
               const selectedJob = linkSelections[transcript.transcript_id] ?? "";
               const transcriptOpen = !!openTranscriptIds[`inbox-${transcript.transcript_id}`];
@@ -424,321 +541,297 @@ export function QueuePage() {
                 transcriptReviewMutation.isPending ||
                 transcriptDiscardMutation.isPending ||
                 transcriptLogUpdateMutation.isPending;
-              return (
-                <div key={transcript.transcript_id} className="panel" style={{ borderColor: "var(--wire2)" }}>
-                  <div className="pb">
-                    <div className="sp" style={{ marginBottom: 10, gap: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
-                          <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>
-                            {transcript.caller_label || "Inbound call transcript"}
-                          </span>
-                          <span className={`tag ${transcriptUrgencyTone(transcript.urgency)}`}>{transcript.urgency}</span>
-                          <span className="tag ts">{classificationLabel(transcript.classification)}</span>
-                          {transcript.linked_quote_id ? <span className="tag tb">{transcript.linked_quote_id}</span> : null}
-                        </div>
-                        <div style={{ fontSize: 13, color: "var(--cream)", lineHeight: 1.65 }}>{transcript.summary || "Manual transcript review needed."}</div>
-                        <div style={{ marginTop: 6, fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>
-                          {transcript.recommended_actions[0] || `Needs attention from ${transcript.match_source.replace(/_/g, " ")}`}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>
-                          {confidenceLabel(transcript.confidence)}
-                        </div>
-                        <span className="tag tb">Inbox</span>
-                      </div>
-                    </div>
 
-                    {transcript.recommended_actions.length ? (
-                      <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                        {transcript.recommended_actions.slice(0, 3).map((action) => (
-                          <span key={`${transcript.transcript_id}-${action}`} className="tag tb">{action}</span>
+              return (
+                <article key={transcript.transcript_id} className="rounded-3xl border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[20px] font-semibold text-slate-950">{inboxCallerLabel(transcript)}</span>
+                        <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${transcriptUrgencyTone(transcript.urgency)}`}>
+                          {transcript.urgency || "normal"}
+                        </span>
+                        <span className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600">
+                          {classificationLabel(transcript.classification)}
+                        </span>
+                        {transcript.linked_quote_id ? (
+                          <span className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-semibold text-[#2453d4]">
+                            {transcript.linked_quote_id}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-4 text-[17px] leading-8 text-slate-900">{inboxSummary(transcript)}</p>
+                      <p className="mt-3 text-[15px] leading-7 text-slate-500">{inboxActionCopy(transcript)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-right shadow-sm">
+                      <div className="text-[28px] font-bold tracking-[-0.04em] text-slate-950">{confidenceLabel(transcript.confidence)}</div>
+                      <div className="mt-1 text-sm font-medium text-slate-500">Inbox review</div>
+                    </div>
+                  </div>
+
+                  {transcript.recommended_actions.length ? (
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {transcript.recommended_actions.slice(0, 3).map((action) => (
+                        <span key={`${transcript.transcript_id}-${action}`} className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-[#2453d4]">
+                          {action}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {transcript.risk_flags.length ? (
+                    <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-[15px] text-orange-700">
+                      {transcript.risk_flags[0]}
+                    </div>
+                  ) : null}
+
+                  {transcript.missing_information.length ? (
+                    <div className="mt-5">
+                      <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                        Missing information
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {transcript.missing_information.map((item) => (
+                          <span key={`${transcript.transcript_id}-${item}`} className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600">
+                            {item}
+                          </span>
                         ))}
                       </div>
-                    ) : null}
-
-                    {transcript.risk_flags.length ? (
-                      <div className="alert awarn" style={{ marginBottom: 10 }}>
-                        <span>!</span>
-                        <div>{transcript.risk_flags[0]}</div>
-                      </div>
-                    ) : null}
-
-                    {transcript.missing_information.length ? (
-                      <div style={{ marginBottom: 10 }}>
-                        <div className="lbl">Missing information</div>
-                        <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
-                          {transcript.missing_information.map((item) => (
-                            <span key={`${transcript.transcript_id}-${item}`} className="tag ts">{item}</span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div className="g2" style={{ marginBottom: 12 }}>
-                      <div>
-                        <label className="lbl" htmlFor={`link-job-${transcript.transcript_id}`}>Link to job</label>
-                        <select
-                          id={`link-job-${transcript.transcript_id}`}
-                          className="sel"
-                          value={selectedJob}
-                          onChange={(event) =>
-                            setLinkSelections((current) => ({
-                              ...current,
-                              [transcript.transcript_id]: event.target.value,
-                            }))
-                          }
-                        >
-                          <option value="">Select existing job...</option>
-                          {jobs.map((job) => (
-                            <option key={`${transcript.transcript_id}-${job.id}`} value={job.id}>
-                              {job.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="lbl">Caller / source</label>
-                        <div style={{ fontSize: 12, color: "var(--steel)", paddingTop: 10 }}>
-                          {(transcript.source || "call_transcript").replace(/_/g, " ").toUpperCase()}
-                          {transcript.provider ? ` · ${transcript.provider.toUpperCase()}` : ""}
-                        </div>
-                      </div>
                     </div>
+                  ) : null}
 
-                    <div className="hs" style={{ flexWrap: "wrap" }}>
-                      {transcript.classification === "estimate_request" ? (
-                        <Link to={`/quote?transcript_id=${encodeURIComponent(transcript.transcript_id)}`} className="btn bw">
-                          Create quote draft
-                        </Link>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="btn bw"
-                        onClick={() =>
-                          transcriptLinkMutation.mutate({
-                            transcriptId: transcript.transcript_id,
-                            jobId: selectedJob,
-                          })
-                        }
-                        disabled={!selectedJob || isBusy}
-                      >
+                  <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                    <div>
+                      <label className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500" htmlFor={`link-job-${transcript.transcript_id}`}>
                         Link to job
-                      </button>
-                      <button
-                        type="button"
-                        className="btn bw"
-                        onClick={async () => {
-                          if (!selectedJob) {
-                            setErrorMessage("Link the transcript to a job before logging it as an update.");
-                            return;
-                          }
-                          await transcriptLinkMutation.mutateAsync({
-                            transcriptId: transcript.transcript_id,
-                            jobId: selectedJob,
-                          });
-                          await transcriptLogUpdateMutation.mutateAsync(transcript.transcript_id);
-                        }}
-                        disabled={isBusy || !selectedJob}
-                      >
-                        Log as update
-                      </button>
-                      <button
-                        type="button"
-                        className="btn bg"
-                        onClick={() => transcriptReviewMutation.mutate(transcript.transcript_id)}
-                        disabled={isBusy}
-                      >
-                        Mark reviewed
-                      </button>
-                      <button
-                        type="button"
-                        className="btn brd"
-                        onClick={() => transcriptDiscardMutation.mutate(transcript.transcript_id)}
-                        disabled={isBusy}
-                      >
-                        Discard
-                      </button>
-                      <button
-                        type="button"
-                        className="btn bw"
-                        onClick={() =>
-                          setOpenTranscriptIds((current) => ({
+                      </label>
+                      <select
+                        id={`link-job-${transcript.transcript_id}`}
+                        className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[15px] text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                        value={selectedJob}
+                        onChange={(event) =>
+                          setLinkSelections((current) => ({
                             ...current,
-                            [`inbox-${transcript.transcript_id}`]: !current[`inbox-${transcript.transcript_id}`],
+                            [transcript.transcript_id]: event.target.value,
                           }))
                         }
                       >
-                        {transcriptOpen ? "Hide transcript" : "View transcript"}
-                      </button>
+                        <option value="">Select existing job...</option>
+                        {jobs.map((job) => (
+                          <option key={`${transcript.transcript_id}-${job.id}`} value={job.id}>
+                            {job.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-
-                    {transcriptOpen ? (
-                      <div className="panel" style={{ borderColor: "var(--wire2)", marginTop: 12 }}>
-                        <div className="pb">
-                          <div className="lbl">Raw transcript</div>
-                          <pre style={{ whiteSpace: "pre-wrap", fontFamily: "'Syne Mono', monospace", fontSize: 10, color: "var(--steel)", lineHeight: 1.8, margin: 0 }}>
-                            {transcript.transcript_text || "Transcript text unavailable."}
-                          </pre>
-                        </div>
+                    <div>
+                      <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Caller / source</div>
+                      <div className="mt-2 text-[15px] text-slate-600">
+                        {(transcript.source || "call_transcript").replace(/_/g, " ")}
+                        {transcript.provider ? ` · ${transcript.provider}` : ""}
                       </div>
-                    ) : null}
+                    </div>
                   </div>
-                </div>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {transcript.classification === "estimate_request" ? (
+                      <Link
+                        to={`/quote?transcript_id=${encodeURIComponent(transcript.transcript_id)}`}
+                        className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
+                      >
+                        Create quote draft
+                      </Link>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => transcriptLinkMutation.mutate({ transcriptId: transcript.transcript_id, jobId: selectedJob })}
+                      disabled={!selectedJob || isBusy}
+                    >
+                      Link to job
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={async () => {
+                        if (!selectedJob) {
+                          setErrorMessage("Link the transcript to a job before logging it as an update.");
+                          return;
+                        }
+                        await transcriptLinkMutation.mutateAsync({ transcriptId: transcript.transcript_id, jobId: selectedJob });
+                        await transcriptLogUpdateMutation.mutateAsync(transcript.transcript_id);
+                      }}
+                      disabled={isBusy || !selectedJob}
+                    >
+                      Log as update
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[15px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => transcriptReviewMutation.mutate(transcript.transcript_id)}
+                      disabled={isBusy}
+                    >
+                      Mark reviewed
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center rounded-xl border border-orange-200 bg-orange-50 px-4 text-[15px] font-semibold text-orange-600 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => transcriptDiscardMutation.mutate(transcript.transcript_id)}
+                      disabled={isBusy}
+                    >
+                      Discard
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50"
+                      onClick={() =>
+                        setOpenTranscriptIds((current) => ({
+                          ...current,
+                          [`inbox-${transcript.transcript_id}`]: !current[`inbox-${transcript.transcript_id}`],
+                        }))
+                      }
+                    >
+                      {transcriptOpen ? "Hide transcript" : "View transcript"}
+                    </button>
+                  </div>
+
+                  {transcriptOpen ? (
+                    <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+                      <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Raw transcript</div>
+                      <pre className="mt-3 whitespace-pre-wrap font-mono text-[12px] leading-6 text-slate-600">{inboxRawText(transcript)}</pre>
+                    </div>
+                  ) : null}
+                </article>
               );
             })}
           </div>
+        </section>
+      ) : null}
+
+      {queueQuery.isLoading ? (
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white px-7 py-8 text-[15px] text-slate-500 shadow-sm">
+          Loading queue...
         </div>
       ) : null}
 
       {!queueQuery.isLoading && visibleDrafts.length === 0 && transcriptInbox.length === 0 ? (
-        <div className="panel"><div className="pb">No queued drafts are waiting right now.</div></div>
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white px-7 py-8 text-[15px] text-slate-500 shadow-sm">
+          No queued drafts are waiting right now.
+        </div>
       ) : null}
 
-      <div className="vs">
-        {visibleDrafts.map(({ draft, group, job }, index) => {
-          const isOpen = openDraftId === draft.id;
-          const editValue = draftEdits[draft.id] ?? draft.content;
-          const isTranscriptDraft = draft.type === "transcript-review" && !!draft.transcript;
-          const transcript = draft.transcript;
-          const rawTranscriptOpen = !!openTranscriptIds[draft.id];
-          return (
-            <div
-              key={draft.id}
-              className={`panel ani a${index % 4}`}
-              style={{
-                cursor: "pointer",
-                borderColor: isOpen ? "var(--amber)" : "var(--wire)",
-                opacity: exitingDrafts[draft.id] ? 0.65 : 1,
-                transition: "border-color 0.14s, opacity 0.14s",
-              }}
-              onClick={() => setOpenDraftId((current) => (current === draft.id ? null : draft.id))}
-            >
-              <div className="pb">
-                <div className="sp" style={{ marginBottom: 10 }}>
-                  <div>
-                    <div className="hs" style={{ gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>{transcriptHeadline(draft)}</span>
-                      <span className="tag ts" style={{ fontSize: 7 }}>{group.job_id}</span>
-                      <span className={`tag ${draftTone(draft.type)}`}>{draft.type}</span>
-                      {isTranscriptDraft ? <span className={`tag ${transcriptUrgencyTone(transcript?.urgency)}`}>{transcript?.urgency ?? "normal"}</span> : null}
-                      {isTranscriptDraft && transcript?.classification ? <span className="tag ts">{classificationLabel(transcript.classification)}</span> : null}
-                      {isTranscriptDraft && transcript?.linked_quote_id ? <span className="tag tb">{transcript.linked_quote_id}</span> : null}
-                    </div>
-                    <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.8px" }}>
-                      {isTranscriptDraft
-                        ? `${draft.title.toUpperCase()} · ${formatCreatedAt(draft.created_at).toUpperCase()} · ${(transcript?.source || "call transcript").replace(/_/g, " ").toUpperCase()}`
-                        : `${draft.title.toUpperCase()} · ${formatCreatedAt(draft.created_at).toUpperCase()} · ${draft.id}`}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.5px" }}>
-                      {isTranscriptDraft ? confidenceLabel(transcript?.confidence) : job ? job.contract_type : "QUEUE"}
-                    </div>
-                    <span className={`tag ${statusTone(draft.status)}`}>{draft.status}</span>
-                  </div>
-                </div>
+      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_360px]">
+        <section className="space-y-4">
+          {visibleDrafts.map(({ draft, group }) => {
+            const isOpen = openDraftId === draft.id;
+            const editValue = draftEdits[draft.id] ?? draft.content;
+            const isTranscriptDraft = draft.type === "transcript-review" && !!draft.transcript;
+            const transcript = draft.transcript;
+            const rawTranscriptOpen = !!openTranscriptIds[draft.id];
+            const jobLabel = group.job_name || draft.job_name;
 
-                {isTranscriptDraft ? (
-                  <div className="vs" style={{ gap: 10 }}>
-                    <div style={{ fontSize: 13, color: "var(--cream)", lineHeight: 1.65 }}>
-                      {transcriptSummary(draft)}
+            return (
+              <article key={draft.id} className={`rounded-[28px] border bg-white shadow-sm transition ${isOpen ? "border-[#2453d4] ring-4 ring-blue-100" : "border-slate-200"} ${exitingDrafts[draft.id] ? "opacity-60" : "opacity-100"}`}>
+                <button
+                  type="button"
+                  className="block w-full rounded-[28px] px-7 py-7 text-left"
+                  onClick={() => setOpenDraftId((current) => (current === draft.id ? null : draft.id))}
+                >
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[20px] font-semibold text-slate-950">{transcriptHeadline(draft)}</span>
+                        <span className="inline-flex rounded-xl border border-slate-200 bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">{jobLabel}</span>
+                        <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${draftTone(draft.type)}`}>{draft.type}</span>
+                        {isTranscriptDraft ? (
+                          <>
+                            <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${transcriptUrgencyTone(transcript?.urgency)}`}>
+                              {transcript?.urgency ?? "normal"}
+                            </span>
+                            <span className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600">
+                              {classificationLabel(transcript?.classification)}
+                            </span>
+                            {transcript?.linked_quote_id ? (
+                              <span className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-semibold text-[#2453d4]">
+                                {transcript.linked_quote_id}
+                              </span>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+
+                      <p className="mt-4 text-[17px] leading-8 text-slate-900">{isTranscriptDraft ? transcriptSummary(draft) : draft.why}</p>
+                      <p className="mt-3 text-[15px] leading-7 text-slate-500">{isTranscriptDraft ? transcriptActionLabel(draft) : `Needs attention: ${nextActionLabel(draft.type)}`}</p>
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{transcriptActionLabel(draft)}</div>
-                    {transcript?.recommended_actions?.length ? (
-                      <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
-                        {transcript.recommended_actions.slice(0, 3).map((action) => (
-                          <span key={`${draft.id}-${action}`} className="tag tb">{action}</span>
-                        ))}
-                      </div>
-                    ) : null}
-                    {transcript?.risk_flags?.length ? (
-                      <div className="alert awarn" style={{ marginTop: 0 }}>
-                        <span>!</span>
-                        <div>{transcript.risk_flags[0]}</div>
-                      </div>
-                    ) : null}
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-right shadow-sm">
+                      <div className="text-[28px] font-bold tracking-[-0.04em] text-slate-950">{isTranscriptDraft ? confidenceLabel(transcript?.confidence) : formatCreatedAt(draft.created_at)}</div>
+                      <span className={`mt-2 inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${statusTone(draft.status)}`}>{draft.status}</span>
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.6 }}>{draft.why}</div>
-                )}
-                <div className="pt" style={{ marginTop: 12 }}>
-                  <div
-                    className="pf"
-                    style={{
-                      width: isTranscriptDraft
-                        ? `${Math.max(28, Math.min(100, Math.round((transcript?.confidence ?? 48) <= 1 ? (transcript?.confidence ?? 48) * 100 : (transcript?.confidence ?? 48))))}%`
-                        : `${Math.max(36, Math.min(100, draft.content.length / 2))}%`,
-                    }}
-                  />
-                </div>
+                </button>
 
                 {isOpen ? (
-                  <div className="ani" style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--wire)" }} onClick={(event) => event.stopPropagation()}>
-                    <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.8px", marginBottom: 12 }}>
-                      JOB · {job?.type?.toUpperCase() || "GENERAL"} · HEALTH {healthTone(job?.health).toUpperCase()} · OPEN ITEMS {job?.open_items?.length ?? 0}
-                    </div>
-                    {isTranscriptDraft && transcript ? (
-                      <div className="vs" style={{ gap: 12, marginBottom: 12 }}>
-                        <div className="g2">
-                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
-                            <div className="pb">
-                              <div className="lbl">Caller / source</div>
-                              <div style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>
-                                {transcript.caller_label || draft.title || "Inbound call transcript"}
-                              </div>
-                              <div style={{ marginTop: 6, fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "0.08em" }}>
-                                {(transcript.source || "call_transcript").replace(/_/g, " ").toUpperCase()}
-                                {transcript.provider ? ` · ${transcript.provider.toUpperCase()}` : ""}
-                                {transcript.duration_seconds ? ` · ${transcript.duration_seconds}s` : ""}
-                              </div>
-                            </div>
+                  <div className="border-t border-slate-200 px-7 py-6">
+                    {isTranscriptDraft ? (
+                      <>
+                        {transcript?.recommended_actions?.length ? (
+                          <div className="mb-5 flex flex-wrap gap-2">
+                            {transcript.recommended_actions.slice(0, 3).map((action) => (
+                              <span key={`${draft.id}-${action}`} className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-[#2453d4]">
+                                {action}
+                              </span>
+                            ))}
                           </div>
-                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
-                            <div className="pb">
-                              <div className="lbl">Recommended actions</div>
-                              {transcript.recommended_actions.length ? (
-                                <div className="vs" style={{ gap: 6 }}>
-                                  {transcript.recommended_actions.map((action) => (
-                                    <div key={`${draft.id}-${action}-full`} style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>
-                                      - {action}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: 12, color: "var(--steel)" }}>No action recommendation captured yet.</div>
-                              )}
-                            </div>
+                        ) : null}
+
+                        {transcript?.risk_flags?.length ? (
+                          <div className="mb-5 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-[15px] text-orange-700">
+                            {transcript.risk_flags[0]}
                           </div>
-                        </div>
-                        {transcript.missing_information.length ? (
-                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
-                            <div className="pb">
-                              <div className="lbl">Missing information</div>
-                              <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
-                                {transcript.missing_information.map((item) => (
-                                  <span key={`${draft.id}-${item}-missing`} className="tag ts">{item}</span>
-                                ))}
-                              </div>
+                        ) : null}
+
+                        {transcript?.missing_information?.length ? (
+                          <div className="mb-5">
+                            <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Missing information</div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {transcript.missing_information.map((item) => (
+                                <span key={`${draft.id}-${item}`} className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600">
+                                  {item}
+                                </span>
+                              ))}
                             </div>
                           </div>
                         ) : null}
-                        <div className="hs" style={{ flexWrap: "wrap" }}>
-                          {transcript.classification === "estimate_request" && transcript.transcript_id ? (
+
+                        <div className="flex flex-wrap gap-3">
+                          <Link
+                            to={`/jobs/${encodeURIComponent(draft.job_id)}`}
+                            className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
+                          >
+                            Open job
+                          </Link>
+                          {transcript?.classification === "estimate_request" && transcript.transcript_id ? (
                             <Link
                               to={`/quote?transcript_id=${encodeURIComponent(transcript.transcript_id)}`}
-                              className="btn bw"
+                              className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
                             >
                               Create quote draft
                             </Link>
                           ) : null}
-                          <Link to={`/jobs/${draft.job_id}`} className="btn bw">
-                            Open job
-                          </Link>
+                          {transcript?.transcript_id ? (
+                            <button
+                              type="button"
+                              className="inline-flex h-10 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[15px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                              onClick={() => transcriptReviewMutation.mutate(transcript.transcript_id)}
+                              disabled={transcriptReviewMutation.isPending}
+                            >
+                              Mark reviewed
+                            </button>
+                          ) : null}
                           <button
                             type="button"
-                            className="btn bw"
+                            className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50"
                             onClick={() =>
                               setOpenTranscriptIds((current) => ({
                                 ...current,
@@ -749,63 +842,134 @@ export function QueuePage() {
                             {rawTranscriptOpen ? "Hide transcript" : "View transcript"}
                           </button>
                         </div>
+
                         {rawTranscriptOpen ? (
-                          <div className="panel" style={{ borderColor: "var(--wire2)" }}>
-                            <div className="pb">
-                              <div className="lbl">Raw transcript</div>
-                              <pre style={{ whiteSpace: "pre-wrap", fontFamily: "'Syne Mono', monospace", fontSize: 10, color: "var(--steel)", lineHeight: 1.8, margin: 0 }}>
-                                {transcriptRawText(draft)}
-                              </pre>
-                            </div>
+                          <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+                            <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Raw transcript</div>
+                            <pre className="mt-3 whitespace-pre-wrap font-mono text-[12px] leading-6 text-slate-600">{transcriptRawText(draft)}</pre>
                           </div>
                         ) : null}
-                      </div>
-                    ) : null}
-                    <div style={{ marginBottom: 12 }}>
-                      <label className="lbl" htmlFor={`draft-${draft.id}`}>{isTranscriptDraft ? "Review note" : "Draft content"}</label>
-                      <textarea
-                        id={`draft-${draft.id}`}
-                        className="txta"
-                        rows={6}
-                        value={editValue}
-                        onChange={(event) => setDraftEdits((current) => ({ ...current, [draft.id]: event.target.value }))}
-                      />
-                    </div>
-                    <div className="hs" style={{ flexWrap: "wrap" }}>
-                      <button type="button" className="btn bg" onClick={() => approveMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>
-                        {isTranscriptDraft ? "Mark reviewed" : "Approve"}
-                      </button>
-                      <button type="button" className="btn bw" onClick={() => editMutation.mutate({ draftId: draft.id, content: editValue })} disabled={isDraftLoading(draft.id)}>
-                        {isTranscriptDraft ? "Save note" : "Edit"}
-                      </button>
-                      <button type="button" className="btn brd" onClick={() => discardMutation.mutate({ draftId: draft.id })} disabled={isDraftLoading(draft.id)}>
-                        Discard
-                      </button>
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                          <label className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500" htmlFor={`draft-content-${draft.id}`}>
+                            Draft content
+                          </label>
+                          <textarea
+                            id={`draft-content-${draft.id}`}
+                            className="mt-3 min-h-[160px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[15px] leading-7 text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                            value={editValue}
+                            onChange={(event) =>
+                              setDraftEdits((current) => ({
+                                ...current,
+                                [draft.id]: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="mt-5 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[15px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => approveMutation.mutate({ draftId: draft.id })}
+                            disabled={isDraftLoading(draft.id)}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => editMutation.mutate({ draftId: draft.id, content: editValue })}
+                            disabled={isDraftLoading(draft.id)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-xl border border-orange-200 bg-orange-50 px-4 text-[15px] font-semibold text-orange-600 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => discardMutation.mutate({ draftId: draft.id })}
+                            disabled={isDraftLoading(draft.id)}
+                          >
+                            Discard
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : null}
+              </article>
+            );
+          })}
+        </section>
+
+        <aside className="space-y-6">
+          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+              <ClipboardList className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
+              <span>Queue guidance</span>
+            </div>
+            <div className="mt-6 space-y-5 text-[15px] leading-7 text-slate-500">
+              <div>
+                <div className="font-semibold text-slate-900">Review reason first</div>
+                <div className="mt-1">Every item leads with the agent summary so you can decide before opening the full draft.</div>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-900">Keep transcripts compact</div>
+                <div className="mt-1">Raw call text stays hidden until you ask for it. Summary and next action stay on top.</div>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-900">Route unlinked work quickly</div>
+                <div className="mt-1">Use the inbox when a call has not been linked to a job yet. That keeps persisted transcripts actionable.</div>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </section>
 
-      {jobs.length > 0 ? (
-        <div className="panel" style={{ marginTop: 14 }}>
-          <div className="ph2"><span className="ptl">Job Health</span></div>
-          {jobs.slice(0, 4).map((job) => (
-            <Link key={job.id} to={`/jobs/${job.id}`} className="drow">
-              <span className={`hdot ${healthTone(job.health)}`} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, color: "var(--cream)" }}>{job.name}</div>
-                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 1, letterSpacing: "0.5px" }}>{job.status.toUpperCase()} · {draftCounts[job.id] ?? 0} DRAFTS</div>
-              </div>
-              <span className="tag tb td">active</span>
+          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+              <Sparkles className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+              <span>Jobs in motion</span>
+            </div>
+            <div className="mt-6 space-y-4">
+              {jobs.slice(0, 4).map((job) => (
+                <Link
+                  key={job.id}
+                  to={`/jobs/${job.id}`}
+                  className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-inherit no-underline transition hover:bg-white"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-[16px] font-semibold text-slate-950">{job.name}</div>
+                    <div className="mt-1 text-sm text-slate-500">{job.type} · {job.contract_type}</div>
+                  </div>
+                  <span className="text-sm font-medium text-slate-400">{job.status}</span>
+                </Link>
+              ))}
+              {jobs.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-[15px] text-slate-500">
+                  No jobs loaded yet.
+                </div>
+              ) : null}
+            </div>
+            <Link to="/jobs" className="mt-5 inline-flex items-center gap-2 text-[15px] font-medium text-slate-500 no-underline hover:text-slate-900">
+              Open jobs board
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-          ))}
-        </div>
-      ) : null}
+          </section>
+
+          {!isOnline ? (
+            <section className="rounded-3xl border border-blue-200 bg-blue-50 p-7 shadow-sm">
+              <div className="flex items-center gap-3 text-[18px] font-semibold text-[#2453d4]">
+                <RefreshCcw className="h-5 w-5" aria-hidden="true" />
+                <span>Offline queue cache</span>
+              </div>
+              <p className="mt-3 text-[15px] leading-7 text-slate-600">
+                Drafts remain visible while offline. Changes will sync when the browser reconnects.
+              </p>
+            </section>
+          ) : null}
+        </aside>
+      </div>
     </div>
   );
 }
-
