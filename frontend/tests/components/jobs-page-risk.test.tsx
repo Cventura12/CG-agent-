@@ -54,16 +54,18 @@ vi.mock("../../src/hooks/useJobs", () => ({
 }));
 
 describe("JobsPage risk view", () => {
-  it("shows offline mode and risk radar summary", () => {
+  it("renders the jobs list with agent notes and actions", () => {
     render(
       <MemoryRouter>
         <JobsPage />
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Offline")).toBeInTheDocument();
-    expect(screen.getByText("Risk radar")).toBeInTheDocument();
-    expect(screen.getByText("Where jobs are drifting")).toBeInTheDocument();
-    expect(screen.getByText("Operational list")).toBeInTheDocument();
+    expect(screen.getByText("Jobs")).toBeInTheDocument();
+    expect(screen.getByText("Manage all your active and past projects.")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search jobs...")).toBeInTheDocument();
+    expect(screen.getByText("Blocked Roof")).toBeInTheDocument();
+    expect(screen.getByText("Review Risk")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "New Job" })).toHaveAttribute("href", "/quote");
   });
 });

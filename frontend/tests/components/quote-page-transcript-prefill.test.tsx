@@ -147,7 +147,7 @@ describe("QuotePage transcript prefill", () => {
     expect(notesField.value).toContain("Call transcript estimate request");
     expect(notesField.value).toContain("Prime siding");
 
-    fireEvent.click(screen.getByRole("button", { name: "GENERATE QUOTE →" }));
+    fireEvent.click(screen.getByRole("button", { name: "Extract Scope & Generate Draft" }));
 
     await waitFor(() => expect(submitQuoteMock).toHaveBeenCalledTimes(1));
     expect(submitQuoteMock).toHaveBeenCalledWith(

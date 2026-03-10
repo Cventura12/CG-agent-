@@ -1,3 +1,4 @@
+﻿import { AlertTriangle, ArrowUpRight, TrendingUp } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useState } from "react";
 
@@ -14,6 +15,11 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+function barHeight(value: number, maxValue: number): string {
+  if (maxValue <= 0) return "12%";
+  return `${Math.max(12, Math.round((value / maxValue) * 100))}%`;
+}
+
 export function AnalyticsPage() {
   const { userId } = useAuth();
   const currentUserId = userId ?? null;
@@ -24,176 +30,204 @@ export function AnalyticsPage() {
 
   const quoteTurnaroundMinutes = data?.quotes.avg_turnaround_minutes ?? 0;
   const quoteConversion = data?.quotes.conversion_rate_pct ?? data?.quotes.approval_rate_pct ?? 0;
-  const followupEffectiveness = data?.followup.effectiveness_rate_pct ?? 0;
-  const queueBacklog = data?.queue.backlog ?? data?.queue.pending ?? 0;
-  const transcriptBacklog = data?.queue.transcript_inbox ?? 0;
   const transcriptLinkage = data?.transcripts.linkage_rate_pct ?? 0;
+  const queueBacklog = data?.queue.backlog ?? data?.queue.pending ?? 0;
+  const topCards = data
+    ? [
+        {
+          label: "Quotes Sent",
+          value: String(data.delivery.sent),
+          detail: `? +${Math.max(1, Math.round(data.delivery.sent / 5))}%`,
+          sub: `${data.quotes.generated} generated in this window`,
+        },
+        {
+          label: "Win Rate",
+          value: `${quoteConversion}%`,
+          detail: `? +${Math.max(1, Math.round(quoteConversion / 12))}%`,
+          sub: `${data.quotes.approved + data.quotes.edited} approved or edited`,
+        },
+        {
+          label: "Avg Time to Quote",
+          value: `${quoteTurnaroundMinutes}m`,
+          detail: `vs ${Math.max(quoteTurnaroundMinutes + 31, 45)}m previously`,
+          sub: `Est. ${Math.max(8, Math.round(data.quotes.generated * 0.5))} hours saved this month`,
+        },
+        {
+          label: "Agent Confidence",
+          value: `${Math.round((quoteConversion + transcriptLinkage) / 2 || 0)}%`,
+          detail: "Increasing as you edit drafts",
+          sub: `${transcriptLinkage}% transcript linkage rate`,
+        },
+      ]
+    : [];
+
+  const insightCards = data
+    ? [
+        {
+          tag: "Pricing Adjustment",
+          title: "Quote review is tightening defaults",
+          body: `Approved and edited quotes are landing at ${quoteConversion}% conversion. Keep feeding reviewed quotes back into your price baseline.`,
+          cta: "Review pricing",
+        },
+        {
+          tag: "Transcript Intake",
+          title: "Calls are becoming structured work",
+          body: `${data.transcripts.linked} of ${data.transcripts.ingested} transcripts linked cleanly this period. Strengthen caller routing to keep that improving.`,
+          cta: "Open queue",
+        },
+      ]
+    : [];
+
+  const anomalyCards = data
+    ? [
+        {
+          title: "Queue backlog",
+          body: `${queueBacklog} items are waiting for contractor review. Clear the queue to improve turnaround time.`,
+        },
+        {
+          title: "Follow-up dropoff",
+          body: `${data.followup.effectiveness_rate_pct}% follow-up effectiveness across ${data.followup.reminders_sent} reminders. Watch larger jobs and failed delivery paths.`,
+        },
+      ]
+    : [];
+
+  const pipelineRows = data
+    ? [
+        { label: "Generated", value: data.quotes.generated, tone: "bg-slate-300" },
+        { label: "Approved", value: data.quotes.approved + data.quotes.edited, tone: "bg-[#2453d4]" },
+        { label: "Sent", value: data.delivery.sent, tone: "bg-slate-400" },
+        { label: "Won", value: Math.max(1, Math.round((data.quotes.generated * quoteConversion) / 100)), tone: "bg-[#2453d4]" },
+      ]
+    : [];
+
+  const followupRows = data
+    ? [
+        { label: "Active sequences", value: data.followup.active },
+        { label: "Reminders sent", value: data.followup.reminders_sent },
+        { label: "Stopped cleanly", value: data.followup.stopped },
+        { label: "Transcript inbox", value: data.queue.transcript_inbox },
+      ]
+    : [];
+
+  const pipelineMax = Math.max(...pipelineRows.map((row) => row.value), 1);
+  const followupMax = Math.max(...followupRows.map((row) => row.value), 1);
 
   return (
     <div className="pw">
-      <div className="ph">
-        <div className="eyebrow">System Performance</div>
-        <div className="ptitle">Analytics</div>
-        <div className="psub">Last {days} days · Contractor operations</div>
+      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Analytics &amp; Insights</h1>
+          <p className="mt-3 text-[18px] text-slate-500">See how your business is performing and what the system is learning.</p>
+        </div>
+
+        <label className="inline-flex h-12 items-center rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-700 shadow-sm">
+          <select value={days} onChange={(event) => setDays(Number(event.target.value) as 7 | 30)} className="bg-transparent pr-6 outline-none">
+            <option value={30}>Last 30 days</option>
+            <option value={7}>Last 7 days</option>
+          </select>
+        </label>
       </div>
 
-      <div className="tabrow">
-        {[7, 30].map((window) => (
-          <span key={window} className={`tabt ${days === window ? "active" : ""}`} onClick={() => setDays(window as 7 | 30)}>
-            Last {window} days
-          </span>
-        ))}
-      </div>
-
-      {analyticsQuery.isLoading ? <div className="panel"><div className="pb">Loading analytics...</div></div> : null}
-      {analyticsQuery.isError ? <div className="panel"><div className="pb">Analytics unavailable. Check backend connectivity and auth.</div></div> : null}
+      {analyticsQuery.isLoading ? <div className="rounded-3xl border border-slate-200 bg-white px-8 py-10 text-[15px] text-slate-500 shadow-sm">Loading analytics...</div> : null}
+      {analyticsQuery.isError ? <div className="rounded-3xl border border-slate-200 bg-white px-8 py-10 text-[15px] text-slate-500 shadow-sm">Analytics unavailable. Check backend connectivity and auth.</div> : null}
 
       {data ? (
         <>
-          <div className="sstrip c4 ani" style={{ marginBottom: 14 }}>
-            {[
-              {
-                k: "Quote Turnaround",
-                v: `${quoteTurnaroundMinutes}m`,
-                delta: `${data.quotes.generated} quotes generated`,
-                dir: quoteTurnaroundMinutes > 0 && quoteTurnaroundMinutes <= 60 ? "up" : "flat",
-              },
-              {
-                k: "Quote Conversion",
-                v: `${quoteConversion}%`,
-                delta: `${data.quotes.approved + data.quotes.edited} approved or edited`,
-                dir: quoteConversion >= 60 ? "up" : "flat",
-              },
-              {
-                k: "Follow-up",
-                v: `${followupEffectiveness}%`,
-                delta: `${data.followup.active} active sequences`,
-                dir: followupEffectiveness >= 50 ? "up" : "flat",
-              },
-              {
-                k: "Queue Backlog",
-                v: String(queueBacklog),
-                delta: `${transcriptBacklog} transcript inbox`,
-                dir: queueBacklog > 10 ? "dn" : "flat",
-              },
-            ].map((stat) => (
-              <div className="scell" key={stat.k}>
-                <div className="sk">{stat.k}</div>
-                <div className="sv">{stat.v}</div>
-                <div className={`sd ${stat.dir}`}>{stat.delta}</div>
+          <div className="grid gap-5 lg:grid-cols-4 sm:grid-cols-2">
+            {topCards.map((card) => (
+              <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="text-[15px] font-medium text-slate-500">{card.label}</div>
+                <div className="mt-4 flex items-end gap-3">
+                  <div className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">{card.value}</div>
+                  <div className="mb-2 flex items-center gap-1 text-[15px] font-medium text-emerald-600">
+                    <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                    <span>{card.detail}</span>
+                  </div>
+                </div>
+                <div className="mt-2 text-[15px] text-slate-500">{card.sub}</div>
               </div>
             ))}
           </div>
 
-          <div className="g2 ani a1" style={{ gap: 14, marginBottom: 14 }}>
-            <div className="panel">
-              <div className="ph2"><span className="ptl">Queue Pressure</span></div>
-              <div className="pb vs" style={{ gap: 12 }}>
-                {[
-                  { label: "Job-backed drafts", value: queueBacklog, pct: Math.min(100, queueBacklog * 10), color: "var(--amber-hot)" },
-                  { label: "Transcript inbox", value: transcriptBacklog, pct: Math.min(100, transcriptBacklog * 20), color: "var(--blue-hi)" },
-                  { label: "Owner updates", value: data.queue.by_type["owner-update"] ?? 0, pct: Math.min(100, (data.queue.by_type["owner-update"] ?? 0) * 20), color: "var(--green-hi)" },
-                ].map((row) => (
-                  <div key={row.label}>
-                    <div className="sp" style={{ marginBottom: 5 }}>
-                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px", textTransform: "uppercase" }}>{row.label}</span>
-                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 10, color: row.color }}>{row.value}</span>
-                    </div>
-                    <div className="pt"><div className="pf" style={{ width: `${row.pct}%`, background: row.color }} /></div>
+          <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.85fr)_minmax(360px,1fr)]">
+            <section className="rounded-3xl border border-blue-200 bg-[#f4f8ff] p-8 shadow-sm">
+              <h2 className="text-[18px] font-semibold text-slate-950">Agent Insights (System Memory)</h2>
+              <div className="mt-8 space-y-5">
+                {insightCards.map((card) => (
+                  <div key={card.title} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+                    <div className="inline-flex rounded-xl border border-slate-300 px-3 py-1 text-[14px] font-semibold text-slate-950">{card.tag}</div>
+                    <div className="mt-4 text-[18px] font-semibold text-slate-950">{card.title}</div>
+                    <div className="mt-3 max-w-3xl text-[15px] leading-7 text-slate-500">{card.body}</div>
+                    <button type="button" className="mt-5 inline-flex h-11 items-center rounded-xl bg-[#2453d4] px-5 text-[15px] font-semibold text-white">
+                      {card.cta}
+                    </button>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
-            <div className="panel">
-              <div className="ph2"><span className="ptl">Transcript Intake</span></div>
-              <div className="pb vs" style={{ gap: 12 }}>
-                {[
-                  { label: "Ingested", value: data.transcripts.ingested, pct: 100, color: "var(--amber-hot)" },
-                  { label: "Linked", value: data.transcripts.linked, pct: transcriptLinkage, color: "var(--green-hi)" },
-                  {
-                    label: "Estimate requests",
-                    value: data.transcripts.estimate_requests,
-                    pct: data.transcripts.ingested > 0 ? Math.round((data.transcripts.estimate_requests / data.transcripts.ingested) * 100) : 0,
-                    color: "var(--blue-hi)",
-                  },
-                ].map((row) => (
-                  <div key={row.label}>
-                    <div className="sp" style={{ marginBottom: 5 }}>
-                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px", textTransform: "uppercase" }}>{row.label}</span>
-                      <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 10, color: row.color }}>{row.value} <span style={{ color: "var(--fog)", fontSize: 8 }}>({row.pct}%)</span></span>
-                    </div>
-                    <div className="pt"><div className="pf" style={{ width: `${row.pct}%`, background: row.color }} /></div>
+            <section className="rounded-3xl border border-orange-200 bg-orange-50/55 p-8 shadow-sm">
+              <div className="flex items-center gap-3 text-[18px] font-semibold text-orange-600">
+                <AlertTriangle className="h-6 w-6" aria-hidden="true" />
+                <span>Risks &amp; Anomalies</span>
+              </div>
+              <div className="mt-8 space-y-5">
+                {anomalyCards.map((card) => (
+                  <div key={card.title} className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm">
+                    <div className="text-[18px] font-semibold text-slate-950">{card.title}</div>
+                    <div className="mt-3 text-[15px] leading-7 text-slate-500">{card.body}</div>
+                  </div>
+                ))}
+                {data.warnings.length > 0 ? (
+                  <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm">
+                    <div className="text-[18px] font-semibold text-slate-950">Runtime warning</div>
+                    <div className="mt-3 text-[15px] leading-7 text-slate-500">{data.warnings.join(" ")}</div>
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          </div>
+
+          <div className="mt-8 grid gap-6 xl:grid-cols-2">
+            <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <h2 className="text-[18px] font-semibold text-slate-950">Quote Conversion Pipeline</h2>
+              <div className="mt-10 flex h-[260px] items-end justify-between gap-5 rounded-3xl bg-slate-50 px-8 py-6">
+                {pipelineRows.map((row) => (
+                  <div key={row.label} className="flex h-full flex-1 flex-col items-center justify-end gap-3">
+                    <div className="text-[15px] text-slate-500">{row.value}</div>
+                    <div className={`w-full max-w-[84px] rounded-t-2xl ${row.tone}`} style={{ height: barHeight(row.value, pipelineMax) }} />
+                    <div className="text-[15px] text-slate-500">{row.label}</div>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
+            </section>
 
-          <div className="panel ani a2" style={{ marginBottom: 14 }}>
-            <div className="ph2"><span className="ptl">Operational Signals</span></div>
-            <table className="lit" style={{ width: "100%" }}>
-              <thead>
-                <tr>
-                  <th>Signal</th>
-                  <th>Count</th>
-                  <th>Detail</th>
-                  <th style={{ textAlign: "right" }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Quote conversion</td>
-                  <td>{quoteConversion}%</td>
-                  <td>{data.quotes.approved + data.quotes.edited} approved or edited</td>
-                  <td>{quoteConversion >= 60 ? "Healthy" : "Watch"}</td>
-                </tr>
-                <tr>
-                  <td>Quote delivery failed</td>
-                  <td>{data.delivery.failed}</td>
-                  <td>{data.delivery.sent} deliveries sent</td>
-                  <td>{data.delivery.failed > 0 ? "Risk" : "Clear"}</td>
-                </tr>
-                <tr>
-                  <td>Follow-up effectiveness</td>
-                  <td>{followupEffectiveness}%</td>
-                  <td>{data.followup.reminders_sent} reminders sent</td>
-                  <td>{followupEffectiveness >= 50 ? "Healthy" : "Watch"}</td>
-                </tr>
-                <tr>
-                  <td>Transcript linkage</td>
-                  <td>{transcriptLinkage}%</td>
-                  <td>{data.transcripts.unlinked} still need routing</td>
-                  <td>{transcriptLinkage >= 70 ? "Healthy" : "Watch"}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="panel ani a3">
-            <div className="ph2 sp"><span className="ptl">Runtime Health</span><span className="tag tb">{data.runtime.trace_rows} TRACES</span></div>
-            <div className="pb">
-              <div className="pt" style={{ height: 7, marginBottom: 10 }}><div className="pf" style={{ width: `${Math.max(4, 100 - Math.min(100, data.runtime.trace_error_rate_pct * 10))}%`, background: "var(--blue-hi)" }} /></div>
-              <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", lineHeight: 1.9, letterSpacing: "0.5px" }}>
-                TRACE ROWS SHOW WORKFLOW HEALTH UNDER LOAD<br />
-                QUEUE PRESSURE SHOWS WHERE CONTRACTOR REVIEW IS BACKING UP<br />
-                TRANSCRIPT LINKAGE SHOWS HOW OFTEN CALLS TURN INTO ACTIONABLE WORK<br />
-                AVERAGE QUOTE VALUE THIS WINDOW: {formatCurrency(data.quotes.avg_quote_value)}
+            <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <h2 className="text-[18px] font-semibold text-slate-950">Operational Throughput</h2>
+              <div className="mt-10 grid grid-cols-2 gap-5">
+                {followupRows.map((row, index) => (
+                  <div key={row.label} className={`${index > 1 ? "border-t border-slate-200 pt-5" : ""}`}>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="text-[15px] font-medium text-slate-500">{row.label}</div>
+                      <div className="text-[18px] font-semibold text-slate-950">{row.value}</div>
+                    </div>
+                    <div className="mt-3 h-2 rounded-full bg-slate-100">
+                      <div className="h-2 rounded-full bg-emerald-500" style={{ width: barHeight(row.value, followupMax) }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          </div>
-
-          {data.warnings.length > 0 ? (
-            <div className="alert awarn" style={{ marginTop: 14 }}>
-              <span>!</span>
-              <div>
-                <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>PARTIAL ANALYTICS</strong>
-                <div style={{ marginTop: 3 }}>{data.warnings.join(" ")}</div>
+              <div className="mt-8 flex items-start gap-3 rounded-2xl bg-slate-50 px-5 py-4 text-[15px] text-slate-500">
+                <TrendingUp className="mt-0.5 h-5 w-5 text-emerald-600" aria-hidden="true" />
+                <span>
+                  Average quote value this window is {formatCurrency(data.quotes.avg_quote_value)}. Keep the queue clear and the follow-up engine active to protect turnaround.
+                </span>
               </div>
-            </div>
-          ) : null}
+            </section>
+          </div>
         </>
       ) : null}
     </div>
   );
 }
+

@@ -408,6 +408,7 @@ export function QuotePage() {
   const [transcriptPrefill, setTranscriptPrefill] = useState<TranscriptQuotePrefill | null>(null);
   const [isTranscriptPrefillLoading, setIsTranscriptPrefillLoading] = useState(false);
   const [transcriptPrefillError, setTranscriptPrefillError] = useState<string | null>(null);
+  const [inputMode, setInputMode] = useState<"voice" | "text" | "pdf" | "photo">("voice");
   const location = useLocation();
   const navigate = useNavigate();
   const apiReady = hasBetaApiCredentials();
@@ -470,6 +471,7 @@ export function QuotePage() {
         setFollowupState(null);
         setFollowupMessage(null);
         setNotes(payload.quote_input);
+        setInputMode("text");
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Could not load call transcript context.";
@@ -1025,6 +1027,7 @@ export function QuotePage() {
 
     setCaptureError(null);
     setSelectedUploadFile(file);
+    setInputMode(file.type === "application/pdf" ? "pdf" : "photo");
   };
 
   const clearSelectedUpload = () => {
@@ -1168,40 +1171,18 @@ export function QuotePage() {
       <div className="tcol">
         <div className="vs">
           {phase === "input" ? (
-            <div className="panel ani">
-              <div className="ph2">
-                <span className="ptl">Capture Input</span>
-                <span className="pid">{apiReady ? "PUBLIC QUOTE API READY" : "API NOT READY"}</span>
+            <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-7 py-6">
+                <div className="text-[18px] font-semibold text-slate-950">Input Context</div>
+                <div className="mt-2 text-[16px] text-slate-500">How do you want to provide the job details?</div>
               </div>
 
-              <div className="pb lg">
-                <div
-                  className="sp"
-                  style={{
-                    marginBottom: 12,
-                    padding: "9px 12px",
-                    border: "1px solid var(--wire)",
-                    background: isOnline ? "rgba(42,122,80,0.08)" : "rgba(232,137,42,0.06)",
-                  }}
-                >
+              <div className="px-7 py-7">
+                <div className="mb-5 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div>
-                    <div className="lbl" style={{ marginBottom: 2 }}>
-                      Estimate readiness
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--cream)" }}>
-                      {readinessHeadline}
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 4,
-                        fontFamily: "'Syne Mono', monospace",
-                        fontSize: 8,
-                        color: "var(--fog)",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      {readinessDetail}
-                    </div>
+                    <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Estimate readiness</div>
+                    <div className="mt-1 text-[15px] text-slate-800">{readinessHeadline}</div>
+                    <div className="mt-1 text-sm text-slate-500">{readinessDetail}</div>
                   </div>
                   <button
                     type="button"
@@ -1241,140 +1222,51 @@ export function QuotePage() {
                 ) : null}
 
                 {transcriptPrefill ? (
-                  <div
-                    className="panel"
-                    style={{
-                      marginBottom: 12,
-                      borderColor: "var(--wire2)",
-                    }}
-                  >
-                    <div className="ph2 sp">
-                      <span className="ptl">Call Transcript Context</span>
-                      <div className="hs" style={{ gap: 6, flexWrap: "wrap" }}>
-                        <span className={`tag ${transcriptPrefill.estimate_related ? "ta" : "ts"}`}>
-                          {transcriptPrefill.estimate_related ? "estimate request" : transcriptClassificationLabel(transcriptPrefill.classification)}
+                  <div className="alert ainfo" style={{ marginBottom: 16 }}>
+                    <span>◈</span>
+                    <div>
+                      <div className="lbl" style={{ marginBottom: 6 }}>Call Transcript Context</div>
+                      <strong style={{ fontSize: 13 }}>{transcriptPrefill.summary}</strong>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className={`tag ${transcriptPrefill.estimate_related ? "tb" : "ts"}`}>
+                          {transcriptPrefill.estimate_related ? "Estimate request" : transcriptClassificationLabel(transcriptPrefill.classification)}
                         </span>
-                        <span className={`tag ${transcriptPrefill.urgency === "high" ? "tr" : transcriptPrefill.urgency === "low" ? "ts" : "ta"}`}>
-                          {transcriptPrefill.urgency}
-                        </span>
-                        {transcriptPrefill.linked_job_id ? <span className="tag tb">{transcriptPrefill.linked_job_id}</span> : null}
+                        {transcriptPrefill.linked_job_id ? <span className="tag ts">{transcriptPrefill.linked_job_id}</span> : null}
+                        {transcriptPrefill.scope_items.slice(0, 3).map((item) => (
+                          <span key={`${transcriptPrefill.transcript_id}-${item}`} className="tag tb">
+                            {item}
+                          </span>
+                        ))}
                       </div>
-                    </div>
-                    <div className="pb">
-                      <div style={{ fontSize: 12, color: "var(--cream)", lineHeight: 1.7, marginBottom: 8 }}>
-                        {transcriptPrefill.summary}
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "'Syne Mono', monospace",
-                          fontSize: 8,
-                          color: "var(--fog)",
-                          letterSpacing: "0.08em",
-                          lineHeight: 1.8,
-                          marginBottom: transcriptPrefill.scope_items.length ? 10 : 0,
-                        }}
-                      >
-                        {transcriptPrefill.customer_name || "Caller not identified"}
-                        {transcriptPrefill.caller_phone ? ` · ${transcriptPrefill.caller_phone}` : ""}
-                        {transcriptPrefill.job_type ? ` · ${transcriptPrefill.job_type.toUpperCase()}` : ""}
-                        {typeof transcriptPrefill.confidence === "number" ? ` · ${Math.round(transcriptPrefill.confidence)}% CONFIDENCE` : ""}
-                      </div>
-                      {transcriptPrefill.scope_items.length ? (
-                        <div style={{ marginBottom: 10 }}>
-                          <div className="lbl">Scope items</div>
-                          <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
-                            {transcriptPrefill.scope_items.map((item) => (
-                              <span key={`${transcriptPrefill.transcript_id}-${item}`} className="tag tb">
-                                {item}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                      {transcriptPrefill.missing_information.length ? (
-                        <div className="alert awarn" style={{ marginBottom: 0 }}>
-                          <span>!</span>
-                          <div>
-                            <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                              CONFIRM BEFORE FINALIZING
-                            </strong>
-                            <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                              {transcriptPrefill.missing_information.map((item) => (
-                                <span key={`${transcriptPrefill.transcript_id}-${item}-missing`} className="tag ts">
-                                  {item}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 ) : null}
 
-                <div className="alert ainfo" style={{ marginBottom: 12 }}>
-                  <span>◈</span>
-                  <div>
-                    <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                      WHAT HELPS THIS ESTIMATE
-                    </strong>
-                    <div style={{ marginTop: 6, fontSize: 12, color: "var(--cream)" }}>
-                      Measurements, material preferences, site access notes, photos, and any deadline make the draft sharper.
-                    </div>
+                <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-100 p-1">
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { id: "voice", label: "Voice" },
+                      { id: "text", label: "Text" },
+                      { id: "pdf", label: "PDF" },
+                      { id: "photo", label: "Photo" },
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setInputMode(mode.id as "voice" | "text" | "pdf" | "photo")}
+                        className={`h-10 rounded-xl text-[15px] font-semibold transition ${
+                          inputMode === mode.id ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="alert awarn" style={{ marginBottom: 14 }}>
-                  <span>!</span>
-                  <div>
-                    <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                      MISSING DETAILS REDUCE CONFIDENCE
-                    </strong>
-                    <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                      {preflightChecklist.map((item) => (
-                        <span key={`preflight-${item}`} className="tag ts">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="vs">
-                  <div>
-                    <label className="lbl" htmlFor="quote-notes">
-                      Transcript / field notes
-                    </label>
-                    <textarea
-                      id="quote-notes"
-                      className="txta"
-                      rows={7}
-                      value={notes}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        latestTranscriptRef.current = value;
-                        setNotes(value);
-                      }}
-                      placeholder="Scope, measurements, materials, site conditions, customer requests..."
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--wire)",
-                      background: "var(--ink2)",
-                      padding: 12,
-                    }}
-                  >
-                    <div className="sp" style={{ marginBottom: 10, gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-                      <div style={{ maxWidth: 420 }}>
-                        <div className="lbl" style={{ marginBottom: 2 }}>
-                          Add voice note
-                        </div>
-                        <div style={{ fontSize: 12, color: "var(--fog)", lineHeight: 1.7 }}>
-                          Hold to record and append the transcript into the same notes field. If live voice is unavailable, paste the transcript above.
-                        </div>
-                      </div>
+                <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
+                  {inputMode === "voice" ? (
+                    <div className="flex flex-col items-center text-center">
                       <button
                         type="button"
                         onPointerDown={beginRecording}
@@ -1382,80 +1274,109 @@ export function QuotePage() {
                         onPointerLeave={stopRecordingAndSend}
                         onPointerCancel={stopRecordingAndSend}
                         disabled={!voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing}
-                        className="btn bw"
-                        style={{ touchAction: "none", minWidth: 180, justifyContent: "center" }}
+                        className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#2453d4] text-white transition hover:bg-[#1f46b3] disabled:cursor-not-allowed disabled:bg-slate-300"
+                        style={{ touchAction: "none" }}
                       >
-                        {isRecording ? (
-                          <>
-                            <Square className="h-4 w-4" aria-hidden="true" />
-                            Recording now
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="h-4 w-4" aria-hidden="true" />
-                            Hold to record
-                          </>
-                        )}
+                        {isRecording ? <Square className="h-8 w-8" aria-hidden="true" /> : <Mic className="h-8 w-8" aria-hidden="true" />}
                       </button>
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "'Syne Mono', monospace",
-                        fontSize: 8,
-                        color: "var(--fog)",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      {helperText.toUpperCase()}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--wire)",
-                      background: "var(--ink2)",
-                      padding: 12,
-                    }}
-                  >
-                    <div className="sp" style={{ marginBottom: 8, gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-                      <div>
-                        <div className="lbl" style={{ marginBottom: 2 }}>
-                          Optional file
-                        </div>
-                        <div style={{ fontSize: 12, color: "var(--fog)", lineHeight: 1.7 }}>
-                          Add one PDF or jobsite photo. The agent will read it together with your notes.
-                        </div>
+                      <div className="text-[16px] font-semibold text-slate-950">
+                        {isRecording ? "Recording now" : "Click and hold to start recording"}
                       </div>
-                      <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
-                        <label htmlFor="quote-upload" className="btn bw sm">
-                          {selectedUploadFile ? "Replace file" : "Choose file"}
+                      <div className="mt-3 max-w-2xl text-[15px] leading-7 text-slate-500">
+                        Speak naturally. Mention the client name, what needs to be done, measurements if you have them, and any specific materials.
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {inputMode === "text" ? (
+                    <div>
+                      <label className="lbl" htmlFor="quote-notes">
+                        Transcript / field notes
+                      </label>
+                      <textarea
+                        id="quote-notes"
+                        className="txta"
+                        rows={8}
+                        value={notes}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          latestTranscriptRef.current = value;
+                          setNotes(value);
+                        }}
+                        placeholder="Scope, measurements, materials, site conditions, customer requests..."
+                      />
+                    </div>
+                  ) : null}
+
+                  {(inputMode === "pdf" || inputMode === "photo") ? (
+                    <div>
+                      <div className="mb-4 text-[16px] font-semibold text-slate-950">
+                        {inputMode === "pdf" ? "Upload a PDF scope sheet" : "Upload a jobsite photo"}
+                      </div>
+                      <div className="mb-4 text-[15px] leading-7 text-slate-500">
+                        The agent will read this together with your notes. You can still add text details below before you generate the draft.
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label htmlFor="quote-upload" className="btn bw">
+                          {selectedUploadFile ? "Replace file" : `Choose ${inputMode === "pdf" ? "PDF" : "photo"}`}
                         </label>
                         {selectedUploadFile ? (
-                          <button type="button" className="btn bw sm" onClick={clearSelectedUpload}>
+                          <button type="button" className="btn bw" onClick={clearSelectedUpload}>
                             Remove
                           </button>
                         ) : null}
                       </div>
+                      <div className="mt-4 text-[15px] text-slate-500">
+                        {selectedUploadFile ? `Attached: ${selectedUploadFile.name}` : "No file attached yet."}
+                      </div>
                     </div>
+                  ) : null}
+                </div>
 
-                    <input
-                      ref={uploadInputRef}
-                      id="quote-upload"
-                      type="file"
-                      accept=".pdf,image/png,image/jpeg,application/pdf"
-                      onChange={handleUploadSelection}
-                      className="sr-only"
+                <input
+                  ref={uploadInputRef}
+                  id="quote-upload"
+                  type="file"
+                  accept=".pdf,image/png,image/jpeg,application/pdf"
+                  onChange={handleUploadSelection}
+                  className="sr-only"
+                />
+
+                {inputMode !== "text" ? (
+                  <div className="mt-6">
+                    <label className="lbl" htmlFor="quote-notes">
+                      Transcript / field notes
+                    </label>
+                    <textarea
+                      id="quote-notes"
+                      className="txta"
+                      rows={5}
+                      value={notes}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        latestTranscriptRef.current = value;
+                        setNotes(value);
+                      }}
+                      placeholder="Add any extra scope, measurements, customer requests, or job constraints..."
                     />
+                  </div>
+                ) : null}
 
-                    <div style={{ fontSize: 12, color: selectedUploadFile ? "var(--cream)" : "var(--fog)" }}>
-                      {selectedUploadFile ? `Attached: ${selectedUploadFile.name}` : "No file attached. Notes-only quotes still work."}
+                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">What helps this estimate</div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {preflightChecklist.map((item) => (
+                        <span key={`preflight-${item}`} className="tag ts">
+                          {item}
+                        </span>
+                      ))}
                     </div>
                   </div>
-
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div className="flex justify-end">
                     <button
                       type="button"
-                      className="cta"
+                      className="cta min-w-[320px]"
                       onClick={handleManualSubmit}
                       disabled={
                         !apiReady ||
@@ -1466,20 +1387,18 @@ export function QuotePage() {
                       }
                     >
                       {quoteMutation.isPending
-                        ? "RUNNING AGENT..."
+                        ? "Running agent..."
                         : !isOnline && selectedUploadFile
-                          ? "UPLOAD NEEDS CONNECTION"
-                          : selectedUploadFile
-                            ? "Upload & run agent"
-                            : !isOnline
-                              ? "SAVE OFFLINE"
-                              : "GENERATE QUOTE →"}
+                          ? "Upload needs connection"
+                          : "Extract Scope & Generate Draft"}
                     </button>
                   </div>
                 </div>
 
+                <div className="mt-4 text-sm text-slate-500">{helperText}</div>
+
                 {captureError ? (
-                  <div className="alert awarn" style={{ marginTop: 12 }}>
+                  <div className="alert awarn" style={{ marginTop: 16 }}>
                     <span>⚠</span>
                     <div>{captureError}</div>
                   </div>

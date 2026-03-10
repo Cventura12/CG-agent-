@@ -68,7 +68,7 @@ vi.mock("../../src/api/contractor", () => ({
 }));
 
 describe("BriefingPage offline mode", () => {
-  it("shows cached/offline status and risk radar", async () => {
+  it("shows cached/offline status and the new briefing dashboard", async () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -86,8 +86,8 @@ describe("BriefingPage offline mode", () => {
     );
 
     expect(screen.getByText(/Offline cache active/i)).toBeInTheDocument();
-    expect(await screen.findByText("Morning readout")).toBeInTheDocument();
-    expect(screen.getByText("Action required")).toBeInTheDocument();
-    expect(screen.getByText("Job health")).toBeInTheDocument();
+    expect(await screen.findByText("Morning Briefing")).toBeInTheDocument();
+    expect(screen.getByText("Needs Attention")).toBeInTheDocument();
+    expect(screen.getByText("Today's Follow-ups")).toBeInTheDocument();
   });
 });

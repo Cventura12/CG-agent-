@@ -1,16 +1,43 @@
 ﻿import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, MessageSquareWarning } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 
 import { fetchContractorBriefing, hasContractorApiCredentials } from "../api/contractor";
+import { useAnalytics } from "../hooks/useAnalytics";
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
-import type { BriefingPayload, Job, QueueJobGroup } from "../types";
+import type { BriefingPayload, Job, QueueJobGroup, TranscriptInboxItem } from "../types";
 import { loadCachedJson, saveCachedJson } from "../utils/offlineCache";
 
 const BRIEFING_CACHE_KEY = "gc-agent:cache:public-briefing:v1";
+
+type AttentionItem = {
+  id: string;
+  title: string;
+  detail: string;
+  tone: "orange" | "blue";
+  ctaLabel: string;
+  href: string;
+};
+
+function formatRelativeDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "Awaiting update";
+  }
+
+  const deltaMs = Date.now() - parsed.getTime();
+  const deltaHours = Math.floor(deltaMs / (1000 * 60 * 60));
+  if (deltaHours < 1) return "Just now";
+  if (deltaHours < 24) return `${deltaHours} hour${deltaHours === 1 ? "" : "s"} ago`;
+  const deltaDays = Math.floor(deltaHours / 24);
+  if (deltaDays === 1) return "Yesterday";
+  if (deltaDays < 7) return `${deltaDays} days ago`;
+  return parsed.toLocaleDateString([], { month: "short", day: "numeric" });
+}
 
 function formatToday(): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -20,45 +47,55 @@ function formatToday(): string {
   }).format(new Date());
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-}
-
-function urgencyFromLine(line: string): { label: string; tone: string } {
-  const normalized = line.trimStart().toUpperCase();
-  if (normalized.startsWith("ACTION")) return { label: "HIGH", tone: "ta" };
-  if (normalized.startsWith("WATCH")) return { label: "RISK", tone: "tr" };
-  return { label: "NORMAL", tone: "ts" };
-}
-
-function cleanBriefingLine(line: string): string {
-  return line.replace(/^(ACTION|WATCH|READY FOR)\s*[-:]*\s*/i, "").trim();
-}
-
-function healthTone(health: Job["health"]): "good" | "warn" | "risk" {
-  if (health === "blocked") return "risk";
-  if (health === "at-risk") return "warn";
-  return "good";
-}
-
-function queueSummary(group: QueueJobGroup): string {
-  if (group.drafts.length === 0) return "AWAITING DRAFT DETAILS";
+function actionFromQueue(group: QueueJobGroup): AttentionItem {
   const latest = group.drafts[0];
-  const draftLabel = (latest?.type || latest?.title || "draft").replace(/-/g, " ");
-  return `${draftLabel.toUpperCase()} · ${group.drafts.length} QUEUED`;
+  const confidence = latest?.transcript?.confidence;
+  const detail = latest?.transcript?.summary || latest?.why || "Queue item needs contractor review.";
+  const confidenceCopy = typeof confidence === "number" ? ` Confidence score: ${Math.round(confidence)}%.` : "";
+
+  return {
+    id: `queue-${group.job_id}`,
+    title: `Approve drafted quote for ${group.job_name}`,
+    detail: `${detail}${confidenceCopy}`.trim(),
+    tone: "orange",
+    ctaLabel: "Review",
+    href: "/queue",
+  };
+}
+
+function actionFromTranscript(transcript: TranscriptInboxItem): AttentionItem {
+  return {
+    id: `transcript-${transcript.transcript_id}`,
+    title: transcript.summary || "Review unlinked call transcript",
+    detail: transcript.missing_information[0]
+      ? `Missing: ${transcript.missing_information[0]}`
+      : "Transcript needs routing before it becomes job work.",
+    tone: "orange",
+    ctaLabel: "Route Call",
+    href: "/queue",
+  };
+}
+
+function actionFromJob(job: Job): AttentionItem {
+  const note = job.open_items[0]?.description || "Review the latest operational issue on this job.";
+  return {
+    id: `job-${job.id}`,
+    title: `${job.name} needs attention`,
+    detail: note,
+    tone: job.health === "blocked" ? "orange" : "blue",
+    ctaLabel: job.health === "blocked" ? "Review Risk" : "Open Job",
+    href: `/jobs/${job.id}`,
+  };
 }
 
 export function BriefingPage() {
   const { userId } = useAuth();
-  const isOnline = useOnlineStatus();
   const currentUserId = userId ?? null;
+  const isOnline = useOnlineStatus();
 
   const queueQuery = useQueue(currentUserId);
   const jobsQuery = useJobs(currentUserId);
+  const analyticsQuery = useAnalytics(currentUserId, 30);
   const initialBriefing = loadCachedJson<BriefingPayload>(BRIEFING_CACHE_KEY) ?? undefined;
   const briefingQuery = useQuery({
     queryKey: ["public-briefing"],
@@ -78,158 +115,197 @@ export function BriefingPage() {
 
   const jobs = jobsQuery.data?.jobs ?? [];
   const queueGroups = queueQuery.data?.jobs ?? [];
+  const transcriptInbox = queueQuery.data?.inbox?.transcripts ?? [];
+  const analytics = analyticsQuery.data;
 
-  const briefingLines = useMemo(() => {
-    const raw = briefingQuery.data?.briefing ?? "";
-    return raw.replace(/\r\n/g, "\n").split("\n").map((line) => line.trim()).filter(Boolean);
-  }, [briefingQuery.data]);
-
-  const actionLines = useMemo(() => {
-    const lines = briefingLines.filter((line) => {
-      const normalized = line.toUpperCase();
-      return normalized.startsWith("ACTION") || normalized.startsWith("WATCH") || normalized.startsWith("READY FOR");
-    });
-
-    if (lines.length > 0) {
-      return lines.slice(0, 4).map((line, index) => ({ id: `${index}-${line}`, line }));
-    }
-
-    if (queueGroups.length > 0) {
-      return queueGroups.slice(0, 3).map((group, index) => ({
-        id: `${index}-${group.job_id}`,
-        line: `READY FOR - ${group.job_name} has ${group.drafts.length} queued draft${group.drafts.length === 1 ? "" : "s"}`,
-      }));
-    }
-
-    return [];
-  }, [briefingLines, queueGroups]);
-
-  const secondaryLines = useMemo(() => {
-    const actionLineSet = new Set(actionLines.map((item) => item.line));
-    return briefingLines.filter((line) => !actionLineSet.has(line));
-  }, [actionLines, briefingLines]);
-
-  const blockedJobs = jobs.filter((job) => job.health === "blocked").length;
-  const atRiskJobs = jobs.filter((job) => job.health === "at-risk").length;
-  const staleOpenItems = jobs.reduce((count, job) => count + job.open_items.filter((item) => item.days_silent >= 5).length, 0);
-  const activeValue = jobs.reduce((sum, job) => sum + Number(job.contract_value || 0), 0);
   const queueCount = queueGroups.reduce((sum, group) => sum + group.drafts.length, 0);
-  const healthJobs = jobs.slice(0, 4);
-  const urgentJobs = jobs.filter((job) => job.health !== "on-track" || job.open_items.length > 0).slice(0, 4);
+  const activeQuotes = jobs.filter((job) => job.status !== "complete").length;
+  const followupJobs = jobs.filter((job) => job.open_items.some((item) => item.type === "follow-up"));
+  const followupsToday = analytics?.followup.active ?? followupJobs.length;
+  const winRate = analytics?.quotes.conversion_rate_pct ?? analytics?.quotes.approval_rate_pct ?? 0;
+
+  const attentionItems = useMemo(() => {
+    const items: AttentionItem[] = [];
+
+    for (const group of queueGroups.slice(0, 2)) {
+      items.push(actionFromQueue(group));
+    }
+
+    for (const transcript of transcriptInbox.slice(0, 1)) {
+      items.push(actionFromTranscript(transcript));
+    }
+
+    for (const job of jobs.filter((entry) => entry.health !== "on-track").slice(0, 3)) {
+      if (items.length >= 3) break;
+      items.push(actionFromJob(job));
+    }
+
+    return items.slice(0, 3);
+  }, [jobs, queueGroups, transcriptInbox]);
+
+  const insightText = useMemo(() => {
+    const notes = (briefingQuery.data?.briefing ?? "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => !/^action/i.test(line));
+
+    if (notes.length > 0) {
+      return notes[0];
+    }
+
+    if (analytics?.transcripts.linkage_rate_pct !== undefined) {
+      return `Call transcript linkage is ${analytics.transcripts.linkage_rate_pct}%. Stronger routing means more calls become job work.`;
+    }
+
+    return "Keep approving or editing real quotes so GC Agent can tighten pricing patterns and draft quality.";
+  }, [analytics?.transcripts.linkage_rate_pct, briefingQuery.data?.briefing]);
+
+  const recentUpdates = useMemo(() => {
+    return [...jobs]
+      .sort((left, right) => new Date(right.last_updated).getTime() - new Date(left.last_updated).getTime())
+      .slice(0, 3);
+  }, [jobs]);
 
   return (
     <div className="pw">
-      <div className="ph">
-        <div className="ph-row">
-          <div>
-            <div className="eyebrow">System Briefing · {formatToday()}</div>
-            <div className="ptitle">Morning readout</div>
-            <div className="psub">{jobs.length} open jobs · {queueCount} drafts in queue · {isOnline ? "System nominal" : "Offline cache active"}</div>
-          </div>
-          <Link to="/quote" className="cta him">＋ NEW QUOTE</Link>
+      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Morning Briefing</h1>
+          <p className="mt-3 text-[18px] text-slate-500">Here&apos;s what needs your attention today, John.</p>
+          <p className="mt-2 text-sm font-medium text-slate-400">{formatToday()} · {isOnline ? "Live data connected" : "Offline cache active"}</p>
         </div>
+        <Link
+          to="/quote"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-[#2453d4] px-6 text-[15px] font-semibold text-white no-underline shadow-[0_8px_20px_rgba(37,83,212,0.2)] transition hover:bg-[#1f46b3]"
+        >
+          Create Quote
+        </Link>
       </div>
 
-      <div className="sstrip c4 ani" style={{ marginBottom: 14 }}>
+      <div className="grid gap-5 xl:grid-cols-4 md:grid-cols-2">
         {[
-          { k: "Open Jobs", v: String(jobs.length), delta: `${Math.max(jobs.length - 6, 0)} added this week`, dir: "flat" },
-          { k: "Queue", v: String(queueCount), delta: queueCount > 0 ? "needs review" : "clear", dir: queueCount > 0 ? "flat" : "up" },
-          { k: "At Risk", v: String(blockedJobs + atRiskJobs), delta: staleOpenItems > 0 ? "follow-up overdue" : "monitoring only", dir: blockedJobs + atRiskJobs > 0 || staleOpenItems > 0 ? "dn" : "flat" },
-          { k: "Active Value", v: formatCurrency(activeValue), delta: isOnline ? "live from jobs" : "cached totals", dir: activeValue > 0 ? "up" : "flat" },
+          { label: "Pending Approvals", value: queueCount, detail: queueCount > 0 ? "Action needed" : "Queue clear", tone: "text-orange-500" },
+          { label: "Active Quotes", value: activeQuotes, detail: "Quotes currently moving", tone: "text-slate-500" },
+          { label: "Follow-ups Today", value: followupsToday, detail: followupsToday > 0 ? "Scheduled" : "No reminders", tone: "text-slate-500" },
+          { label: "Win Rate (30d)", value: `${winRate}%`, detail: winRate > 0 ? `? ${Math.max(1, Math.round(winRate / 32))}%` : "No trend yet", tone: "text-emerald-600" },
         ].map((stat) => (
-          <div className="scell" key={stat.k}>
-            <div className="sk">{stat.k}</div>
-            <div className="sv">{stat.v}</div>
-            <div className={`sd ${stat.dir}`}>{stat.delta}</div>
+          <div key={stat.label} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div className="text-[15px] font-medium text-slate-500">{stat.label}</div>
+            <div className="mt-5 flex items-end gap-3">
+              <div className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">{stat.value}</div>
+              <div className={`mb-2 text-[15px] font-medium ${stat.tone}`}>{stat.detail}</div>
+            </div>
           </div>
         ))}
       </div>
 
-      {!hasContractorApiCredentials() ? (
-        <div className="alert awarn" style={{ marginBottom: 14 }}>
-          <span>⚠</span>
-          <div>Set <strong>VITE_BETA_API_KEY</strong> and <strong>VITE_BETA_CONTRACTOR_ID</strong> to pull the live contractor briefing endpoint.</div>
-        </div>
-      ) : null}
+      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-orange-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-orange-100 bg-orange-50/50 px-7 py-6">
+              <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+                <AlertTriangle className="h-6 w-6 text-orange-500" aria-hidden="true" />
+                <span>Needs Attention</span>
+              </div>
+              <span className="rounded-xl border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-900">{attentionItems.length} items</span>
+            </div>
+            <div>
+              {attentionItems.length === 0 ? (
+                <div className="px-7 py-8 text-sm text-slate-500">No urgent queue or job issues right now.</div>
+              ) : (
+                attentionItems.map((item) => (
+                  <div key={item.id} className="flex items-start gap-4 border-b border-slate-200 px-7 py-6 last:border-b-0">
+                    <span className={`mt-2 h-3 w-3 rounded-full ${item.tone === "orange" ? "bg-orange-500" : "bg-blue-600"}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[18px] font-semibold text-slate-950">{item.title}</div>
+                      <div className="mt-2 text-[15px] leading-7 text-slate-500">{item.detail}</div>
+                    </div>
+                    <Link
+                      to={item.href}
+                      className="inline-flex h-10 shrink-0 items-center rounded-xl bg-slate-100 px-4 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-200"
+                    >
+                      {item.ctaLabel}
+                    </Link>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="border-t border-slate-200 px-7 py-5 text-center">
+              <Link to="/queue" className="inline-flex items-center gap-2 text-[15px] font-medium text-slate-500 no-underline hover:text-slate-900">
+                View all queue items
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </section>
 
-      <div className="g2 ani a1" style={{ gap: 14 }}>
-        <div className="panel">
-          <div className="ph2"><span className="ptl">Action required</span><span className="tag ta" style={{ marginLeft: "auto" }}>{actionLines.length} items</span></div>
-          {briefingQuery.isLoading ? <div className="pb">Loading live briefing...</div> : null}
-          {!briefingQuery.isLoading && actionLines.length === 0 ? <div className="pb">No action items are stacked right now.</div> : null}
-          {!briefingQuery.isLoading && actionLines.map((item, index) => {
-            const urgency = urgencyFromLine(item.line);
-            const relatedJob = urgentJobs[index] ?? jobs[index] ?? null;
-            return (
-              <div className="drow" key={item.id}>
-                <span style={{ fontSize: 17, flexShrink: 0 }}>{urgency.label === "HIGH" ? "📋" : urgency.label === "RISK" ? "📤" : "⚡"}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "var(--cream)" }}>{cleanBriefingLine(item.line)}</div>
-                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 2, letterSpacing: "0.5px" }}>
-                    {relatedJob ? `${relatedJob.id} · ${relatedJob.type} · ${formatCurrency(relatedJob.contract_value)}` : "BRIEFING SIGNAL"}
+          <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="px-7 py-6">
+              <h2 className="text-[18px] font-semibold text-slate-950">Recent Job Updates</h2>
+            </div>
+            <div>
+              {recentUpdates.length === 0 ? (
+                <div className="px-7 pb-7 text-sm text-slate-500">No recent job activity yet.</div>
+              ) : (
+                recentUpdates.map((job) => (
+                  <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-start gap-4 border-t border-slate-200 px-7 py-6 text-inherit no-underline first:border-t-0 hover:bg-slate-50">
+                    <div className={`mt-1 flex h-12 w-12 items-center justify-center rounded-2xl ${job.health === "blocked" ? "bg-orange-100 text-orange-600" : job.health === "at-risk" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500"}`}>
+                      {job.health === "blocked" ? <MessageSquareWarning className="h-6 w-6" aria-hidden="true" /> : <CheckCircle2 className="h-6 w-6" aria-hidden="true" />}
+                    </div>
+                    <div>
+                      <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                      <div className="mt-1 text-[15px] leading-7 text-slate-500">
+                        {job.open_items[0]?.description || `Latest status is ${job.status}.`}
+                      </div>
+                      <div className="mt-3 flex items-center gap-2 text-[15px] text-slate-500">
+                        <Clock3 className="h-4 w-4" aria-hidden="true" />
+                        <span>{formatRelativeDate(job.last_updated)}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+            <h2 className="text-[18px] font-semibold text-slate-950">Today&apos;s Follow-ups</h2>
+            <p className="mt-3 text-[15px] text-slate-500">Automated sequences running</p>
+            <div className="mt-8 space-y-6">
+              {(followupJobs.length > 0 ? followupJobs : jobs.filter((job) => job.open_items.length > 0)).slice(0, 2).map((job, index) => (
+                <div key={job.id} className={`${index > 0 ? "border-t border-slate-200 pt-5" : ""}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                      <div className="mt-1 text-[15px] text-slate-500">
+                        {job.open_items[0]?.description || `Last update ${formatRelativeDate(job.last_updated)}`}
+                      </div>
+                    </div>
+                    <button type="button" className="text-[15px] font-semibold text-slate-900">Skip</button>
+                  </div>
+                  <div className="mt-4 inline-flex items-center rounded-xl bg-blue-50 px-3 py-1 text-sm font-medium text-[#2453d4]">
+                    {job.open_items.some((item) => item.type === "follow-up") ? "Follow-up scheduled today" : "Review follow-up timing"}
                   </div>
                 </div>
-                <span className={`tag ${urgency.tone}`}>{urgency.label}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="vs" style={{ gap: 14 }}>
-          <div className="panel">
-            <div className="ph2"><span className="ptl">Draft Queue</span><span className="tag ta" style={{ marginLeft: "auto" }}>{queueCount}</span></div>
-            {queueGroups.length === 0 ? <div className="pb">No queued drafts waiting right now.</div> : queueGroups.slice(0, 3).map((group) => (
-              <div className="drow" key={group.job_id}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, color: "var(--cream)" }}>{group.job_name}</div>
-                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 2, letterSpacing: "0.5px" }}>{queueSummary(group)}</div>
-                </div>
-                <span className="cnum chi">{Math.max(78, 88 - group.drafts.length)}%</span>
-              </div>
-            ))}
-            <div className="pb" style={{ paddingTop: 10, paddingBottom: 10 }}>
-              <Link to="/queue" className="btn bw" style={{ width: "100%", justifyContent: "center", fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1.5px", textTransform: "uppercase" }}>Review Queue →</Link>
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="ph2"><span className="ptl">Job health</span></div>
-            {(healthJobs.length > 0 ? healthJobs : urgentJobs).map((job) => (
-              <Link key={job.id} to={`/jobs/${job.id}`} className="drow">
-                <span className={`hdot ${healthTone(job.health)}`} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, color: "var(--cream)" }}>{job.name}</div>
-                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", marginTop: 1, letterSpacing: "0.5px" }}>{job.contract_type} · {job.status}</div>
-                </div>
-                <span className="tag tb td">active</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="alert ainfo ani a2" style={{ marginTop: 14, fontSize: 12 }}>
-        <span style={{ flexShrink: 0, fontSize: 13 }}>◈</span>
-        <div>
-          <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 9, letterSpacing: "1px" }}>ESTIMATING MEMORY — ACTIVE</strong>
-          <div style={{ marginTop: 3, color: "var(--steel)" }}>This workspace is reading jobs, drafts, and the contractor briefing endpoint in the same terminal surface.</div>
-        </div>
-      </div>
-
-      <div className="panel ani a2" style={{ marginTop: 14 }}>
-        <div className="ph2"><span className="ptl">FYI</span><button type="button" onClick={() => void briefingQuery.refetch()} disabled={!hasContractorApiCredentials() || briefingQuery.isFetching} className="btn bw sm">{briefingQuery.isFetching ? "Refreshing..." : "Refresh"}</button></div>
-        <div className="pb">
-          {secondaryLines.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--steel)" }}>No additional briefing notes.</div>
-          ) : (
-            <div className="vs">
-              {secondaryLines.map((line) => (
-                <div key={line} style={{ border: "1px solid var(--wire)", padding: "10px 12px", fontSize: 12, color: "var(--cream)", lineHeight: 1.6 }}>{line}</div>
               ))}
             </div>
-          )}
+          </section>
+
+          <section className="rounded-3xl border border-blue-100 bg-blue-50/60 p-7 shadow-sm">
+            <h2 className="text-[18px] font-semibold text-[#2453d4]">Agent Insight</h2>
+            <p className="mt-5 text-[15px] leading-7 text-slate-700">{insightText}</p>
+            <Link
+              to="/analytics"
+              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl border border-slate-900 bg-white px-5 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
+            >
+              Review analytics
+            </Link>
+          </section>
         </div>
       </div>
     </div>
   );
 }
+

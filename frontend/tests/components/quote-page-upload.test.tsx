@@ -120,7 +120,7 @@ describe("QuotePage upload intake", () => {
     });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
-    fireEvent.click(screen.getByRole("button", { name: "Upload & run agent" }));
+    fireEvent.click(screen.getByRole("button", { name: "Extract Scope & Generate Draft" }));
 
     await waitFor(() => expect(submitQuoteUploadMock).toHaveBeenCalledTimes(1));
     expect(submitQuoteUploadMock).toHaveBeenCalledWith(
