@@ -422,7 +422,7 @@ export function QueuePage() {
         <div>
           <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Queue</h1>
           <p className="mt-3 text-[18px] text-slate-500">
-            Review quotes, updates, and call transcripts before they become customer-facing work.
+            Turn calls, updates, and draft work into reviewed next steps before they slip.
           </p>
           <p className="mt-2 text-sm font-medium text-slate-400">
             {pendingCount} items waiting · {isOnline ? "Live runtime" : "Offline cache"}
@@ -452,19 +452,19 @@ export function QueuePage() {
       <div className="grid gap-5 md:grid-cols-4">
         {[
           {
-            label: "Pending reviews",
+            label: "Needs review",
             value: pendingCount,
             detail: pendingCount > 0 ? "Action needed" : "Queue clear",
             accent: "text-orange-500",
           },
           {
-            label: "Transcript inbox",
+            label: "Unlinked calls",
             value: transcriptInbox.length,
             detail: transcriptInbox.length > 0 ? "Needs routing" : "No unlinked calls",
             accent: "text-slate-500",
           },
           {
-            label: "Job-backed drafts",
+            label: "Tracked next steps",
             value: queueGroups.reduce((sum, group) => sum + group.drafts.length, 0),
             detail: queueGroups.length > 0 ? "Grouped by active job" : "No job drafts",
             accent: "text-slate-500",
@@ -920,20 +920,20 @@ export function QueuePage() {
           <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <ClipboardList className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
-              <span>Queue guidance</span>
+              <span>How to work this queue</span>
             </div>
             <div className="mt-6 space-y-5 text-[15px] leading-7 text-slate-500">
               <div>
-                <div className="font-semibold text-slate-900">Review reason first</div>
-                <div className="mt-1">Every item leads with the agent summary so you can decide before opening the full draft.</div>
+                <div className="font-semibold text-slate-900">Start with what changed</div>
+                <div className="mt-1">Every item leads with the summary so you can decide what needs office action before opening the full detail.</div>
               </div>
               <div>
-                <div className="font-semibold text-slate-900">Keep transcripts compact</div>
-                <div className="mt-1">Raw call text stays hidden until you ask for it. Summary and next action stay on top.</div>
+                <div className="font-semibold text-slate-900">Keep communication compact</div>
+                <div className="mt-1">Raw transcript text stays hidden until you ask for it. Summary, risk, and next action stay on top.</div>
               </div>
               <div>
                 <div className="font-semibold text-slate-900">Route unlinked work quickly</div>
-                <div className="mt-1">Use the inbox when a call has not been linked to a job yet. That keeps persisted transcripts actionable.</div>
+                <div className="mt-1">Use the inbox when a call has not been linked to a job yet, then turn it into a quote, update, or reviewed record.</div>
               </div>
             </div>
           </section>

@@ -35,13 +35,13 @@ export function AnalyticsPage() {
   const topCards = data
     ? [
         {
-          label: "Quotes Sent",
+          label: "Quotes Moved",
           value: String(data.delivery.sent),
           detail: `? +${Math.max(1, Math.round(data.delivery.sent / 5))}%`,
-          sub: `${data.quotes.generated} generated in this window`,
+          sub: `${data.quotes.generated} drafts generated in this window`,
         },
         {
-          label: "Win Rate",
+          label: "Quote Conversion",
           value: `${quoteConversion}%`,
           detail: `? +${Math.max(1, Math.round(quoteConversion / 12))}%`,
           sub: `${data.quotes.approved + data.quotes.edited} approved or edited`,
@@ -53,10 +53,10 @@ export function AnalyticsPage() {
           sub: `Est. ${Math.max(8, Math.round(data.quotes.generated * 0.5))} hours saved this month`,
         },
         {
-          label: "Agent Confidence",
-          value: `${Math.round((quoteConversion + transcriptLinkage) / 2 || 0)}%`,
-          detail: "Increasing as you edit drafts",
-          sub: `${transcriptLinkage}% transcript linkage rate`,
+          label: "Transcript Linkage",
+          value: `${transcriptLinkage}%`,
+          detail: transcriptLinkage > 0 ? "Calls routed into job work" : "No linked call activity yet",
+          sub: `${data.transcripts.linked} linked from ${data.transcripts.ingested} ingested transcripts`,
         },
       ]
     : [];
@@ -66,13 +66,13 @@ export function AnalyticsPage() {
         {
           tag: "Pricing Adjustment",
           title: "Quote review is tightening defaults",
-          body: `Approved and edited quotes are landing at ${quoteConversion}% conversion. Keep feeding reviewed quotes back into your price baseline.`,
+          body: `Reviewed quotes are converting at ${quoteConversion}%. Keep feeding approved edits back into your price baseline so draft quality stays grounded.`,
           cta: "Review pricing",
         },
         {
-          tag: "Transcript Intake",
-          title: "Calls are becoming structured work",
-          body: `${data.transcripts.linked} of ${data.transcripts.ingested} transcripts linked cleanly this period. Strengthen caller routing to keep that improving.`,
+          tag: "Communication Routing",
+          title: "Calls are becoming tracked work",
+          body: `${data.transcripts.linked} of ${data.transcripts.ingested} transcripts linked cleanly this period. Better routing means fewer unresolved calls sitting outside a job.`,
           cta: "Open queue",
         },
       ]
@@ -82,7 +82,7 @@ export function AnalyticsPage() {
     ? [
         {
           title: "Queue backlog",
-          body: `${queueBacklog} items are waiting for contractor review. Clear the queue to improve turnaround time.`,
+          body: `${queueBacklog} items are waiting for contractor review. Clear the queue to keep communication turning into action.`,
         },
         {
           title: "Follow-up dropoff",
@@ -117,7 +117,7 @@ export function AnalyticsPage() {
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Analytics &amp; Insights</h1>
-          <p className="mt-3 text-[18px] text-slate-500">See how your business is performing and what the system is learning.</p>
+          <p className="mt-3 text-[18px] text-slate-500">See where communication is turning into action and where follow-through is slipping.</p>
         </div>
 
         <label className="inline-flex h-12 items-center rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-700 shadow-sm">
@@ -151,7 +151,7 @@ export function AnalyticsPage() {
 
           <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.85fr)_minmax(360px,1fr)]">
             <section className="rounded-3xl border border-blue-200 bg-[#f4f8ff] p-8 shadow-sm">
-              <h2 className="text-[18px] font-semibold text-slate-950">Agent Insights (System Memory)</h2>
+              <h2 className="text-[18px] font-semibold text-slate-950">Operational Patterns</h2>
               <div className="mt-8 space-y-5">
                 {insightCards.map((card) => (
                   <div key={card.title} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
@@ -203,7 +203,7 @@ export function AnalyticsPage() {
             </section>
 
             <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <h2 className="text-[18px] font-semibold text-slate-950">Operational Throughput</h2>
+              <h2 className="text-[18px] font-semibold text-slate-950">Follow-through Throughput</h2>
               <div className="mt-10 grid grid-cols-2 gap-5">
                 {followupRows.map((row, index) => (
                   <div key={row.label} className={`${index > 1 ? "border-t border-slate-200 pt-5" : ""}`}>
@@ -220,7 +220,7 @@ export function AnalyticsPage() {
               <div className="mt-8 flex items-start gap-3 rounded-2xl bg-slate-50 px-5 py-4 text-[15px] text-slate-500">
                 <TrendingUp className="mt-0.5 h-5 w-5 text-emerald-600" aria-hidden="true" />
                 <span>
-                  Average quote value this window is {formatCurrency(data.quotes.avg_quote_value)}. Keep the queue clear and the follow-up engine active to protect turnaround.
+                  Average quote value this window is {formatCurrency(data.quotes.avg_quote_value)}. Keep the queue clear and follow-up active so financially important work does not stall after communication comes in.
                 </span>
               </div>
             </section>

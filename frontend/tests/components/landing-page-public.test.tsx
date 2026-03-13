@@ -23,10 +23,13 @@ describe("App public landing page", () => {
 
     expect(
       await screen.findByText(
-        /GC Agent turns contractor calls, notes, uploads, and job updates into quotes, queue actions, and follow-up/i
+        /Keep control of messy project communication before it costs you money/i
       )
     ).toBeInTheDocument();
-    const ctas = screen.getAllByRole("link", { name: "Get your first quote draft" });
+    expect(
+      screen.getByText(/GC Agent turns calls, texts, field notes, uploads, and job updates into tracked actions/i)
+    ).toBeInTheDocument();
+    const ctas = screen.getAllByRole("link", { name: "Create Your First Quote" });
     expect(ctas.length).toBeGreaterThan(0);
     expect(ctas[0]).toHaveAttribute("href", "/onboarding");
   });

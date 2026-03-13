@@ -158,7 +158,7 @@ export function BriefingPage() {
       return `Call transcript linkage is ${analytics.transcripts.linkage_rate_pct}%. Stronger routing means more calls become job work.`;
     }
 
-    return "Keep approving or editing real quotes so GC Agent can tighten pricing patterns and draft quality.";
+    return "Keep routing calls and reviewing real quotes so GC Agent can tighten follow-through and pricing patterns.";
   }, [analytics?.transcripts.linkage_rate_pct, briefingQuery.data?.briefing]);
 
   const recentUpdates = useMemo(() => {
@@ -172,7 +172,7 @@ export function BriefingPage() {
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Morning Briefing</h1>
-          <p className="mt-3 text-[18px] text-slate-500">Here&apos;s what needs your attention today, John.</p>
+          <p className="mt-3 text-[18px] text-slate-500">Here&apos;s what needs follow-through today, John.</p>
           <p className="mt-2 text-sm font-medium text-slate-400">{formatToday()} · {isOnline ? "Live data connected" : "Offline cache active"}</p>
         </div>
         <Link
@@ -185,10 +185,10 @@ export function BriefingPage() {
 
       <div className="grid gap-5 xl:grid-cols-4 md:grid-cols-2">
         {[
-          { label: "Pending Approvals", value: queueCount, detail: queueCount > 0 ? "Action needed" : "Queue clear", tone: "text-orange-500" },
-          { label: "Active Quotes", value: activeQuotes, detail: "Quotes currently moving", tone: "text-slate-500" },
+          { label: "Queue Items", value: queueCount, detail: queueCount > 0 ? "Needs review" : "Queue clear", tone: "text-orange-500" },
+          { label: "Quotes in Motion", value: activeQuotes, detail: "Awaiting review or customer response", tone: "text-slate-500" },
           { label: "Follow-ups Today", value: followupsToday, detail: followupsToday > 0 ? "Scheduled" : "No reminders", tone: "text-slate-500" },
-          { label: "Win Rate (30d)", value: `${winRate}%`, detail: winRate > 0 ? `? ${Math.max(1, Math.round(winRate / 32))}%` : "No trend yet", tone: "text-emerald-600" },
+          { label: "Quote Conversion (30d)", value: `${winRate}%`, detail: winRate > 0 ? `? ${Math.max(1, Math.round(winRate / 32))}%` : "No trend yet", tone: "text-emerald-600" },
         ].map((stat) => (
           <div key={stat.label} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
             <div className="text-[15px] font-medium text-slate-500">{stat.label}</div>
@@ -241,7 +241,7 @@ export function BriefingPage() {
 
           <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="px-7 py-6">
-              <h2 className="text-[18px] font-semibold text-slate-950">Recent Job Updates</h2>
+              <h2 className="text-[18px] font-semibold text-slate-950">Recent Job Activity</h2>
             </div>
             <div>
               {recentUpdates.length === 0 ? (
@@ -294,7 +294,7 @@ export function BriefingPage() {
           </section>
 
           <section className="rounded-3xl border border-blue-100 bg-blue-50/60 p-7 shadow-sm">
-            <h2 className="text-[18px] font-semibold text-[#2453d4]">Agent Insight</h2>
+            <h2 className="text-[18px] font-semibold text-[#2453d4]">Operational Insight</h2>
             <p className="mt-5 text-[15px] leading-7 text-slate-700">{insightText}</p>
             <Link
               to="/analytics"
