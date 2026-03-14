@@ -296,19 +296,19 @@ function followupSummary(followup: QuoteFollowupState | null): string {
     return "No reminder is scheduled for this quote yet.";
   }
   if (followup.status === "pending_destination") {
-    return "Send the quote to the customer first so GC Agent knows where to follow up.";
+    return "Send the quote to the customer first so reminders know where to follow through.";
   }
   if (followup.status === "stopped") {
-    return "Automatic follow-up is paused for this quote.";
+    return "Automatic follow-through is paused for this quote.";
   }
-  return "GC Agent will keep the reminder on the calendar until it is stopped or completed.";
+  return "The reminder stays on the calendar until someone stops it or the quote closes.";
 }
 
 function followupStopReason(reason: string | null): string {
   const normalized = (reason ?? "").trim().toLowerCase();
   if (!normalized) return "Stopped by the current quote status.";
-  if (normalized === "max_reminders_reached") return "Two reminders have already been sent.";
-  if (normalized === "manual_stop") return "You paused automatic follow-up for this quote.";
+  if (normalized === "max_reminders_reached") return "Two follow-through reminders have already been sent.";
+  if (normalized === "manual_stop") return "You paused automatic follow-through for this quote.";
   if (normalized === "quote_discarded") return "This quote was discarded.";
   if (normalized === "quote_expired") return "This quote is marked expired.";
   if (
@@ -545,7 +545,7 @@ export function QuotePage() {
         setFollowupState(payload.followup ?? null);
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Could not refresh follow-up status.";
+          error instanceof Error ? error.message : "Could not refresh reminder status.";
         setCaptureError(message);
       } finally {
         setIsFollowupLoading(false);
@@ -655,7 +655,7 @@ export function QuotePage() {
 
       if (!isOnline) {
         if (hasFile) {
-          setCaptureError("Uploads need a connection before the agent can read the file.");
+          setCaptureError("Uploads need a connection before we can read the file.");
           return;
         }
         enqueueOfflineQuote(trimmed, source);
@@ -866,7 +866,7 @@ export function QuotePage() {
       setDecisionStatus(payload.approval_status);
       setDecisionMessage(
         payload.memory_updated
-          ? `Quote ${payload.approval_status}. Learning signal saved to estimating memory.`
+          ? `Quote ${payload.approval_status}. Pricing and review signals were saved for future drafts.`
           : `Quote ${payload.approval_status}.`
       );
       if (activeQuote && payload.quote_draft) {
@@ -916,12 +916,12 @@ export function QuotePage() {
     },
     onSuccess: (payload) => {
       setFollowupState(payload.followup ?? null);
-      setFollowupMessage("Automatic follow-up has been paused for this quote.");
+      setFollowupMessage("Automatic follow-through has been paused for this quote.");
       setCaptureError(null);
     },
     onError: (error) => {
       const message =
-        error instanceof Error ? error.message : "Could not stop automatic follow-up.";
+        error instanceof Error ? error.message : "Could not stop automatic follow-through.";
       setCaptureError(message);
       setFollowupMessage(null);
     },
@@ -1140,9 +1140,9 @@ export function QuotePage() {
   return (
     <div className="pw">
       <div className="ph">
-        <div className="eyebrow">Estimating Engine</div>
+        <div className="eyebrow">Communication To Quote</div>
         <div className="ptitle">New Quote</div>
-        <div className="psub">Convert field input into a structured, send-ready estimate.</div>
+        <div className="psub">Turn messy job details into a reviewable quote draft, then send and track follow-through.</div>
       </div>
 
       {firstSessionMode ? (
@@ -1153,7 +1153,7 @@ export function QuotePage() {
               FIRST SESSION TARGET
             </strong>
             <div style={{ marginTop: 3 }}>
-              Get one real quote draft out in under ten minutes. Approve or edit it so estimating memory starts learning immediately.
+              Get one real quote draft out in under ten minutes. Approve or edit it so future drafts start closer to how you actually price work.
             </div>
           </div>
         </div>
@@ -1210,7 +1210,7 @@ export function QuotePage() {
                 {isTranscriptPrefillLoading ? (
                   <div className="alert ainfo" style={{ marginBottom: 12 }}>
                     <span>◈</span>
-                    <div>Loading call transcript context for this estimate...</div>
+                    <div>Loading call context for this quote...</div>
                   </div>
                 ) : null}
 
@@ -1314,7 +1314,7 @@ export function QuotePage() {
                         {inputMode === "pdf" ? "Upload a PDF scope sheet" : "Upload a jobsite photo"}
                       </div>
                       <div className="mb-4 text-[15px] leading-7 text-slate-500">
-                        The agent will read this together with your notes. You can still add text details below before you generate the draft.
+                        We will read this together with your notes. You can still add text details below before you generate the draft.
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
                         <label htmlFor="quote-upload" className="btn bw">
@@ -1387,7 +1387,7 @@ export function QuotePage() {
                       }
                     >
                       {quoteMutation.isPending
-                        ? "Running agent..."
+                        ? "Building draft..."
                         : !isOnline && selectedUploadFile
                           ? "Upload needs connection"
                           : "Extract Scope & Generate Draft"}
@@ -1508,7 +1508,7 @@ export function QuotePage() {
                       <span>◈</span>
                       <div>
                         <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                          EVIDENCE SIGNALS
+                          WHAT THIS DRAFT IS BASED ON
                         </strong>
                         <div style={{ marginTop: 6 }} className="vs">
                           {quoteEvidenceSignals.map((signal) => (
@@ -1932,7 +1932,7 @@ export function QuotePage() {
 
               <div className="panel ani a1">
                 <div className="ph2">
-                  <span className="ptl">Follow-up</span>
+                  <span className="ptl">Customer Follow-through</span>
                 </div>
                 <div className="pb">
                   {isFollowupLoading ? (
@@ -1940,7 +1940,7 @@ export function QuotePage() {
                   ) : (
                     <>
                       <div className="sp" style={{ marginBottom: 8 }}>
-                        <span style={{ fontSize: 12, color: "var(--steel)" }}>Auto follow-up</span>
+                        <span style={{ fontSize: 12, color: "var(--steel)" }}>Auto reminders</span>
                         <div className="hs" style={{ gap: 8 }}>
                           {canStopFollowup ? (
                             <button
@@ -1949,7 +1949,7 @@ export function QuotePage() {
                               onClick={() => stopFollowupMutation.mutate()}
                               disabled={stopFollowupMutation.isPending}
                             >
-                              {stopFollowupMutation.isPending ? "Stopping..." : "Stop follow-up"}
+                              {stopFollowupMutation.isPending ? "Stopping..." : "Stop reminders"}
                             </button>
                           ) : null}
                           <span className={`tag ${followupTone(followupState)}`}>{followupStatusLabel(followupState)}</span>
@@ -2019,7 +2019,7 @@ export function QuotePage() {
 
           <div className="panel ani a2">
             <div className="ph2">
-              <span className="ptl">Estimate Inputs</span>
+              <span className="ptl">Quote Context</span>
             </div>
             <div className="pb">
               {[
@@ -2027,7 +2027,7 @@ export function QuotePage() {
                 ["Trade focus", memoryTrade, false],
                 ["Similar jobs", similarJobsLabel, false],
                 [
-                  "Confidence basis",
+                  "Draft readiness",
                   activeQuote
                     ? `${confidenceScore}% confidence`
                     : transcriptPrefill
@@ -2061,7 +2061,7 @@ export function QuotePage() {
               {readinessSignals.length ? (
                 <div style={{ marginBottom: 10 }}>
                   <div className="lbl" style={{ marginBottom: 6 }}>
-                    Estimate evidence
+                    Draft evidence
                   </div>
                   <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
                     {readinessSignals.map((signal) => (
@@ -2081,11 +2081,11 @@ export function QuotePage() {
                   letterSpacing: "0.4px",
                 }}
               >
-                PRICE BOOKS AND APPROVED QUOTES FEED FUTURE ESTIMATES
+                PRICE BOOKS AND APPROVED QUOTES SHAPE FUTURE DRAFTS
                 <br />
                 MISSING DETAILS KEEP THE DRAFT IN REVIEW BEFORE SEND
                 <br />
-                {bypassAuth ? "DEMO MODE ACTIVE" : apiReady ? "LIVE PUBLIC QUOTE ENDPOINT CONNECTED" : "CONFIGURE PUBLIC API CREDENTIALS"}
+                {bypassAuth ? "DEMO MODE ACTIVE" : apiReady ? "PUBLIC QUOTE DELIVERY CONNECTED" : "CONFIGURE PUBLIC API CREDENTIALS"}
               </div>
             </div>
           </div>
@@ -2093,12 +2093,12 @@ export function QuotePage() {
           {!activeQuote ? (
             <div className="panel ani a3">
               <div className="ph2">
-                <span className="ptl">Before You Generate</span>
+                <span className="ptl">Before You Draft</span>
               </div>
               <div className="pb">
                 <div className="vs" style={{ gap: 10 }}>
                   <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.7 }}>
-                    Keep the request short and concrete. The draft does not need every answer yet, but weak inputs will force a review step before send.
+                    Keep the request short and concrete. The draft does not need every answer yet, but thin input means more review before anything goes to the customer.
                   </div>
                   <div
                     style={{

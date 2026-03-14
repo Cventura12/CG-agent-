@@ -47,17 +47,17 @@ function summaryText(followup: QuoteFollowupState | null | undefined): string {
     return "No reminder is scheduled for this quote yet.";
   }
   if (followup.status === "pending_destination") {
-    return "Send the quote to the customer first so GC Agent knows where to follow up.";
+    return "Send the quote to the customer first so reminders know where to follow through.";
   }
   if (followup.status === "stopped") {
-    return "Automatic follow-up is paused for this quote.";
+    return "Automatic follow-through is paused for this quote.";
   }
-  return "GC Agent will keep the reminder on the calendar until it is stopped or completed.";
+  return "The reminder stays on the calendar until someone stops it or the quote closes.";
 }
 
 function statusLabel(followup: QuoteFollowupState | null | undefined): string {
   if (!followup) {
-    return "Follow-up";
+    return "Reminders";
   }
   if (followup.status === "scheduled") {
     return "Scheduled";
@@ -68,7 +68,7 @@ function statusLabel(followup: QuoteFollowupState | null | undefined): string {
   if (followup.status === "pending_destination") {
     return "Pending destination";
   }
-  return "No follow-up";
+  return "No reminders";
 }
 
 function stopReasonText(reason: string | null): string {
@@ -77,10 +77,10 @@ function stopReasonText(reason: string | null): string {
     return "Stopped by the current quote status.";
   }
   if (normalized === "max_reminders_reached") {
-    return "Two reminders have already been sent.";
+    return "Two follow-through reminders have already been sent.";
   }
   if (normalized === "manual_stop") {
-    return "You paused automatic follow-up for this quote.";
+    return "You paused automatic follow-through for this quote.";
   }
   if (normalized === "quote_discarded") {
     return "This quote was discarded.";
@@ -114,7 +114,7 @@ function channelLabel(channel: string | null): string {
 export function FollowupStatusCard({
   followup,
   isLoading = false,
-  title = "Follow-up",
+  title = "Customer Follow-through",
   onStop = null,
   isStopping = false,
 }: FollowupStatusCardProps) {
@@ -160,7 +160,7 @@ export function FollowupStatusCard({
               disabled={isStopping}
               className="action-button-secondary disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isStopping ? "Stopping..." : "Stop follow-up"}
+              {isStopping ? "Stopping..." : "Stop reminders"}
             </button>
           ) : null}
           <span className="terminal-mini-chip border-slate-200 bg-white text-slate-700">

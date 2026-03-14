@@ -160,7 +160,7 @@ export function OnboardingPage() {
             <div className="brand-hex" style={{ width: 36, height: 36, fontSize: 13 }}>GC</div>
             <div>
               <div className="brand-name" style={{ fontSize: 24, letterSpacing: "3px" }}>GC <em>Agent</em></div>
-              <div className="brand-sub" style={{ letterSpacing: "2.5px" }}>INTELLIGENT OPERATIONS SYSTEM</div>
+              <div className="brand-sub" style={{ letterSpacing: "2.5px" }}>FIELD-TO-OFFICE CONTROL</div>
             </div>
           </div>
         </div>
@@ -185,7 +185,7 @@ export function OnboardingPage() {
               <div className="pb lg vs ani">
                 <div>
                   <h1 style={{ fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--cream)", marginBottom: 3 }}>Company setup</h1>
-                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px" }}>GC AGENT USES THIS TO PERSONALIZE ALL ESTIMATES</div>
+                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px" }}>SET THE COMPANY DETAILS THAT KEEP QUOTES, FOLLOW-THROUGH, AND JOB HISTORY ALIGNED</div>
                 </div>
                 <div><label className="lbl" htmlFor="company_name">Company name</label><input id="company_name" className="inp" value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Webb Construction LLC" /></div>
                 <div><label className="lbl" htmlFor="operator_name_role">Your name &amp; role</label><input id="operator_name_role" className="inp" value={operatorNameRole} onChange={(event) => setOperatorNameRole(event.target.value)} placeholder="e.g. Marcus Webb, Owner" /></div>
@@ -198,7 +198,7 @@ export function OnboardingPage() {
               <div className="pb lg vs ani">
                 <div>
                   <h2 style={{ fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--cream)", marginBottom: 3 }}>Trades</h2>
-                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px" }}>SELECT ALL THAT APPLY — SHAPES YOUR ESTIMATING MEMORY</div>
+                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px" }}>SELECT THE WORK YOU HANDLE MOST SO DRAFTS START FROM THE RIGHT BASELINE</div>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                   {TRADE_BUTTONS.map((option) => (
@@ -212,14 +212,14 @@ export function OnboardingPage() {
               <div className="pb lg vs ani">
                 <div>
                   <h2 style={{ fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--cream)", marginBottom: 3 }}>Pricing baseline</h2>
-                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px" }}>DEFAULTS ANCHOR EVERY ESTIMATE — REFINE ANYTIME</div>
+                  <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1px" }}>USE YOUR CURRENT PRICING SO QUOTE DRAFTS START CLOSER TO HOW YOU SELL WORK</div>
                 </div>
                 <div className="g2">
                   <div><label className="lbl" htmlFor="labor_rate">Avg hourly labor</label><input id="labor_rate" className="inp" type="number" value={laborRatePerSquare} onChange={(event) => setLaborRatePerSquare(event.target.value)} placeholder={`e.g. $${activeDefaults.labor_rate_per_square}/hr`} /></div>
                   <div><label className="lbl" htmlFor="markup_pct">Overhead markup</label><input id="markup_pct" className="inp" type="number" value={defaultMarkupPct} onChange={(event) => setDefaultMarkupPct(event.target.value)} placeholder={`e.g. ${activeDefaults.default_markup_pct}%`} /></div>
                 </div>
                 <div><label className="lbl" htmlFor="supplier">Primary supplier</label><input id="supplier" className="inp" value={preferredSupplier} onChange={(event) => setPreferredSupplier(event.target.value)} placeholder="e.g. ABC Supply, Wesco" /></div>
-                <div className="alert ainfo" style={{ fontSize: 11 }}><span>◈</span><span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "0.5px", lineHeight: 1.7 }}>STARTING DEFAULTS ONLY — GC AGENT REFINES FROM REAL JOB OUTCOMES</span></div>
+                <div className="alert ainfo" style={{ fontSize: 11 }}><span>◈</span><span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "0.5px", lineHeight: 1.7 }}>START WITH DEFAULTS NOW — TIGHTEN THEM LATER WITH REAL JOBS AND IMPORTED PRICE BOOKS</span></div>
                 <PricingImportPanel
                   disabledReason={
                     bypassAuth
@@ -232,7 +232,7 @@ export function OnboardingPage() {
                   <div className="alert aok" style={{ fontSize: 12 }}>
                     <span>✓</span>
                     <div>
-                      Imported {importSummary.imported_count} price rows and skipped {importSummary.skipped_count}. GC Agent will use this price book to anchor future estimates.
+                      Imported {importSummary.imported_count} price rows and skipped {importSummary.skipped_count}. Future quote drafts will use this price book as a starting baseline.
                     </div>
                   </div>
                 ) : null}
@@ -242,12 +242,12 @@ export function OnboardingPage() {
             {step === 3 ? (
               <div className="pb lg ani" style={{ textAlign: "center", padding: "40px 24px" }}>
                 <div style={{ fontSize: 38, marginBottom: 14 }}>🏗</div>
-                <h2 style={{ fontFamily: "'Oswald', sans-serif", fontSize: 24, fontWeight: 600, letterSpacing: "2.5px", textTransform: "uppercase", color: "var(--amber-hot)", marginBottom: 8 }}>System ready</h2>
-                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.5px", marginBottom: 24 }}>GC AGENT INITIALIZED · ESTIMATING ENGINE ACTIVE</div>
+                <h2 style={{ fontFamily: "'Oswald', sans-serif", fontSize: 24, fontWeight: 600, letterSpacing: "2.5px", textTransform: "uppercase", color: "var(--amber-hot)", marginBottom: 8 }}>Ready to work</h2>
+                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.5px", marginBottom: 24 }}>BASELINE SAVED · NEXT STEP: CREATE A LIVE QUOTE DRAFT</div>
                 {importSummary ? (
                   <div className="alert aok" style={{ marginBottom: 18, textAlign: "left", fontSize: 12 }}>
                     <span>✓</span>
-                    <div>Imported {importSummary.imported_count} pricing rows. Your next useful step is generating a real quote draft against the imported baseline.</div>
+                    <div>Imported {importSummary.imported_count} pricing rows. Your next useful step is turning a real request into a reviewable quote draft.</div>
                   </div>
                 ) : null}
                 <button type="button" className="cta" style={{ fontSize: 13, padding: "11px 28px" }} onClick={() => navigate("/quote", { replace: true })}>CREATE FIRST QUOTE</button>

@@ -79,9 +79,9 @@ describe("JobDetailPage follow-up state", () => {
       </QueryClientProvider>
     );
 
-    expect(await screen.findByText("Customer follow-up")).toBeInTheDocument();
-    expect(screen.getByText("Automatic follow-up is paused for this quote.")).toBeInTheDocument();
-    expect(screen.getByText("Two reminders have already been sent.")).toBeInTheDocument();
+    expect(await screen.findByText("Customer follow-through")).toBeInTheDocument();
+    expect(screen.getByText("Automatic follow-through is paused for this quote.")).toBeInTheDocument();
+    expect(screen.getByText("Two follow-through reminders have already been sent.")).toBeInTheDocument();
     expect(screen.getByText("Email")).toBeInTheDocument();
   });
 });

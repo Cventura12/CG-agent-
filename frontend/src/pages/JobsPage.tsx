@@ -41,7 +41,7 @@ function displayStatus(status: string, hasFollowup: boolean): { label: string; c
   return { label: "Active", className: "bg-blue-50 text-[#2453d4] border border-blue-200" };
 }
 
-function agentNote(job: {
+function operationalNote(job: {
   health: string;
   open_items: Array<{ type: string }>;
 }): { label: string; className: string } | null {
@@ -49,7 +49,7 @@ function agentNote(job: {
     return { label: "Review Risk", className: "bg-orange-50 text-orange-600" };
   }
   if (job.open_items.some((item) => item.type === "follow-up")) {
-    return { label: "Follow-up Scheduled", className: "bg-slate-100 text-slate-500" };
+    return { label: "Reminder Scheduled", className: "bg-slate-100 text-slate-500" };
   }
   return null;
 }
@@ -108,7 +108,7 @@ export function JobsPage() {
           <div>Status</div>
           <div>Value</div>
           <div>Last Update</div>
-          <div>Agent Note</div>
+          <div>Operational Note</div>
           <div className="text-right">Actions</div>
         </div>
 
@@ -120,7 +120,7 @@ export function JobsPage() {
           filteredJobs.slice(0, 8).map((job) => {
             const hasFollowup = job.open_items.some((item) => item.type === "follow-up");
             const status = displayStatus(job.status, hasFollowup);
-            const note = agentNote(job);
+            const note = operationalNote(job);
             return (
               <div key={job.id} className="grid grid-cols-[2fr_1.8fr_1.1fr_1fr_1.2fr_1.4fr_88px] gap-4 border-b border-slate-200 px-8 py-6 last:border-b-0">
                 <div>

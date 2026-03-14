@@ -160,7 +160,7 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
           )}
         >
           <p className="font-medium text-slate-900">All Jobs</p>
-          <p className="mt-0.5 text-xs text-slate-500">Show all pending drafts</p>
+          <p className="mt-0.5 text-xs text-slate-500">Show all review work and open jobs</p>
         </button>
 
         {jobs.map((job) => {
@@ -197,7 +197,7 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
 
                 {pendingDrafts > 0 ? (
                   <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                    {pendingDrafts} pending
+                    {pendingDrafts} review
                   </span>
                 ) : null}
               </div>

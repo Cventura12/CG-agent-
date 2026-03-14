@@ -135,11 +135,11 @@ describe("QuotePage follow-up card", () => {
     );
 
     expect(await screen.findByText("Scheduled")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Stop follow-up" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop reminders" }));
 
     expect(await screen.findByText("Stopped")).toBeInTheDocument();
-    expect(screen.getByText("Automatic follow-up has been paused for this quote.")).toBeInTheDocument();
-    expect(screen.getByText("You paused automatic follow-up for this quote.")).toBeInTheDocument();
+    expect(screen.getByText("Automatic follow-through has been paused for this quote.")).toBeInTheDocument();
+    expect(screen.getByText("You paused automatic follow-through for this quote.")).toBeInTheDocument();
     expect(stopQuoteFollowupMock).toHaveBeenCalledTimes(1);
   });
 });

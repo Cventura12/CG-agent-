@@ -66,16 +66,16 @@ function followupTag(status: string | undefined): { label: string; className: st
 }
 
 function followupHeadline(status: string | undefined): string {
-  if (status === "stopped") return "Automatic follow-up is paused for this quote.";
-  if (status === "scheduled") return "Automatic follow-up is active for this quote.";
-  if (status === "pending_destination") return "Automatic follow-up is waiting on a destination.";
-  return "No automatic follow-up is active for this quote.";
+  if (status === "stopped") return "Automatic follow-through is paused for this quote.";
+  if (status === "scheduled") return "Automatic follow-through is active for this quote.";
+  if (status === "pending_destination") return "Automatic follow-through is waiting on a destination.";
+  return "No automatic follow-through is active for this quote.";
 }
 
 function followupReason(reason: string | null): string {
   const normalized = (reason ?? "").trim().toLowerCase();
-  if (normalized === "max_reminders_reached") return "Two reminders have already been sent.";
-  if (normalized === "manual_stop") return "You paused automatic follow-up for this quote.";
+  if (normalized === "max_reminders_reached") return "Two follow-through reminders have already been sent.";
+  if (normalized === "manual_stop") return "You paused automatic follow-through for this quote.";
   if (normalized === "quote_discarded") return "This quote was discarded.";
   if (normalized === "quote_accepted") return "The customer already accepted this quote.";
   if (!normalized) return "Sequence activates after the quote is sent.";
@@ -355,7 +355,7 @@ export function JobDetailPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
                 <MessageSquareMore className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-                <span>Customer follow-up</span>
+                <span>Customer follow-through</span>
               </div>
               <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${followupChip.className}`}>{followupChip.label}</span>
             </div>
@@ -384,11 +384,11 @@ export function JobDetailPage() {
           <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <FileText className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
-              <span>Pending queue drafts</span>
+              <span>Work waiting on review</span>
             </div>
             <div className="mt-6 space-y-4">
               {pendingDrafts.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No pending queue drafts for this job.</div>
+                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No review items are waiting on this job.</div>
               ) : (
                 pendingDrafts.map((draft) => {
                   const editValue = draftEdits[draft.id] ?? draft.content;
@@ -446,11 +446,11 @@ export function JobDetailPage() {
           <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <Phone className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
-              <span>Call History</span>
+              <span>Calls &amp; communication</span>
             </div>
             <div className="mt-6 space-y-4">
               {callHistory.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No calls linked to this job yet.</div>
+                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No calls or transcripts are linked to this job yet.</div>
               ) : (
                 callHistory.map((entry) => {
                   const isOpen = !!expandedTranscriptIds[entry.id];
@@ -529,11 +529,11 @@ export function JobDetailPage() {
           <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <Activity className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              <span>Activity Timeline</span>
+              <span>What changed</span>
             </div>
             <div className="mt-6 space-y-4">
               {auditTimeline.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No activity recorded yet.</div>
+                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No job activity recorded yet.</div>
               ) : (
                 auditTimeline.map((event) => (
                   <div key={event.id} className="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">

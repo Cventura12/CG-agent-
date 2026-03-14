@@ -117,10 +117,10 @@ describe("JobDetailPage transcript history", () => {
   it("renders transcript summaries and keeps raw transcript collapsed by default", async () => {
     renderJobDetailPage();
 
-    expect(await screen.findByText("Call History")).toBeInTheDocument();
+    expect(await screen.findByText("Calls & communication")).toBeInTheDocument();
     expect(screen.getByText("Caller wants a first-pass estimate before Friday.")).toBeInTheDocument();
     expect(screen.getByText(/Taylor Brooks/)).toBeInTheDocument();
-    expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
+    expect(screen.getByText("What changed")).toBeInTheDocument();
     expect(screen.getByText("Crew confirmed material drop for tomorrow morning.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Queue review" })).toHaveAttribute("href", "/queue");
     expect(screen.getByRole("link", { name: "Create quote draft" })).toHaveAttribute(
