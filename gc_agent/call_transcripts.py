@@ -735,6 +735,8 @@ async def link_transcript_to_job(transcript_id: str, gc_id: str, job_id: str) ->
 
     return {
         "transcript_id": transcript_id,
+        "review_state": "pending",
+        "active_job_id": linked_job.id,
         "job_id": linked_job.id,
         "job_name": linked_job.name,
         "created_draft_ids": created_draft_ids,
@@ -743,17 +745,29 @@ async def link_transcript_to_job(transcript_id: str, gc_id: str, job_id: str) ->
 
 async def mark_transcript_reviewed(transcript_id: str, gc_id: str) -> dict[str, Any] | None:
     """Mark an unlinked transcript inbox item as reviewed."""
-    return await queries.set_call_transcript_review_state(transcript_id, gc_id, "reviewed")
+    record = await queries.set_call_transcript_review_state(transcript_id, gc_id, "reviewed")
+    if record is None:
+        return None
+    return {
+        "transcript_id": transcript_id,
+        "review_state": "reviewed",
+    }
 
 
 async def discard_transcript(transcript_id: str, gc_id: str) -> dict[str, Any] | None:
     """Mark an unlinked transcript inbox item as discarded."""
-    return await queries.set_call_transcript_review_state(
+    record = await queries.set_call_transcript_review_state(
         transcript_id,
         gc_id,
         "discarded",
         extra_metadata={"discarded_reason": "manual_queue_discard"},
     )
+    if record is None:
+        return None
+    return {
+        "transcript_id": transcript_id,
+        "review_state": "discarded",
+    }
 
 
 async def log_transcript_as_update(transcript_id: str, gc_id: str) -> dict[str, Any] | None:
@@ -767,6 +781,7 @@ async def log_transcript_as_update(transcript_id: str, gc_id: str) -> dict[str, 
         raise DatabaseError("transcript must be linked to a job before logging as update")
 
     jobs = await queries.get_active_jobs(gc_id)
+    linked_job = next((job for job in jobs if job.id == linked_job_id), None)
     state = AgentState(
         mode="update",
         input_type="voice",
@@ -803,7 +818,9 @@ async def log_transcript_as_update(transcript_id: str, gc_id: str) -> dict[str, 
 
     return {
         "transcript_id": transcript_id,
+        "review_state": "logged_update",
         "job_id": linked_job_id,
+        "job_name": linked_job.name if linked_job is not None else "",
         "trace_id": state.trace_id,
         "created_draft_ids": created_draft_ids,
         "errors": state.errors,

@@ -6,8 +6,9 @@ import { Link, useParams } from "react-router-dom";
 
 import { fetchJobDetail } from "../api/jobs";
 import { approveDraft, discardDraft, editDraft } from "../api/queue";
+import { logTranscriptAsUpdate } from "../api/transcripts";
 import { useQueue } from "../hooks/useQueue";
-import type { JobCallHistoryEntry, QueuePayload } from "../types";
+import type { JobCallHistoryEntry, QueuePayload, TranscriptClassification } from "../types";
 
 type QueueMutationContext = {
   previousQueue: QueuePayload | undefined;
@@ -138,6 +139,18 @@ function timelineTone(eventType: string): string {
   return "bg-slate-100 text-slate-600";
 }
 
+const UPDATE_ACTION_TRANSCRIPT_CLASSES = new Set<TranscriptClassification>([
+  "job_update",
+  "reschedule",
+  "complaint_or_issue",
+  "followup_response",
+  "vendor_or_subcontractor",
+]);
+
+function canLogTranscriptAsUpdate(classification: TranscriptClassification): boolean {
+  return UPDATE_ACTION_TRANSCRIPT_CLASSES.has(classification);
+}
+
 export function JobDetailPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId ?? "";
@@ -263,6 +276,21 @@ export function JobDetailPage() {
       setErrorMessage("Could not discard draft. Changes were reverted.");
     },
     onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["queue", scope] }),
+        queryClient.invalidateQueries({ queryKey: ["job-detail", scope, jobId] }),
+        queryClient.invalidateQueries({ queryKey: ["jobs", scope] }),
+      ]);
+    },
+  });
+
+  const transcriptLogUpdateMutation = useMutation({
+    mutationFn: (transcriptId: string) => logTranscriptAsUpdate(transcriptId),
+    onError: (error) => {
+      setErrorMessage(error instanceof Error ? error.message : "Could not log transcript as update.");
+    },
+    onSuccess: async () => {
+      setErrorMessage(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["queue", scope] }),
         queryClient.invalidateQueries({ queryKey: ["job-detail", scope, jobId] }),
@@ -503,6 +531,16 @@ export function JobDetailPage() {
                         ) : null}
                         {entry.classification === "estimate_request" ? (
                           <Link to={`/quote?transcript_id=${encodeURIComponent(entry.id)}`} className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50">Create quote draft</Link>
+                        ) : null}
+                        {canLogTranscriptAsUpdate(entry.classification) ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => transcriptLogUpdateMutation.mutate(entry.id)}
+                            disabled={transcriptLogUpdateMutation.isPending}
+                          >
+                            Log as update
+                          </button>
                         ) : null}
                         <button
                           type="button"

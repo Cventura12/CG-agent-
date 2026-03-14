@@ -1,68 +1,84 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { QueuePage } from "../../src/pages/QueuePage";
 
-let mockQueueData = {
-  jobs: [
-    {
-      job_id: "job-1",
-      job_name: "Miller Job",
-      drafts: [
-        {
-          id: "draft-transcript-1",
-          job_id: "job-1",
-          job_name: "Miller Job",
-          type: "transcript-review",
-          title: "Call transcript review",
-          content: "Transcript ID: ct-1\nSummary: Caller wants the revised quote before Friday.",
-          why: "Transcript classified as quote question with high urgency.",
-          status: "queued",
-          created_at: "2026-03-06T10:00:00+00:00",
-          trace_id: "trace-transcript-1",
-          transcript: {
-            transcript_id: "ct-1",
-            source: "call_transcript",
-            provider: "manual",
-            caller_label: "Taylor Brooks - +14235550101",
-            caller_phone: "+14235550101",
-            summary: "Caller wants a first-pass estimate before Friday.",
-            classification: "estimate_request",
-            urgency: "high",
-            confidence: 91,
-            recommended_actions: ["Create quote draft", "Confirm permit allowance"],
-            risk_flags: ["Client may stall approval without revised number."],
-            missing_information: ["Updated total with permit allowance"],
-            transcript_text: "Can you send me a first-pass estimate before Friday?",
-            linked_quote_id: "quote-9",
-            recording_url: "",
-            started_at: null,
-            duration_seconds: 114,
+const transcriptApiMocks = vi.hoisted(() => ({
+  linkTranscriptToJob: vi.fn(),
+  markTranscriptReviewed: vi.fn(),
+  discardTranscript: vi.fn(),
+  logTranscriptAsUpdate: vi.fn(),
+}));
+
+function buildDefaultQueueData() {
+  return {
+    jobs: [
+      {
+        job_id: "job-1",
+        job_name: "Miller Job",
+        drafts: [
+          {
+            id: "draft-transcript-1",
+            job_id: "job-1",
+            job_name: "Miller Job",
+            type: "transcript-review",
+            title: "Call transcript review",
+            content: "Transcript ID: ct-1\nSummary: Caller wants the revised quote before Friday.",
+            why: "Transcript classified as quote question with high urgency.",
+            status: "queued",
+            created_at: "2026-03-06T10:00:00+00:00",
+            trace_id: "trace-transcript-1",
+            transcript: {
+              transcript_id: "ct-1",
+              source: "call_transcript",
+              provider: "manual",
+              caller_label: "Taylor Brooks - +14235550101",
+              caller_phone: "+14235550101",
+              summary: "Caller wants a first-pass estimate before Friday.",
+              classification: "estimate_request",
+              urgency: "high",
+              confidence: 91,
+              recommended_actions: ["Create quote draft", "Confirm permit allowance"],
+              risk_flags: ["Client may stall approval without revised number."],
+              missing_information: ["Updated total with permit allowance"],
+              transcript_text: "Can you send me a first-pass estimate before Friday?",
+              linked_quote_id: "quote-9",
+              recording_url: "",
+              started_at: null,
+              duration_seconds: 114,
+            },
           },
-        },
-        {
-          id: "draft-owner-1",
-          job_id: "job-1",
-          job_name: "Miller Job",
-          type: "owner-update",
-          title: "Owner update draft",
-          content: "Send progress update about framing timeline.",
-          why: "Owner is waiting on today's framing status.",
-          status: "queued",
-          created_at: "2026-03-06T11:00:00+00:00",
-          trace_id: "trace-owner-1",
-          transcript: null,
-        },
-      ],
+          {
+            id: "draft-owner-1",
+            job_id: "job-1",
+            job_name: "Miller Job",
+            type: "owner-update",
+            title: "Owner update draft",
+            content: "Send progress update about framing timeline.",
+            why: "Owner is waiting on today's framing status.",
+            status: "queued",
+            created_at: "2026-03-06T11:00:00+00:00",
+            trace_id: "trace-owner-1",
+            transcript: null,
+          },
+        ],
+      },
+    ],
+    inbox: {
+      transcripts: [],
     },
-  ],
-  inbox: {
-    transcripts: [],
-  },
-};
+  };
+}
+
+let mockQueueData = buildDefaultQueueData();
+
+beforeEach(() => {
+  mockQueueData = buildDefaultQueueData();
+  Object.values(transcriptApiMocks).forEach((mockFn) => mockFn.mockReset());
+});
 
 vi.mock("@clerk/clerk-react", () => ({
   useAuth: () => ({ userId: "gc-test" }),
@@ -75,12 +91,7 @@ vi.mock("../../src/api/queue", () => ({
   discardDraft: vi.fn(),
 }));
 
-vi.mock("../../src/api/transcripts", () => ({
-  linkTranscriptToJob: vi.fn(),
-  markTranscriptReviewed: vi.fn(),
-  discardTranscript: vi.fn(),
-  logTranscriptAsUpdate: vi.fn(),
-}));
+vi.mock("../../src/api/transcripts", () => transcriptApiMocks);
 
 vi.mock("../../src/hooks/useOnlineStatus", () => ({
   useOnlineStatus: () => true,
@@ -271,5 +282,68 @@ describe("QueuePage transcript review cards", () => {
       "/quote?transcript_id=ct-inbox-1"
     );
     expect(screen.queryByText("Can you send me a first-pass estimate before Friday?")).not.toBeInTheDocument();
+  });
+
+  it("shows a direct log-as-update action for linked update-like transcript reviews", async () => {
+    transcriptApiMocks.logTranscriptAsUpdate.mockResolvedValue({
+      transcript_id: "ct-update-1",
+      review_state: "logged_update",
+      job_id: "job-1",
+      job_name: "Miller Job",
+      trace_id: "trace-update-1",
+      created_draft_ids: ["draft-update-1"],
+      errors: [],
+    });
+    mockQueueData = {
+      jobs: [
+        {
+          job_id: "job-1",
+          job_name: "Miller Job",
+          drafts: [
+            {
+              id: "draft-transcript-update",
+              job_id: "job-1",
+              job_name: "Miller Job",
+              type: "transcript-review",
+              title: "Call transcript review",
+              content: "Transcript ID: ct-update-1\nSummary: Crew found additional damage.",
+              why: "Transcript classified as job update with high urgency.",
+              status: "queued",
+              created_at: "2026-03-06T12:00:00+00:00",
+              trace_id: "trace-update-1",
+              transcript: {
+                transcript_id: "ct-update-1",
+                source: "call_transcript",
+                provider: "manual",
+                caller_label: "Jordan Lane - +14235550102",
+                caller_phone: "+14235550102",
+                summary: "Crew found additional damage behind the siding.",
+                classification: "job_update",
+                urgency: "high",
+                confidence: 89,
+                recommended_actions: ["Log as update", "Review risk"],
+                risk_flags: ["Potential change in scope"],
+                missing_information: ["Replacement quantity"],
+                transcript_text: "We found additional damage behind the siding.",
+                linked_quote_id: "",
+                recording_url: "",
+                started_at: null,
+                duration_seconds: 96,
+              },
+            },
+          ],
+        },
+      ],
+      inbox: { transcripts: [] },
+    };
+
+    renderQueuePage();
+
+    fireEvent.click(await screen.findByText(/Jordan Lane/));
+    fireEvent.click(await screen.findByRole("button", { name: "Log as update" }));
+
+    await waitFor(() => {
+      expect(transcriptApiMocks.logTranscriptAsUpdate).toHaveBeenCalledWith("ct-update-1");
+    });
   });
 });

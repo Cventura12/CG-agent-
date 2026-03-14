@@ -419,8 +419,8 @@ async def _attach_transcript_context_to_drafts(drafts: list[Draft], gc_id: str) 
         return list(response.data or [])
 
     rows = await _run_db("attach_transcript_context_to_drafts", _query)
-    by_trace_id: dict[str, DraftTranscriptContext] = {}
-    by_transcript_id: dict[str, DraftTranscriptContext] = {}
+    by_trace_id: dict[str, tuple[DraftTranscriptContext, str]] = {}
+    by_transcript_id: dict[str, tuple[DraftTranscriptContext, str]] = {}
 
     for row in rows:
         trace_id = str(row.get("trace_id", "")).strip()
@@ -428,10 +428,12 @@ async def _attach_transcript_context_to_drafts(drafts: list[Draft], gc_id: str) 
         if trace_id not in transcript_trace_ids and transcript_id not in transcript_ids:
             continue
         context = _build_draft_transcript_context(row)
+        metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+        review_state = _normalize_transcript_review_state(metadata.get("review_state"))
         if trace_id and trace_id not in by_trace_id:
-            by_trace_id[trace_id] = context
+            by_trace_id[trace_id] = (context, review_state)
         if transcript_id and transcript_id not in by_transcript_id:
-            by_transcript_id[transcript_id] = context
+            by_transcript_id[transcript_id] = (context, review_state)
         if len(by_trace_id) >= len(transcript_trace_ids) and len(by_transcript_id) >= len(transcript_ids):
             break
 
@@ -442,10 +444,17 @@ async def _attach_transcript_context_to_drafts(drafts: list[Draft], gc_id: str) 
             continue
         transcript_id = _extract_transcript_id_from_draft_content(draft.content)
         context = None
+        review_state = "pending"
         if draft.trace_id.strip():
-            context = by_trace_id.get(draft.trace_id.strip())
+            match = by_trace_id.get(draft.trace_id.strip())
+            if match is not None:
+                context, review_state = match
         if context is None and transcript_id:
-            context = by_transcript_id.get(transcript_id)
+            match = by_transcript_id.get(transcript_id)
+            if match is not None:
+                context, review_state = match
+        if context is not None and review_state in {"reviewed", "discarded", "logged_update"}:
+            continue
         enriched.append(draft.model_copy(update={"transcript": context}))
 
     return enriched

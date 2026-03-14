@@ -21,7 +21,7 @@ import {
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
-import type { Draft, QueuePayload, TranscriptInboxItem } from "../types";
+import type { Draft, QueuePayload, TranscriptClassification, TranscriptInboxItem } from "../types";
 
 type QueueMutationContext = {
   previousQueue: QueuePayload | undefined;
@@ -169,6 +169,21 @@ function nextActionLabel(type: Draft["type"]): string {
     default:
       return "Review draft";
   }
+}
+
+const UPDATE_ACTION_TRANSCRIPT_CLASSES = new Set<TranscriptClassification>([
+  "job_update",
+  "reschedule",
+  "complaint_or_issue",
+  "followup_response",
+  "vendor_or_subcontractor",
+]);
+
+function canLogTranscriptAsUpdate(classification: TranscriptClassification | undefined): boolean {
+  if (!classification) {
+    return false;
+  }
+  return UPDATE_ACTION_TRANSCRIPT_CLASSES.has(classification);
 }
 
 export function QueuePage() {
@@ -650,21 +665,23 @@ export function QueuePage() {
                     >
                       Link to job
                     </button>
-                    <button
-                      type="button"
-                      className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={async () => {
-                        if (!selectedJob) {
-                          setErrorMessage("Link the transcript to a job before logging it as an update.");
-                          return;
-                        }
-                        await transcriptLinkMutation.mutateAsync({ transcriptId: transcript.transcript_id, jobId: selectedJob });
-                        await transcriptLogUpdateMutation.mutateAsync(transcript.transcript_id);
-                      }}
-                      disabled={isBusy || !selectedJob}
-                    >
-                      Log as update
-                    </button>
+                    {canLogTranscriptAsUpdate(transcript.classification) ? (
+                      <button
+                        type="button"
+                        className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={async () => {
+                          if (!selectedJob) {
+                            setErrorMessage("Link the transcript to a job before logging it as an update.");
+                            return;
+                          }
+                          await transcriptLinkMutation.mutateAsync({ transcriptId: transcript.transcript_id, jobId: selectedJob });
+                          await transcriptLogUpdateMutation.mutateAsync(transcript.transcript_id);
+                        }}
+                        disabled={isBusy || !selectedJob}
+                      >
+                        Log as update
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="inline-flex h-10 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[15px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -830,6 +847,16 @@ export function QueuePage() {
                             >
                               Create quote draft
                             </Link>
+                          ) : null}
+                          {transcript?.transcript_id && canLogTranscriptAsUpdate(transcript.classification) ? (
+                            <button
+                              type="button"
+                              className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              onClick={() => transcriptLogUpdateMutation.mutate(transcript.transcript_id)}
+                              disabled={transcriptLogUpdateMutation.isPending}
+                            >
+                              Log as update
+                            </button>
                           ) : null}
                           {transcript?.transcript_id ? (
                             <button

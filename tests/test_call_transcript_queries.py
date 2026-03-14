@@ -508,6 +508,107 @@ async def test_get_queued_drafts_attaches_transcript_context(
 
 
 @pytest.mark.asyncio
+async def test_get_queued_drafts_omits_transcript_reviews_once_transcript_is_resolved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = {
+        "draft_queue": [
+            {
+                "id": "draft-transcript-reviewed",
+                "job_id": "job-1",
+                "gc_id": "gc-demo",
+                "type": "transcript-review",
+                "title": "Call transcript review",
+                "content": "Transcript ID: ct-reviewed\nSummary: Caller already handled.",
+                "why": "Transcript classified as followup response.",
+                "status": "queued",
+                "created_at": "2026-03-06T10:00:00+00:00",
+                "trace_id": "trace-reviewed",
+                "jobs": {"name": "Miller Job"},
+            },
+            {
+                "id": "draft-transcript-pending",
+                "job_id": "job-1",
+                "gc_id": "gc-demo",
+                "type": "transcript-review",
+                "title": "Call transcript review",
+                "content": "Transcript ID: ct-pending\nSummary: Caller needs an update logged.",
+                "why": "Transcript classified as job update.",
+                "status": "queued",
+                "created_at": "2026-03-06T10:05:00+00:00",
+                "trace_id": "trace-pending",
+                "jobs": {"name": "Miller Job"},
+            },
+            {
+                "id": "draft-owner-1",
+                "job_id": "job-1",
+                "gc_id": "gc-demo",
+                "type": "owner-update",
+                "title": "Owner update draft",
+                "content": "Send updated schedule.",
+                "why": "Owner needs an updated schedule.",
+                "status": "queued",
+                "created_at": "2026-03-06T10:10:00+00:00",
+                "trace_id": "trace-owner-1",
+                "jobs": {"name": "Miller Job"},
+            },
+        ],
+        "call_transcripts": [
+            {
+                "id": "ct-reviewed",
+                "gc_id": "gc-demo",
+                "job_id": "job-1",
+                "quote_id": "",
+                "source": "call_transcript",
+                "provider": "manual",
+                "caller_phone": "+14235550101",
+                "caller_name": "Taylor Brooks",
+                "transcript_text": "Thanks, we already handled it.",
+                "summary": "Handled on the call.",
+                "classification": "followup_response",
+                "confidence": 82,
+                "extracted_json": {"urgency": "normal"},
+                "risk_flags": [],
+                "recommended_actions": [],
+                "trace_id": "trace-reviewed",
+                "metadata": {"review_state": "reviewed"},
+                "created_at": "2026-03-06T09:55:00+00:00",
+                "updated_at": "2026-03-06T10:00:00+00:00",
+            },
+            {
+                "id": "ct-pending",
+                "gc_id": "gc-demo",
+                "job_id": "job-1",
+                "quote_id": "",
+                "source": "call_transcript",
+                "provider": "manual",
+                "caller_phone": "+14235550102",
+                "caller_name": "Jordan Lane",
+                "transcript_text": "We found another issue on site.",
+                "summary": "Field issue needs a logged update.",
+                "classification": "job_update",
+                "confidence": 88,
+                "extracted_json": {"urgency": "high"},
+                "risk_flags": ["Schedule risk"],
+                "recommended_actions": ["Log as update"],
+                "trace_id": "trace-pending",
+                "metadata": {"review_state": "pending"},
+                "created_at": "2026-03-06T10:05:00+00:00",
+                "updated_at": "2026-03-06T10:05:00+00:00",
+            },
+        ],
+    }
+    _patch_queries(monkeypatch, store)
+
+    drafts = await queries.get_queued_drafts("gc-demo")
+
+    assert [draft.id for draft in drafts] == ["draft-owner-1", "draft-transcript-pending"]
+    assert drafts[1].transcript is not None
+    assert drafts[1].transcript.transcript_id == "ct-pending"
+    assert all(draft.id != "draft-transcript-reviewed" for draft in drafts)
+
+
+@pytest.mark.asyncio
 async def test_get_job_call_history_returns_summary_first_entries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
