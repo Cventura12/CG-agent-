@@ -32,7 +32,26 @@ vi.mock("../../src/hooks/useJobs", () => ({
           est_completion: "2026-03-12",
           notes: "",
           last_updated: "2026-03-01T12:00:00Z",
-          open_items: [{ id: "o1", days_silent: 8 }],
+          open_items: [
+            {
+              id: "o1",
+              days_silent: 8,
+              type: "CO",
+              description: "Owner approved added work that still needs pricing.",
+              owner: "PM",
+              status: "open",
+              due_date: null,
+              financial_exposure: true,
+            },
+          ],
+          operational_summary: {
+            open_item_count: 1,
+            financial_exposure_count: 1,
+            unresolved_change_count: 1,
+            approval_count: 0,
+            followthrough_count: 0,
+            stalled_count: 1,
+          },
         },
         {
           id: "job-2",
@@ -47,6 +66,14 @@ vi.mock("../../src/hooks/useJobs", () => ({
           notes: "",
           last_updated: "2026-03-02T12:00:00Z",
           open_items: [],
+          operational_summary: {
+            open_item_count: 0,
+            financial_exposure_count: 0,
+            unresolved_change_count: 0,
+            approval_count: 0,
+            followthrough_count: 0,
+            stalled_count: 0,
+          },
         },
       ],
     },
@@ -65,7 +92,7 @@ describe("JobsPage risk view", () => {
     expect(screen.getByText("Manage all your active and past projects.")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search jobs...")).toBeInTheDocument();
     expect(screen.getByText("Blocked Roof")).toBeInTheDocument();
-    expect(screen.getByText("Review Risk")).toBeInTheDocument();
+    expect(screen.getByText("Money At Risk")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "New Job" })).toHaveAttribute("href", "/quote");
   });
 });

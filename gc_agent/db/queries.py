@@ -1279,12 +1279,62 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
             pass
 
         try:
+            open_item_response = (
+                client.table("open_items")
+                .select("id,created_at,updated_at,resolved_at,status,type,description,owner,due_date,trace_id")
+                .eq("gc_id", gc_value)
+                .eq("job_id", job_value)
+                .order("updated_at", desc=True)
+                .limit(capped_limit)
+                .execute()
+            )
+            for row in list(open_item_response.data or []):
+                item_type = str(row.get("type", "")).strip().lower()
+                if item_type in {"followup", "follow-up"}:
+                    continue
+
+                status = str(row.get("status", "")).strip().lower() or "open"
+                description = str(row.get("description", "")).strip() or "Open item tracked."
+                if status == "resolved":
+                    event_type = "open_item_resolved"
+                    title = "Open item resolved"
+                    timestamp = row.get("resolved_at") or row.get("updated_at") or row.get("created_at")
+                else:
+                    event_type = "open_item_tracked"
+                    title = "Open item tracked"
+                    timestamp = row.get("created_at") or row.get("updated_at")
+                if item_type == "co":
+                    title = "Change tracked" if status != "resolved" else "Change resolved"
+                elif item_type == "approval":
+                    title = "Approval tracked" if status != "resolved" else "Approval resolved"
+
+                events.append(
+                    {
+                        "id": f"open-item-{str(row.get('id', '')).strip()}-{status or 'open'}",
+                        "event_type": event_type,
+                        "timestamp": timestamp,
+                        "title": title,
+                        "summary": description,
+                        "trace_id": str(row.get("trace_id", "")).strip(),
+                        "metadata": {
+                            "open_item_id": str(row.get("id", "")).strip(),
+                            "type": item_type,
+                            "status": status,
+                            "owner": str(row.get("owner", "")).strip(),
+                            "due_date": row.get("due_date"),
+                        },
+                    }
+                )
+        except Exception:
+            pass
+
+        try:
             followup_response = (
                 client.table("open_items")
                 .select("id,updated_at,status,description,trace_id,due_date")
                 .eq("gc_id", gc_value)
                 .eq("job_id", job_value)
-                .eq("type", "followup")
+                .in_("type", ["followup", "follow-up"])
                 .order("updated_at", desc=True)
                 .limit(capped_limit)
                 .execute()

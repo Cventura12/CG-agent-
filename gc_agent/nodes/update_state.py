@@ -22,11 +22,81 @@ VALID_OPEN_ITEM_TYPES = {
     "approval",
     "follow-up",
 }
+CHANGE_ORDER_HINTS = (
+    "change order",
+    "change request",
+    "scope change",
+    "additional work",
+    "extra work",
+    "added work",
+    "revised price",
+    "unpriced",
+)
+APPROVAL_HINTS = (
+    "approval",
+    "approve",
+    "signoff",
+    "sign-off",
+    "selection",
+    "decision",
+    "authorization",
+)
+MATERIAL_HINTS = (
+    "material",
+    "supplier",
+    "vendor",
+    "delivery",
+    "lead time",
+    "order",
+)
+SUB_CONFIRM_HINTS = (
+    "subcontractor",
+    "trade partner",
+    "crew confirmation",
+    "vendor confirmation",
+)
+RFI_HINTS = (
+    "question",
+    "clarify",
+    "clarification",
+    "rfi",
+)
 
 
 def _normalize_text(value: Any) -> str:
     """Normalize free text for safe comparisons and display output."""
     return str(value or "").strip()
+
+
+def _contains_any(text: str, hints: tuple[str, ...]) -> bool:
+    """Return True when any normalized hint appears in the candidate text."""
+    lowered = text.strip().lower()
+    if not lowered:
+        return False
+    return any(hint in lowered for hint in hints)
+
+
+def _normalize_open_item_type(
+    explicit_type: Any,
+    description: str,
+) -> str:
+    """Map messy model/open-text item types into the existing tracked open-item set."""
+    item_type = _normalize_text(explicit_type)
+    if item_type in VALID_OPEN_ITEM_TYPES:
+        return item_type
+
+    normalized_description = description.strip().lower()
+    if _contains_any(normalized_description, CHANGE_ORDER_HINTS):
+        return "CO"
+    if _contains_any(normalized_description, APPROVAL_HINTS):
+        return "approval"
+    if _contains_any(normalized_description, MATERIAL_HINTS):
+        return "material"
+    if _contains_any(normalized_description, SUB_CONFIRM_HINTS):
+        return "sub-confirm"
+    if _contains_any(normalized_description, RFI_HINTS):
+        return "RFI"
+    return "follow-up"
 
 
 def _parse_due_date(value: Any) -> Optional[date]:
@@ -98,20 +168,31 @@ def _resolved_descriptions(job_update: dict[str, Any]) -> set[str]:
 
 def _build_open_item(new_item: dict[str, Any], job_id: str) -> OpenItem:
     """Create an OpenItem model from parsed intent payload data."""
-    item_type = _normalize_text(new_item.get("type"))
-    if item_type not in VALID_OPEN_ITEM_TYPES:
-        item_type = "follow-up"
+    description = _normalize_text(new_item.get("description") or new_item.get("item") or "New open item")
+    item_type = _normalize_open_item_type(new_item.get("type"), description)
 
     return OpenItem(
         id=uuid4().hex,
         job_id=job_id,
         type=item_type,  # type: ignore[arg-type]
-        description=_normalize_text(new_item.get("description") or new_item.get("item") or "New open item"),
+        description=description,
         owner=_normalize_text(new_item.get("owner") or "GC"),
         status="open",
         days_silent=0,
         due_date=_parse_due_date(new_item.get("due_date")),
     )
+
+
+def _find_duplicate_open_item(target_job: Job, candidate: OpenItem) -> OpenItem | None:
+    """Return an unresolved open item when the same issue is already tracked on the job."""
+    candidate_description = candidate.description.strip().lower()
+    if not candidate_description:
+        return None
+
+    for existing in target_job.open_items:
+        if existing.description.strip().lower() == candidate_description:
+            return existing
+    return None
 
 
 async def update_state(state: AgentState) -> dict[str, object]:
@@ -167,6 +248,14 @@ async def update_state(state: AgentState) -> dict[str, object]:
             continue
 
         open_item = _build_open_item(new_item_payload, target_job.id)
+        duplicate = _find_duplicate_open_item(target_job, open_item)
+        if duplicate is not None:
+            LOGGER.debug(
+                "Skipping duplicate open item for job_id=%s description=%s",
+                target_job.id,
+                open_item.description,
+            )
+            continue
         target_job.open_items.append(open_item)
 
         try:

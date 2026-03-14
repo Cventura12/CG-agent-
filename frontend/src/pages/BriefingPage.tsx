@@ -77,7 +77,23 @@ function actionFromTranscript(transcript: TranscriptInboxItem): AttentionItem {
 }
 
 function actionFromJob(job: Job): AttentionItem {
-  const note = job.open_items[0]?.description || "Review the latest operational issue on this job.";
+  const financialItem = job.open_items.find((item) => item.financial_exposure);
+  const changeItem = job.open_items.find((item) => item.change_related);
+  const note =
+    financialItem?.description ||
+    changeItem?.description ||
+    job.open_items[0]?.description ||
+    "Review the latest operational issue on this job.";
+  if (financialItem) {
+    return {
+      id: `job-${job.id}`,
+      title: `${job.name} has unresolved money at risk`,
+      detail: note,
+      tone: "orange",
+      ctaLabel: "Review Change",
+      href: `/jobs/${job.id}`,
+    };
+  }
   return {
     id: `job-${job.id}`,
     title: `${job.name} needs attention`,
@@ -120,7 +136,11 @@ export function BriefingPage() {
 
   const queueCount = queueGroups.reduce((sum, group) => sum + group.drafts.length, 0);
   const activeQuotes = jobs.filter((job) => job.status !== "complete").length;
-  const followupJobs = jobs.filter((job) => job.open_items.some((item) => item.type === "follow-up"));
+  const followupJobs = jobs.filter(
+    (job) =>
+      (job.operational_summary?.followthrough_count ?? 0) > 0 ||
+      job.open_items.some((item) => item.type === "follow-up" || item.type === "followup")
+  );
   const followupsToday = analytics?.followup.active ?? followupJobs.length;
   const winRate = analytics?.quotes.conversion_rate_pct ?? analytics?.quotes.approval_rate_pct ?? 0;
 
@@ -286,7 +306,10 @@ export function BriefingPage() {
                     <button type="button" className="text-[15px] font-semibold text-slate-900">Skip</button>
                   </div>
                   <div className="mt-4 inline-flex items-center rounded-xl bg-blue-50 px-3 py-1 text-sm font-medium text-[#2453d4]">
-                    {job.open_items.some((item) => item.type === "follow-up") ? "Follow-up scheduled today" : "Review follow-up timing"}
+                    {(job.operational_summary?.followthrough_count ?? 0) > 0 ||
+                    job.open_items.some((item) => item.type === "follow-up" || item.type === "followup")
+                      ? "Follow-up scheduled today"
+                      : "Review follow-up timing"}
                   </div>
                 </div>
               ))}

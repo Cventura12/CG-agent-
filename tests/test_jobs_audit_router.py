@@ -8,7 +8,7 @@ from fastapi import FastAPI
 
 from gc_agent.auth import get_current_gc
 from gc_agent.routers.jobs import router as jobs_router
-from gc_agent.state import Job
+from gc_agent.state import Job, OpenItem
 
 jobs_module = import_module("gc_agent.routers.jobs")
 
@@ -42,6 +42,16 @@ async def test_job_detail_includes_audit_timeline(monkeypatch: pytest.MonkeyPatc
                 contract_value=90000,
                 contract_type="Lump Sum",
                 est_completion="2026-12-01",
+                open_items=[
+                    OpenItem(
+                        id="open-co-1",
+                        job_id="job-1",
+                        type="CO",
+                        description="Owner approved additional work that still needs pricing.",
+                        owner="PM",
+                        days_silent=4,
+                    )
+                ],
             )
         ]
 
@@ -119,6 +129,9 @@ async def test_job_detail_includes_audit_timeline(monkeypatch: pytest.MonkeyPatc
     payload = response.json()
     assert payload["success"] is True
     assert payload["data"]["job"]["id"] == "job-1"
+    assert payload["data"]["job"]["operational_summary"]["financial_exposure_count"] == 1
+    assert payload["data"]["job"]["open_items"][0]["financial_exposure"] is True
+    assert payload["data"]["job"]["open_items"][0]["kind_label"] == "Money at risk"
     assert payload["data"]["call_history"][0]["summary"] == "Caller wants the revised quote before Friday."
     assert payload["data"]["call_history"][0]["related_queue_item_ids"] == ["draft-transcript-1"]
     assert len(payload["data"]["audit_timeline"]) == 1

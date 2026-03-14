@@ -1,11 +1,14 @@
-﻿export type OpenItemType =
+export type OpenItemType =
+  | "quote"
+  | "action"
   | "RFI"
   | "CO"
   | "sub-confirm"
   | "material"
   | "decision"
   | "approval"
-  | "follow-up";
+  | "follow-up"
+  | "followup";
 
 export type OpenItemStatus = "open" | "in-progress" | "resolved" | "overdue";
 
@@ -18,6 +21,20 @@ export interface OpenItem {
   status: OpenItemStatus;
   days_silent: number;
   due_date: string | null;
+  financial_exposure?: boolean;
+  change_related?: boolean;
+  followthrough_related?: boolean;
+  stalled?: boolean;
+  kind_label?: string;
+}
+
+export interface JobOperationalSummary {
+  open_item_count: number;
+  financial_exposure_count: number;
+  unresolved_change_count: number;
+  approval_count: number;
+  followthrough_count: number;
+  stalled_count: number;
 }
 
 export type JobStatus = "active" | "on-hold" | "complete";
@@ -36,6 +53,7 @@ export interface Job {
   last_updated: string;
   open_items: OpenItem[];
   health: JobHealth;
+  operational_summary?: JobOperationalSummary;
 }
 
 export type DraftType =
@@ -534,3 +552,4 @@ export interface QuoteFollowupStopResponse extends QuoteFollowupResponse {
   stopped: boolean;
   reason: string;
 }
+

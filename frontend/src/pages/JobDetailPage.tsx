@@ -8,7 +8,7 @@ import { fetchJobDetail } from "../api/jobs";
 import { approveDraft, discardDraft, editDraft } from "../api/queue";
 import { logTranscriptAsUpdate } from "../api/transcripts";
 import { useQueue } from "../hooks/useQueue";
-import type { JobCallHistoryEntry, QueuePayload, TranscriptClassification } from "../types";
+import type { JobCallHistoryEntry, OpenItem, QueuePayload, TranscriptClassification } from "../types";
 
 type QueueMutationContext = {
   previousQueue: QueuePayload | undefined;
@@ -139,6 +139,20 @@ function timelineTone(eventType: string): string {
   return "bg-slate-100 text-slate-600";
 }
 
+function unresolvedItemTone(item: OpenItem): string {
+  if (item.financial_exposure) {
+    return "border-orange-200 bg-orange-50 text-orange-700";
+  }
+  if (item.change_related) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function unresolvedItemLabel(item: OpenItem): string {
+  return item.kind_label || item.type.replace(/-/g, " ");
+}
+
 const UPDATE_ACTION_TRANSCRIPT_CLASSES = new Set<TranscriptClassification>([
   "job_update",
   "reschedule",
@@ -193,6 +207,10 @@ export function JobDetailPage() {
     }));
   }, [callHistory.length, detailQuery.data]);
   const followupState = detailQuery.data?.followup_state ?? null;
+  const unresolvedItems = useMemo(
+    () => (job?.open_items ?? []).filter((item) => item.type !== "follow-up" && item.type !== "followup"),
+    [job?.open_items]
+  );
 
   const pendingDrafts = useMemo(() => {
     const groups = queueQuery.data?.jobs ?? [];
@@ -376,6 +394,52 @@ export function JobDetailPage() {
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
               <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Notes</div>
               <div className="mt-3 text-[15px] leading-7 text-slate-600">{job.notes || "No site notes recorded yet."}</div>
+            </div>
+          </article>
+
+          <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+                <History className="h-5 w-5 text-orange-500" aria-hidden="true" />
+                <span>Unresolved changes & approvals</span>
+              </div>
+              <span className="inline-flex rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-600">
+                {unresolvedItems.length} tracked
+              </span>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {unresolvedItems.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">
+                  No unresolved change or approval items are tracked on this job.
+                </div>
+              ) : (
+                unresolvedItems.map((item) => (
+                  <div key={item.id} className={`rounded-2xl border px-5 py-5 ${unresolvedItemTone(item)}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex rounded-full border border-current/20 bg-white/70 px-3 py-1 text-sm font-semibold">
+                        {unresolvedItemLabel(item)}
+                      </span>
+                      {item.financial_exposure ? (
+                        <span className="inline-flex rounded-full border border-current/20 bg-white/70 px-3 py-1 text-sm font-semibold">
+                          Financial exposure
+                        </span>
+                      ) : null}
+                      {item.stalled ? (
+                        <span className="inline-flex rounded-full border border-current/20 bg-white/70 px-3 py-1 text-sm font-semibold">
+                          {item.days_silent} days silent
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 text-[16px] font-semibold text-slate-950">{item.description}</div>
+                    <div className="mt-3 flex flex-wrap items-center gap-4 text-[15px] text-slate-500">
+                      <span>Owner: {item.owner}</span>
+                      {item.due_date ? <span>Due {item.due_date}</span> : null}
+                      <span>Status: {item.status}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </article>
 

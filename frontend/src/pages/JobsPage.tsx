@@ -44,11 +44,25 @@ function displayStatus(status: string, hasFollowup: boolean): { label: string; c
 function operationalNote(job: {
   health: string;
   open_items: Array<{ type: string }>;
+  operational_summary?: {
+    financial_exposure_count: number;
+    unresolved_change_count: number;
+    followthrough_count: number;
+  };
 }): { label: string; className: string } | null {
+  if ((job.operational_summary?.financial_exposure_count ?? 0) > 0) {
+    return { label: "Money At Risk", className: "bg-orange-50 text-orange-600" };
+  }
+  if ((job.operational_summary?.unresolved_change_count ?? 0) > 0) {
+    return { label: "Change Needs Review", className: "bg-amber-50 text-amber-700" };
+  }
   if (job.health === "blocked" || job.health === "at-risk") {
     return { label: "Review Risk", className: "bg-orange-50 text-orange-600" };
   }
-  if (job.open_items.some((item) => item.type === "follow-up")) {
+  if (
+    (job.operational_summary?.followthrough_count ?? 0) > 0 ||
+    job.open_items.some((item) => item.type === "follow-up" || item.type === "followup")
+  ) {
     return { label: "Reminder Scheduled", className: "bg-slate-100 text-slate-500" };
   }
   return null;
@@ -118,7 +132,9 @@ export function JobsPage() {
           <div className="px-8 py-10 text-[15px] text-slate-500">No jobs found for this search.</div>
         ) : (
           filteredJobs.slice(0, 8).map((job) => {
-            const hasFollowup = job.open_items.some((item) => item.type === "follow-up");
+            const hasFollowup =
+              (job.operational_summary?.followthrough_count ?? 0) > 0 ||
+              job.open_items.some((item) => item.type === "follow-up" || item.type === "followup");
             const status = displayStatus(job.status, hasFollowup);
             const note = operationalNote(job);
             return (
