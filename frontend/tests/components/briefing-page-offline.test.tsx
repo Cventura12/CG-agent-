@@ -46,14 +46,27 @@ vi.mock("../../src/hooks/useJobs", () => ({
             {
               id: "o1",
               job_id: "job-1",
-              type: "decision",
-              description: "Permit approval",
+              type: "CO",
+              description: "Owner approved added work that still needs pricing.",
               owner: "GC",
-              status: "open",
+              status: "in-progress",
+              action_stage: "approved",
+              action_stage_label: "Office approved",
+              action_stage_summary: "Office review is done. Next step is to send it out.",
               days_silent: 7,
               due_date: null,
+              financial_exposure: true,
+              change_related: true,
             },
           ],
+          operational_summary: {
+            open_item_count: 1,
+            financial_exposure_count: 1,
+            unresolved_change_count: 1,
+            approval_count: 0,
+            followthrough_count: 0,
+            stalled_count: 1,
+          },
         },
       ],
     },
@@ -89,5 +102,7 @@ describe("BriefingPage offline mode", () => {
     expect(await screen.findByText("Morning Briefing")).toBeInTheDocument();
     expect(screen.getByText("Needs Attention")).toBeInTheDocument();
     expect(screen.getByText("Today's Follow-ups")).toBeInTheDocument();
+    expect(screen.getAllByText("Office approved").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Office review is done. Next step is to send it out.").length).toBeGreaterThan(0);
   });
 });

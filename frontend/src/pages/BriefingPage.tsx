@@ -21,6 +21,7 @@ type AttentionItem = {
   tone: "orange" | "blue";
   ctaLabel: string;
   href: string;
+  stageLabel?: string;
 };
 
 function formatRelativeDate(value: string): string {
@@ -45,6 +46,14 @@ function formatToday(): string {
     month: "long",
     day: "numeric",
   }).format(new Date());
+}
+
+function openItemStageClass(stage: string | null | undefined): string {
+  if (stage === "approved") return "bg-blue-50 text-[#2453d4]";
+  if (stage === "sent") return "bg-amber-50 text-amber-700";
+  if (stage === "customer-approved") return "bg-emerald-50 text-emerald-700";
+  if (stage === "drafted") return "bg-slate-100 text-slate-600";
+  return "bg-slate-100 text-slate-600";
 }
 
 function actionFromQueue(group: QueueJobGroup): AttentionItem {
@@ -79,19 +88,19 @@ function actionFromTranscript(transcript: TranscriptInboxItem): AttentionItem {
 function actionFromJob(job: Job): AttentionItem {
   const financialItem = job.open_items.find((item) => item.financial_exposure);
   const changeItem = job.open_items.find((item) => item.change_related);
+  const prioritizedItem = financialItem || changeItem || job.open_items[0];
   const note =
-    financialItem?.description ||
-    changeItem?.description ||
-    job.open_items[0]?.description ||
+    prioritizedItem?.description ||
     "Review the latest operational issue on this job.";
   if (financialItem) {
     return {
       id: `job-${job.id}`,
       title: `${job.name} has unresolved money at risk`,
-      detail: note,
+      detail: prioritizedItem?.action_stage_summary || note,
       tone: "orange",
-      ctaLabel: "Review Change",
+      ctaLabel: prioritizedItem?.action_stage === "approved" ? "Mark Sent" : "Review Change",
       href: `/jobs/${job.id}`,
+      stageLabel: prioritizedItem?.action_stage_label,
     };
   }
   return {
@@ -101,6 +110,7 @@ function actionFromJob(job: Job): AttentionItem {
     tone: job.health === "blocked" ? "orange" : "blue",
     ctaLabel: job.health === "blocked" ? "Review Risk" : "Open Job",
     href: `/jobs/${job.id}`,
+    stageLabel: prioritizedItem?.action_stage_label,
   };
 }
 
@@ -238,7 +248,14 @@ export function BriefingPage() {
                   <div key={item.id} className="flex items-start gap-4 border-b border-slate-200 px-7 py-6 last:border-b-0">
                     <span className={`mt-2 h-3 w-3 rounded-full ${item.tone === "orange" ? "bg-orange-500" : "bg-blue-600"}`} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[18px] font-semibold text-slate-950">{item.title}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-[18px] font-semibold text-slate-950">{item.title}</div>
+                        {item.stageLabel ? (
+                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+                            {item.stageLabel}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="mt-2 text-[15px] leading-7 text-slate-500">{item.detail}</div>
                     </div>
                     <Link
@@ -273,9 +290,16 @@ export function BriefingPage() {
                       {job.health === "blocked" ? <MessageSquareWarning className="h-6 w-6" aria-hidden="true" /> : <CheckCircle2 className="h-6 w-6" aria-hidden="true" />}
                     </div>
                     <div>
-                      <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                        {job.open_items[0]?.action_stage_label ? (
+                          <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${openItemStageClass(job.open_items[0].action_stage)}`}>
+                            {job.open_items[0].action_stage_label}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="mt-1 text-[15px] leading-7 text-slate-500">
-                        {job.open_items[0]?.description || `Latest status is ${job.status}.`}
+                        {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Latest status is ${job.status}.`}
                       </div>
                       <div className="mt-3 flex items-center gap-2 text-[15px] text-slate-500">
                         <Clock3 className="h-4 w-4" aria-hidden="true" />
@@ -298,9 +322,16 @@ export function BriefingPage() {
                 <div key={job.id} className={`${index > 0 ? "border-t border-slate-200 pt-5" : ""}`}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                        {job.open_items[0]?.action_stage_label ? (
+                          <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${openItemStageClass(job.open_items[0].action_stage)}`}>
+                            {job.open_items[0].action_stage_label}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="mt-1 text-[15px] text-slate-500">
-                        {job.open_items[0]?.description || `Last update ${formatRelativeDate(job.last_updated)}`}
+                        {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Last update ${formatRelativeDate(job.last_updated)}`}
                       </div>
                     </div>
                     <button type="button" className="text-[15px] font-semibold text-slate-900">Skip</button>

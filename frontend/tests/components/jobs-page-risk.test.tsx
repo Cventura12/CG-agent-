@@ -40,6 +40,8 @@ vi.mock("../../src/hooks/useJobs", () => ({
               description: "Owner approved added work that still needs pricing.",
               owner: "PM",
               status: "open",
+              action_stage: "sent",
+              action_stage_label: "Sent",
               due_date: null,
               financial_exposure: true,
             },
@@ -93,6 +95,7 @@ describe("JobsPage risk view", () => {
     expect(screen.getByPlaceholderText("Search jobs...")).toBeInTheDocument();
     expect(screen.getByText("Blocked Roof")).toBeInTheDocument();
     expect(screen.getByText("Money At Risk")).toBeInTheDocument();
+    expect(screen.getByText("Sent")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "New Job" })).toHaveAttribute("href", "/quote");
   });
 });

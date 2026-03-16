@@ -5,6 +5,14 @@ import { Link } from "react-router-dom";
 
 import { useJobs } from "../hooks/useJobs";
 
+function openItemStageClass(stage: string | null | undefined): string {
+  if (stage === "approved") return "bg-blue-50 text-[#2453d4]";
+  if (stage === "sent") return "bg-amber-50 text-amber-700";
+  if (stage === "customer-approved") return "bg-emerald-50 text-emerald-700";
+  if (stage === "drafted") return "bg-slate-100 text-slate-600";
+  return "bg-slate-100 text-slate-600";
+}
+
 function formatCurrency(value: number): string {
   if (!Number.isFinite(value) || value <= 0) {
     return "Pending";
@@ -43,18 +51,37 @@ function displayStatus(status: string, hasFollowup: boolean): { label: string; c
 
 function operationalNote(job: {
   health: string;
-  open_items: Array<{ type: string }>;
+  open_items: Array<{
+    type: string;
+    financial_exposure?: boolean;
+    change_related?: boolean;
+    action_stage?: string | null;
+    action_stage_label?: string;
+  }>;
   operational_summary?: {
     financial_exposure_count: number;
     unresolved_change_count: number;
     followthrough_count: number;
   };
-}): { label: string; className: string } | null {
+}): { label: string; className: string; stageLabel?: string; stageClassName?: string } | null {
+  const financialItem = job.open_items.find((item) => item.financial_exposure);
+  const changeItem = job.open_items.find((item) => item.change_related);
+
   if ((job.operational_summary?.financial_exposure_count ?? 0) > 0) {
-    return { label: "Money At Risk", className: "bg-orange-50 text-orange-600" };
+    return {
+      label: "Money At Risk",
+      className: "bg-orange-50 text-orange-600",
+      stageLabel: financialItem?.action_stage_label,
+      stageClassName: openItemStageClass(financialItem?.action_stage),
+    };
   }
   if ((job.operational_summary?.unresolved_change_count ?? 0) > 0) {
-    return { label: "Change Needs Review", className: "bg-amber-50 text-amber-700" };
+    return {
+      label: "Change Needs Review",
+      className: "bg-amber-50 text-amber-700",
+      stageLabel: changeItem?.action_stage_label,
+      stageClassName: openItemStageClass(changeItem?.action_stage),
+    };
   }
   if (job.health === "blocked" || job.health === "at-risk") {
     return { label: "Review Risk", className: "bg-orange-50 text-orange-600" };
@@ -151,7 +178,14 @@ export function JobsPage() {
                 <div className="text-[15px] text-slate-500">{formatRelativeDate(job.last_updated)}</div>
                 <div>
                   {note ? (
-                    <span className={`inline-flex rounded-xl px-3 py-1 text-[15px] font-medium ${note.className}`}>{note.label}</span>
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`inline-flex rounded-xl px-3 py-1 text-[15px] font-medium ${note.className}`}>{note.label}</span>
+                      {note.stageLabel ? (
+                        <span className={`inline-flex rounded-xl px-3 py-1 text-[15px] font-medium ${note.stageClassName || "bg-slate-100 text-slate-600"}`}>
+                          {note.stageLabel}
+                        </span>
+                      ) : null}
+                    </div>
                   ) : (
                     <span className="text-[15px] text-slate-400">-</span>
                   )}
