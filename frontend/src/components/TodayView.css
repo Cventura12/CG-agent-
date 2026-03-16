@@ -1,0 +1,55 @@
+:root {
+  --ink: #0E0F11;
+  --ink-2: #4A4D55;
+  --ink-3: #9499A5;
+  --surface: #FFFFFF;
+  --surface-2: #F5F5F3;
+  --surface-3: #EDEDE9;
+  --border: rgba(0, 0, 0, 0.07);
+  --border-strong: rgba(0, 0, 0, 0.13);
+  --accent: #1646F5;
+  --accent-light: #EBF0FF;
+  --accent-text: #1038C8;
+  --warn: #C45E00;
+  --warn-bg: #FFF5EB;
+  --success: #1A7A4A;
+  --success-bg: #EDFAF3;
+  --ok-border: #DCDCDA;
+}
+
+.font-dm-mono {
+  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.today-fade-up {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: today-fade-up 0.3s ease forwards;
+  animation-delay: var(--fade-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.today-scroll {
+  scrollbar-gutter: stable;
+}
+
+@keyframes today-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-fade-up {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
