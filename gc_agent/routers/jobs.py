@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from fastapi_cache.decorator import cache
+from pydantic import BaseModel
 
 from gc_agent import graph
 from gc_agent.auth import get_current_gc
 from gc_agent.db import queries
 from gc_agent.db.queries import DatabaseError
-from gc_agent.state import Job, OpenItem
+from gc_agent.state import Draft, Job, OpenItem
 
 router = APIRouter(tags=["jobs"])
 FINANCIAL_OPEN_ITEM_KEYWORDS = (
@@ -38,6 +41,14 @@ CHANGE_OPEN_ITEM_KEYWORDS = (
     "added work",
     "revised price",
 )
+OPEN_ITEM_ACTION_TRACE_PREFIX = "open-item-action:"
+
+
+class OpenItemDraftActionResponse(BaseModel):
+    """Response payload for one generated unresolved-item follow-through draft."""
+
+    draft: dict[str, Any]
+    open_item: dict[str, Any]
 
 
 def _success(data: Any) -> dict[str, Any]:
@@ -134,6 +145,11 @@ def _serialize_open_item(item: OpenItem) -> dict[str, Any]:
     payload["followthrough_related"] = _is_followthrough_open_item(item)
     payload["stalled"] = item.days_silent >= 3
     payload["kind_label"] = _open_item_kind_label(item)
+    action = _open_item_action_definition(item)
+    if action is not None:
+        payload["action_trace_id"] = _action_trace_id(item.id)
+        payload["action_draft_type"] = action["draft_type"]
+        payload["action_label"] = action["label"]
     return payload
 
 
@@ -162,6 +178,83 @@ def _serialize_job(job: Job) -> dict[str, Any]:
     payload["operational_summary"] = _operational_summary(job)
     payload["health"] = _compute_health(job)
     return payload
+
+
+def _action_trace_id(item_id: str) -> str:
+    """Build the trace marker used to dedupe active unresolved-item drafts."""
+    return f"{OPEN_ITEM_ACTION_TRACE_PREFIX}{item_id.strip()}"
+
+
+def _open_item_action_definition(item: OpenItem) -> dict[str, str] | None:
+    """Return the suggested draft action for an unresolved financial item."""
+    normalized_type = str(item.type).strip().lower()
+    item_id = item.id.strip()
+    if not item_id:
+        return None
+    if normalized_type == "approval":
+        return {
+            "draft_type": "owner-update",
+            "label": "Draft approval request",
+        }
+    if _is_change_open_item(item):
+        return {
+            "draft_type": "CO",
+            "label": "Draft change order",
+        }
+    return None
+
+
+def _build_open_item_followthrough_draft(job: Job, item: OpenItem) -> Draft | None:
+    """Build a queued draft from one unresolved change or approval item."""
+    action = _open_item_action_definition(item)
+    if action is None:
+        return None
+
+    description = item.description.strip() or "Unresolved job item needs review."
+    if action["draft_type"] == "CO":
+        title = f"Draft change order for {job.name}"
+        content = (
+            f"Proposed change order for {job.name}\n\n"
+            f"Reason for change:\n{description}\n\n"
+            "Before sending:\n"
+            "- confirm the added scope\n"
+            "- confirm price impact\n"
+            "- confirm schedule impact\n\n"
+            "Suggested owner message:\n"
+            f"Hi, we identified additional work on {job.name} that needs approval before crews proceed: "
+            f"{description} I can send over the formal change order with pricing and schedule impact for review."
+        )
+        why = "Generated from an unresolved change item that is putting money at risk."
+    else:
+        title = f"Request approval for {job.name}"
+        content = (
+            f"Approval follow-through for {job.name}\n\n"
+            f"Pending approval:\n{description}\n\n"
+            "Suggested owner message:\n"
+            f"Hi, following up on the pending approval for {job.name}: {description} "
+            "Once you confirm, we can keep the schedule moving and document the next step."
+        )
+        why = "Generated from an unresolved approval item that needs owner follow-through."
+
+    return Draft(
+        id=str(uuid4().hex),
+        job_id=job.id,
+        job_name=job.name,
+        type=action["draft_type"],  # type: ignore[arg-type]
+        title=title,
+        content=content,
+        why=why,
+        status="queued",
+        created_at=datetime.now(timezone.utc),
+        trace_id=_action_trace_id(item.id),
+    )
+
+
+async def _find_existing_open_item_draft(gc_id: str, item_id: str) -> Draft | None:
+    """Return an active draft already created for one unresolved open item."""
+    trace_id = _action_trace_id(item_id)
+    pending_drafts = await queries.get_pending_drafts(gc_id)
+    return next((draft for draft in pending_drafts if draft.trace_id.strip() == trace_id), None)
 
 
 @router.get("/jobs/briefing", response_model=None)
@@ -226,4 +319,52 @@ async def job_detail(job_id: str, current_gc: str = Depends(get_current_gc)) -> 
     )
 
 
-__all__ = ["router", "list_jobs", "job_detail", "refresh_briefing"]
+@router.post("/jobs/{job_id}/open-items/{open_item_id}/draft-action", response_model=None)
+async def draft_open_item_action(
+    job_id: str,
+    open_item_id: str,
+    current_gc: str = Depends(get_current_gc),
+) -> dict[str, Any] | JSONResponse:
+    """Turn an unresolved change or approval item into a queued follow-through draft."""
+    gc_id, gc_error = await _resolve_gc_id(current_gc)
+    if gc_error is not None or gc_id is None:
+        return gc_error  # type: ignore[return-value]
+
+    try:
+        jobs = await queries.get_active_jobs(gc_id)
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    job = next((item for item in jobs if item.id == job_id), None)
+    if job is None:
+        return _error(404, "job_id not found")
+
+    open_item = next((item for item in job.open_items if item.id == open_item_id), None)
+    if open_item is None:
+        return _error(404, "open_item_id not found")
+
+    action = _open_item_action_definition(open_item)
+    if action is None:
+        return _error(400, "open item does not support a follow-through draft")
+
+    try:
+        existing_draft = await _find_existing_open_item_draft(gc_id, open_item.id)
+        if existing_draft is None:
+            draft = _build_open_item_followthrough_draft(job, open_item)
+            if draft is None:
+                return _error(400, "open item does not support a follow-through draft")
+            await queries.insert_drafts([draft], gc_id)
+            existing_draft = draft
+        await queries.update_open_item_status(open_item.id, gc_id, "in-progress")
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    updated_open_item = open_item.model_copy(update={"status": "in-progress"})
+    payload = OpenItemDraftActionResponse(
+        draft=existing_draft.model_dump(mode="json"),
+        open_item=_serialize_open_item(updated_open_item),
+    )
+    return _success(payload.model_dump(mode="json"))
+
+
+__all__ = ["router", "list_jobs", "job_detail", "refresh_briefing", "draft_open_item_action"]

@@ -26,6 +26,9 @@ export interface OpenItem {
   followthrough_related?: boolean;
   stalled?: boolean;
   kind_label?: string;
+  action_trace_id?: string;
+  action_draft_type?: DraftType;
+  action_label?: string;
 }
 
 export interface JobOperationalSummary {
@@ -138,6 +141,7 @@ export interface Draft {
   approval_status?: DraftApprovalStatus | null;
   approval_recorded_at?: string | null;
   created_at: string;
+  trace_id?: string;
   transcript?: DraftTranscriptContext | null;
 }
 
@@ -227,6 +231,11 @@ export interface JobDetailPayload {
     metadata: Record<string, unknown>;
   }>;
   followup_state?: QuoteFollowupState | null;
+}
+
+export interface OpenItemDraftActionResponse {
+  draft: Draft;
+  open_item: OpenItem;
 }
 
 export interface QueuePayload {

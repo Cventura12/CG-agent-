@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { Activity, ArrowLeft, Clock3, FileText, History, MessageSquareMore, Phone, Sparkles } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
-import { fetchJobDetail } from "../api/jobs";
+import { createOpenItemDraftAction, fetchJobDetail } from "../api/jobs";
 import { approveDraft, discardDraft, editDraft } from "../api/queue";
 import { logTranscriptAsUpdate } from "../api/transcripts";
 import { useQueue } from "../hooks/useQueue";
@@ -170,6 +170,7 @@ export function JobDetailPage() {
   const jobId = params.jobId ?? "";
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [expandedTranscriptIds, setExpandedTranscriptIds] = useState<Record<string, boolean>>({});
   const [draftEdits, setDraftEdits] = useState<Record<string, string>>({});
 
@@ -216,6 +217,10 @@ export function JobDetailPage() {
     const groups = queueQuery.data?.jobs ?? [];
     return groups.find((group) => group.job_id === jobId)?.drafts ?? [];
   }, [queueQuery.data, jobId]);
+  const pendingDraftTraceIds = useMemo(
+    () => new Set(pendingDrafts.map((draft) => draft.trace_id).filter((value): value is string => Boolean(value))),
+    [pendingDrafts]
+  );
 
   useEffect(() => {
     if (!jobId || !currentUserId) {
@@ -317,6 +322,25 @@ export function JobDetailPage() {
     },
   });
 
+  const openItemDraftMutation = useMutation({
+    mutationFn: (openItemId: string) => createOpenItemDraftAction(jobId, openItemId),
+    onMutate: () => {
+      setErrorMessage(null);
+      setActionMessage(null);
+    },
+    onError: (error) => {
+      setErrorMessage(error instanceof Error ? error.message : "Could not create follow-through draft.");
+    },
+    onSuccess: async (payload) => {
+      setActionMessage(`${payload.draft.title} is ready in the review queue.`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["queue", scope] }),
+        queryClient.invalidateQueries({ queryKey: ["job-detail", scope, jobId] }),
+        queryClient.invalidateQueries({ queryKey: ["jobs", scope] }),
+      ]);
+    },
+  });
+
   const isDraftLoading = (draftId: string): boolean => {
     return (
       (approveMutation.isPending && approveMutation.variables?.draftId === draftId) ||
@@ -368,6 +392,11 @@ export function JobDetailPage() {
       {errorMessage ? (
         <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[15px] text-orange-700">
           {errorMessage}
+        </div>
+      ) : null}
+      {actionMessage ? (
+        <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-[15px] text-emerald-700">
+          {actionMessage}
         </div>
       ) : null}
 
@@ -437,6 +466,29 @@ export function JobDetailPage() {
                       {item.due_date ? <span>Due {item.due_date}</span> : null}
                       <span>Status: {item.status}</span>
                     </div>
+                    {item.action_trace_id && item.action_label ? (
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {pendingDraftTraceIds.has(item.action_trace_id) ? (
+                          <Link
+                            to="/queue"
+                            className="inline-flex h-10 items-center rounded-xl border border-blue-200 bg-blue-50 px-4 text-[15px] font-semibold text-[#2453d4] no-underline transition hover:bg-blue-100"
+                          >
+                            Open review draft
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => openItemDraftMutation.mutate(item.id)}
+                            disabled={openItemDraftMutation.isPending}
+                          >
+                            {openItemDraftMutation.isPending && openItemDraftMutation.variables === item.id
+                              ? "Drafting..."
+                              : item.action_label}
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 ))
               )}

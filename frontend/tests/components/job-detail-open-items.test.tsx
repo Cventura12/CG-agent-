@@ -1,16 +1,54 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import { JobDetailPage } from "../../src/pages/JobDetailPage";
+
+const jobApiMocks = vi.hoisted(() => ({
+  createOpenItemDraftAction: vi.fn(async () => ({
+    draft: {
+      id: "draft-co-1",
+      job_id: "job-1",
+      job_name: "Miller Job",
+      type: "CO",
+      title: "Draft change order for Miller Job",
+      content: "Draft body",
+      why: "Generated from an unresolved change item that is putting money at risk.",
+      status: "queued",
+      created_at: "2026-03-05T10:00:00+00:00",
+      trace_id: "open-item-action:open-co-1",
+      transcript: null,
+    },
+    open_item: {
+      id: "open-co-1",
+      job_id: "job-1",
+      type: "CO",
+      description: "Owner approved additional work that still needs pricing.",
+      owner: "PM",
+      status: "in-progress",
+      days_silent: 4,
+      due_date: null,
+      financial_exposure: true,
+      change_related: true,
+      followthrough_related: false,
+      stalled: true,
+      kind_label: "Money at risk",
+      action_trace_id: "open-item-action:open-co-1",
+      action_draft_type: "CO",
+      action_label: "Draft change order",
+    },
+  })),
+}));
 
 vi.mock("@clerk/clerk-react", () => ({
   useAuth: () => ({ userId: "gc-test" }),
 }));
 
 vi.mock("../../src/api/jobs", () => ({
+  createOpenItemDraftAction: jobApiMocks.createOpenItemDraftAction,
   fetchJobDetail: async () => ({
     job: {
       id: "job-1",
@@ -39,6 +77,9 @@ vi.mock("../../src/api/jobs", () => ({
           followthrough_related: false,
           stalled: true,
           kind_label: "Money at risk",
+          action_trace_id: "open-item-action:open-co-1",
+          action_draft_type: "CO",
+          action_label: "Draft change order",
         },
       ],
       operational_summary: {
@@ -79,12 +120,14 @@ vi.mock("../../src/hooks/useQueue", () => ({
 }));
 
 describe("JobDetailPage unresolved items", () => {
-  it("surfaces unresolved financially important items in their own section", async () => {
+  it("surfaces unresolved financially important items and drafts follow-through from the card", async () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
       },
     });
+    jobApiMocks.createOpenItemDraftAction.mockClear();
+    const user = userEvent.setup();
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -101,5 +144,8 @@ describe("JobDetailPage unresolved items", () => {
     expect(screen.getByText("Money at risk")).toBeInTheDocument();
     expect(screen.getByText("Financial exposure")).toBeInTheDocument();
     expect(screen.getByText("4 days silent")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Draft change order" }));
+    expect(jobApiMocks.createOpenItemDraftAction).toHaveBeenCalledWith("job-1", "open-co-1");
+    expect(await screen.findByText("Draft change order for Miller Job is ready in the review queue.")).toBeInTheDocument();
   });
 });

@@ -11,6 +11,7 @@ vi.mock("@clerk/clerk-react", () => ({
 }));
 
 vi.mock("../../src/api/jobs", () => ({
+  createOpenItemDraftAction: vi.fn(),
   fetchJobDetail: async () => ({
     job: {
       id: "job-1",

@@ -712,6 +712,27 @@ async def resolve_open_item(item_id: str, gc_id: str) -> None:
     await _run_db("resolve_open_item", _query)
 
 
+async def update_open_item_status(item_id: str, gc_id: str, status: str) -> None:
+    """Update one open item's status without resolving it."""
+    client = get_client()
+    payload = {
+        "status": status,
+    }
+    if status != "resolved":
+        payload["resolved_at"] = None
+
+    def _query() -> None:
+        (
+            client.table("open_items")
+            .update(payload)
+            .eq("id", item_id)
+            .eq("gc_id", gc_id)
+            .execute()
+        )
+
+    await _run_db("update_open_item_status", _query)
+
+
 async def insert_drafts(drafts: list[Draft], gc_id: str) -> None:
     """Bulk upsert drafts into draft_queue with content/status conflict updates."""
     if not drafts:
@@ -3337,6 +3358,7 @@ __all__ = [
     "upsert_job",
     "insert_open_item",
     "resolve_open_item",
+    "update_open_item_status",
     "insert_drafts",
     "get_queued_drafts",
     "get_pending_drafts",
