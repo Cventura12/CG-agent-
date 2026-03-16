@@ -1,9 +1,10 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Mic, Square, TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 
 import { fetchTranscriptQuotePrefill } from "../api/transcripts";
+import { NewQuoteInput, type NewQuoteInputMode } from "../components/NewQuoteInput";
 import {
   approveQuote,
   discardQuote,
@@ -367,9 +368,8 @@ function transcriptClassificationLabel(value: string): string {
 
 export function QuotePage() {
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
-  const autoSubmitRef = useRef(false);
-  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const latestTranscriptRef = useRef("");
+  const voiceDraftBaseRef = useRef("");
   const wasOnlineRef = useRef(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -408,7 +408,7 @@ export function QuotePage() {
   const [transcriptPrefill, setTranscriptPrefill] = useState<TranscriptQuotePrefill | null>(null);
   const [isTranscriptPrefillLoading, setIsTranscriptPrefillLoading] = useState(false);
   const [transcriptPrefillError, setTranscriptPrefillError] = useState<string | null>(null);
-  const [inputMode, setInputMode] = useState<"voice" | "text" | "pdf" | "photo">("voice");
+  const [inputMode, setInputMode] = useState<NewQuoteInputMode>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const apiReady = hasBetaApiCredentials();
@@ -423,9 +423,7 @@ export function QuotePage() {
   const applyQuoteSuccess = useCallback((payload: QuoteResponse) => {
     setActiveQuote(payload);
     setSelectedUploadFile(null);
-    if (uploadInputRef.current) {
-      uploadInputRef.current.value = "";
-    }
+    setInputMode(null);
     setEditedScopeOfWork(payload.quote_draft.scope_of_work ?? "");
     setEditedTotalPrice(String(payload.quote_draft.total_price ?? ""));
     setFeedbackNote("");
@@ -471,7 +469,7 @@ export function QuotePage() {
         setFollowupState(null);
         setFollowupMessage(null);
         setNotes(payload.quote_input);
-        setInputMode("text");
+        setInputMode(null);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Could not load call transcript context.";
@@ -929,11 +927,11 @@ export function QuotePage() {
 
   const helperText = useMemo(() => {
     if (!voiceSupported) {
-      return "Web Speech API is unavailable in this browser. Type field notes below and send manually.";
+      return "Web Speech API is unavailable in this browser. Keep typing your notes and generate the quote manually.";
     }
     return isRecording
-      ? "Listening now. Release to send the transcript."
-      : "Press and hold to capture a voice note. Release to send.";
+      ? "Listening now. Release to keep the voice memo in the draft."
+      : "Press and hold to capture a voice memo. Release to keep it in the draft.";
   }, [isRecording, voiceSupported]);
 
   const deliveryDestinationLabel = deliveryChannel === "email" ? "Client email" : "Client phone";
@@ -970,7 +968,8 @@ export function QuotePage() {
         const normalized = combined.trim();
         if (normalized) {
           latestTranscriptRef.current = normalized;
-          setNotes(normalized);
+          const baseNotes = voiceDraftBaseRef.current.trim();
+          setNotes(baseNotes ? `${baseNotes}\n\n${normalized}` : normalized);
         }
       };
 
@@ -978,16 +977,10 @@ export function QuotePage() {
         const message = event.error ? `Voice capture failed: ${event.error}` : "Voice capture failed.";
         setCaptureError(message);
         setIsRecording(false);
-        autoSubmitRef.current = false;
       };
 
       recognition.onend = () => {
         setIsRecording(false);
-        const transcript = latestTranscriptRef.current.trim();
-        if (autoSubmitRef.current && transcript) {
-          submitInput(transcript, "voice");
-        }
-        autoSubmitRef.current = false;
       };
 
       recognitionRef.current = recognition;
@@ -995,24 +988,24 @@ export function QuotePage() {
 
     setCaptureError(null);
     setActiveQuote(null);
+    voiceDraftBaseRef.current = notes.trim();
     latestTranscriptRef.current = "";
-    setNotes("");
-    autoSubmitRef.current = false;
     setIsRecording(true);
     recognitionRef.current.start();
   };
 
-  const stopRecordingAndSend = () => {
+  const stopRecording = () => {
     if (!recognitionRef.current || !isRecording) {
       return;
     }
 
-    autoSubmitRef.current = true;
     recognitionRef.current.stop();
   };
 
-  const handleUploadSelection = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
+  const handleUploadSelection = (
+    file: File | null,
+    mode: Exclude<NewQuoteInputMode, "voice" | null>
+  ) => {
     if (!file) {
       setSelectedUploadFile(null);
       return;
@@ -1021,24 +1014,45 @@ export function QuotePage() {
     if (!ACCEPTED_UPLOAD_TYPES.has(file.type)) {
       setCaptureError("Only PDF, JPG, and PNG uploads are supported.");
       setSelectedUploadFile(null);
-      event.target.value = "";
       return;
     }
 
     setCaptureError(null);
     setSelectedUploadFile(file);
-    setInputMode(file.type === "application/pdf" ? "pdf" : "photo");
+    setInputMode(mode);
   };
 
   const clearSelectedUpload = () => {
     setSelectedUploadFile(null);
-    if (uploadInputRef.current) {
-      uploadInputRef.current.value = "";
+  };
+
+  const handleActivateInputMode = (mode: Exclude<NewQuoteInputMode, null>) => {
+    if (mode !== "voice" && isRecording) {
+      recognitionRef.current?.stop();
     }
+    if (mode === "voice") {
+      clearSelectedUpload();
+    }
+    if (mode === "photo" && selectedUploadFile?.type === "application/pdf") {
+      clearSelectedUpload();
+    }
+    if (mode === "pdf" && selectedUploadFile && selectedUploadFile.type !== "application/pdf") {
+      clearSelectedUpload();
+    }
+    setCaptureError(null);
+    setInputMode(mode);
+  };
+
+  const dismissInputMode = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+    }
+    clearSelectedUpload();
+    setInputMode(null);
   };
 
   const handleManualSubmit = () => {
-    submitInput(notes, "manual", selectedUploadFile);
+    submitInput(notes, inputMode === "voice" ? "voice" : "manual", selectedUploadFile);
   };
 
   const phase = quoteMutation.isPending ? "gen" : activeQuote ? "review" : "input";
@@ -1119,6 +1133,11 @@ export function QuotePage() {
       ? `${offlineQueue.length} draft${offlineQueue.length === 1 ? "" : "s"} queued to sync`
       : "Ready to generate"
     : `Offline mode · ${offlineQueue.length} queued`;
+  const readinessBadgeLabel = !isOnline
+    ? "Offline"
+    : offlineQueue.length > 0
+      ? `${offlineQueue.length} queued`
+      : "Ready";
   const readinessDetail = isOnline
     ? "Add scope, measurements, materials, and any customer deadline."
     : "You can keep capturing notes now and sync them when the connection returns.";
@@ -1147,7 +1166,7 @@ export function QuotePage() {
 
       {firstSessionMode ? (
         <div className="alert ainfo" style={{ marginBottom: 14 }}>
-          <span>◈</span>
+          <span>i</span>
           <div>
             <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
               FIRST SESSION TARGET
@@ -1202,28 +1221,28 @@ export function QuotePage() {
 
                 {queueMessage ? (
                   <div className="alert aok" style={{ marginBottom: 12 }}>
-                    <span>✓</span>
+                    <span>OK</span>
                     <div>{queueMessage}</div>
                   </div>
                 ) : null}
 
                 {isTranscriptPrefillLoading ? (
                   <div className="alert ainfo" style={{ marginBottom: 12 }}>
-                    <span>◈</span>
+                    <span>i</span>
                     <div>Loading call context for this quote...</div>
                   </div>
                 ) : null}
 
                 {transcriptPrefillError ? (
                   <div className="alert awarn" style={{ marginBottom: 12 }}>
-                    <span>⚠</span>
+                    <span>!</span>
                     <div>{transcriptPrefillError}</div>
                   </div>
                 ) : null}
 
                 {transcriptPrefill ? (
                   <div className="alert ainfo" style={{ marginBottom: 16 }}>
-                    <span>◈</span>
+                    <span>i</span>
                     <div>
                       <div className="lbl" style={{ marginBottom: 6 }}>Call Transcript Context</div>
                       <strong style={{ fontSize: 13 }}>{transcriptPrefill.summary}</strong>
@@ -1242,164 +1261,56 @@ export function QuotePage() {
                   </div>
                 ) : null}
 
-                <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-100 p-1">
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { id: "voice", label: "Voice" },
-                      { id: "text", label: "Text" },
-                      { id: "pdf", label: "PDF" },
-                      { id: "photo", label: "Photo" },
-                    ].map((mode) => (
-                      <button
-                        key={mode.id}
-                        type="button"
-                        onClick={() => setInputMode(mode.id as "voice" | "text" | "pdf" | "photo")}
-                        className={`h-10 rounded-xl text-[15px] font-semibold transition ${
-                          inputMode === mode.id ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-900"
-                        }`}
-                      >
-                        {mode.label}
-                      </button>
+                <NewQuoteInput
+                  notes={notes}
+                  onNotesChange={(value) => {
+                    latestTranscriptRef.current = value;
+                    setNotes(value);
+                  }}
+                  activeMode={inputMode}
+                  onActivateMode={handleActivateInputMode}
+                  onDismissMode={dismissInputMode}
+                  selectedUploadFile={selectedUploadFile}
+                  onUploadSelected={handleUploadSelection}
+                  onClearUpload={clearSelectedUpload}
+                  onBeginRecording={beginRecording}
+                  onStopRecording={stopRecording}
+                  isRecording={isRecording}
+                  voiceSupported={voiceSupported}
+                  helperText={helperText}
+                  readinessLabel={readinessBadgeLabel}
+                  onGenerate={handleManualSubmit}
+                  generateLabel={
+                    quoteMutation.isPending
+                      ? "Building quote..."
+                      : !isOnline && selectedUploadFile
+                        ? "Upload needs connection"
+                        : "Generate quote"
+                  }
+                  generateDisabled={
+                    !apiReady ||
+                    (!notes.trim() && !selectedUploadFile) ||
+                    (!isOnline && Boolean(selectedUploadFile)) ||
+                    quoteMutation.isPending ||
+                    isQueueSyncing
+                  }
+                  isBusy={quoteMutation.isPending || isQueueSyncing}
+                />
+
+                <div className="mt-6 rounded-2xl bg-slate-50 p-5">
+                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">What helps this estimate</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {preflightChecklist.map((item) => (
+                      <span key={`preflight-${item}`} className="tag ts">
+                        {item}
+                      </span>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
-                  {inputMode === "voice" ? (
-                    <div className="flex flex-col items-center text-center">
-                      <button
-                        type="button"
-                        onPointerDown={beginRecording}
-                        onPointerUp={stopRecordingAndSend}
-                        onPointerLeave={stopRecordingAndSend}
-                        onPointerCancel={stopRecordingAndSend}
-                        disabled={!voiceSupported || !apiReady || quoteMutation.isPending || isQueueSyncing}
-                        className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#2453d4] text-white transition hover:bg-[#1f46b3] disabled:cursor-not-allowed disabled:bg-slate-300"
-                        style={{ touchAction: "none" }}
-                      >
-                        {isRecording ? <Square className="h-8 w-8" aria-hidden="true" /> : <Mic className="h-8 w-8" aria-hidden="true" />}
-                      </button>
-                      <div className="text-[16px] font-semibold text-slate-950">
-                        {isRecording ? "Recording now" : "Click and hold to start recording"}
-                      </div>
-                      <div className="mt-3 max-w-2xl text-[15px] leading-7 text-slate-500">
-                        Speak naturally. Mention the client name, what needs to be done, measurements if you have them, and any specific materials.
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {inputMode === "text" ? (
-                    <div>
-                      <label className="lbl" htmlFor="quote-notes">
-                        Transcript / field notes
-                      </label>
-                      <textarea
-                        id="quote-notes"
-                        className="txta"
-                        rows={8}
-                        value={notes}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          latestTranscriptRef.current = value;
-                          setNotes(value);
-                        }}
-                        placeholder="Scope, measurements, materials, site conditions, customer requests..."
-                      />
-                    </div>
-                  ) : null}
-
-                  {(inputMode === "pdf" || inputMode === "photo") ? (
-                    <div>
-                      <div className="mb-4 text-[16px] font-semibold text-slate-950">
-                        {inputMode === "pdf" ? "Upload a PDF scope sheet" : "Upload a jobsite photo"}
-                      </div>
-                      <div className="mb-4 text-[15px] leading-7 text-slate-500">
-                        We will read this together with your notes. You can still add text details below before you generate the draft.
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <label htmlFor="quote-upload" className="btn bw">
-                          {selectedUploadFile ? "Replace file" : `Choose ${inputMode === "pdf" ? "PDF" : "photo"}`}
-                        </label>
-                        {selectedUploadFile ? (
-                          <button type="button" className="btn bw" onClick={clearSelectedUpload}>
-                            Remove
-                          </button>
-                        ) : null}
-                      </div>
-                      <div className="mt-4 text-[15px] text-slate-500">
-                        {selectedUploadFile ? `Attached: ${selectedUploadFile.name}` : "No file attached yet."}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                <input
-                  ref={uploadInputRef}
-                  id="quote-upload"
-                  type="file"
-                  accept=".pdf,image/png,image/jpeg,application/pdf"
-                  onChange={handleUploadSelection}
-                  className="sr-only"
-                />
-
-                {inputMode !== "text" ? (
-                  <div className="mt-6">
-                    <label className="lbl" htmlFor="quote-notes">
-                      Transcript / field notes
-                    </label>
-                    <textarea
-                      id="quote-notes"
-                      className="txta"
-                      rows={5}
-                      value={notes}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        latestTranscriptRef.current = value;
-                        setNotes(value);
-                      }}
-                      placeholder="Add any extra scope, measurements, customer requests, or job constraints..."
-                    />
-                  </div>
-                ) : null}
-
-                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                  <div className="rounded-2xl bg-slate-50 p-5">
-                    <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">What helps this estimate</div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {preflightChecklist.map((item) => (
-                        <span key={`preflight-${item}`} className="tag ts">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      className="cta min-w-[320px]"
-                      onClick={handleManualSubmit}
-                      disabled={
-                        !apiReady ||
-                        (!notes.trim() && !selectedUploadFile) ||
-                        (!isOnline && Boolean(selectedUploadFile)) ||
-                        quoteMutation.isPending ||
-                        isQueueSyncing
-                      }
-                    >
-                      {quoteMutation.isPending
-                        ? "Building draft..."
-                        : !isOnline && selectedUploadFile
-                          ? "Upload needs connection"
-                          : "Extract Scope & Generate Draft"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-sm text-slate-500">{helperText}</div>
-
                 {captureError ? (
                   <div className="alert awarn" style={{ marginTop: 16 }}>
-                    <span>⚠</span>
+                    <span>!</span>
                     <div>{captureError}</div>
                   </div>
                 ) : null}
@@ -1470,7 +1381,7 @@ export function QuotePage() {
 
                 <div className="pb lg">
                   <div className={`alert ${quoteReviewRequired ? "awarn" : "aok"}`} style={{ marginBottom: 14 }}>
-                    <span>{quoteReviewRequired ? "!" : "✓"}</span>
+                    <span>{quoteReviewRequired ? "!" : "?"}</span>
                     <div>
                       <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
                         {confidenceScore}% CONFIDENCE · PRICING BASELINE {activeQuote.cold_start.active ? "PARTIAL" : "APPLIED"}
@@ -1505,7 +1416,7 @@ export function QuotePage() {
 
                   {quoteEvidenceSignals.length ? (
                     <div className="alert ainfo" style={{ marginBottom: 14 }}>
-                      <span>◈</span>
+                      <span>i</span>
                       <div>
                         <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
                           WHAT THIS DRAFT IS BASED ON
@@ -1606,7 +1517,7 @@ export function QuotePage() {
                     {assumptions.length > 0 ? (
                       assumptions.map((assumption) => (
                         <div key={assumption} className="alert awarn" style={{ fontSize: 12 }}>
-                          <span style={{ flexShrink: 0 }}>⚠</span>
+                          <span style={{ flexShrink: 0 }}>!</span>
                           <div>{assumption}</div>
                         </div>
                       ))
@@ -1616,7 +1527,7 @@ export function QuotePage() {
 
                     {clarificationQuestions.length > 0 ? (
                       <div className="alert ainfo" style={{ fontSize: 12 }}>
-                        <span>◈</span>
+                        <span>i</span>
                         <div>
                           <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
                             CLARIFICATION NEEDED
@@ -1652,7 +1563,7 @@ export function QuotePage() {
                     onClick={() => decisionMutation.mutate("approve")}
                     disabled={decisionMutation.isPending || !apiReady}
                   >
-                    {decisionMutation.isPending && decisionMutation.variables === "approve" ? "Saving..." : "✓ Approve"}
+                    {decisionMutation.isPending && decisionMutation.variables === "approve" ? "Saving..." : "Approve"}
                   </button>
                   <button
                     type="button"
@@ -1660,7 +1571,7 @@ export function QuotePage() {
                     onClick={() => setEditMode((current) => !current)}
                     disabled={decisionMutation.isPending || !apiReady}
                   >
-                    ✎ Edit
+                    Edit
                   </button>
                   <button
                     type="button"
@@ -1668,14 +1579,14 @@ export function QuotePage() {
                     onClick={() => decisionMutation.mutate("discard")}
                     disabled={decisionMutation.isPending || !apiReady}
                   >
-                    {decisionMutation.isPending && decisionMutation.variables === "discard" ? "Saving..." : "✕ Discard"}
+                    {decisionMutation.isPending && decisionMutation.variables === "discard" ? "Saving..." : "Discard"}
                   </button>
                 </div>
               </div>
 
               {decisionMessage ? (
                 <div className="alert aok">
-                  <span>✓</span>
+                  <span>OK</span>
                   <div>{decisionMessage}</div>
                 </div>
               ) : null}
@@ -1703,9 +1614,9 @@ export function QuotePage() {
                     <div className="lbl">Send via</div>
                     <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 4 }}>
                       {[
-                        { key: "sms", label: "📱 SMS" },
-                        { key: "whatsapp", label: "💬 WhatsApp" },
-                        { key: "email", label: "📧 Email" },
+                        { key: "sms", label: "SMS" },
+                        { key: "whatsapp", label: "WhatsApp" },
+                        { key: "email", label: "Email" },
                       ].map((option) => (
                         <button
                           key={option.key}
@@ -1813,14 +1724,14 @@ export function QuotePage() {
 
                   {deliveryMessage ? (
                     <div className="alert aok" style={{ fontSize: 12 }}>
-                      <span>✓</span>
+                      <span>OK</span>
                       <div>{deliveryMessage}</div>
                     </div>
                   ) : null}
 
                   {shareMessage ? (
                     <div className="alert ainfo" style={{ fontSize: 12 }}>
-                      <span>◈</span>
+                      <span>i</span>
                       <div>{shareMessage}</div>
                     </div>
                   ) : null}
@@ -2010,7 +1921,7 @@ export function QuotePage() {
 
               {followupMessage ? (
                 <div className="alert aok">
-                  <span>✓</span>
+                  <span>OK</span>
                   <div>{followupMessage}</div>
                 </div>
               ) : null}

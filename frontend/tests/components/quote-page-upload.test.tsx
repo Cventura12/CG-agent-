@@ -114,13 +114,20 @@ describe("QuotePage upload intake", () => {
       target: { value: "Please use the uploaded insurance scope." },
     });
 
-    const fileInput = document.getElementById("quote-upload") as HTMLInputElement;
+    fireEvent.click(screen.getByRole("button", { name: "Add input" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Add PDF" }));
+
+    expect(screen.getByText("PDF attachment")).toBeInTheDocument();
+
+    const fileInput = document.querySelector(
+      'input[type="file"][accept=".pdf,application/pdf"]'
+    ) as HTMLInputElement;
     const file = new File([new Uint8Array([1, 2, 3, 4])], "source.pdf", {
       type: "application/pdf",
     });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
-    fireEvent.click(screen.getByRole("button", { name: "Extract Scope & Generate Draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate quote" }));
 
     await waitFor(() => expect(submitQuoteUploadMock).toHaveBeenCalledTimes(1));
     expect(submitQuoteUploadMock).toHaveBeenCalledWith(
