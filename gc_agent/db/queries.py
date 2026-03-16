@@ -170,6 +170,7 @@ def _build_open_item(row: dict[str, Any]) -> OpenItem:
         "description": str(row.get("description", "")).strip(),
         "owner": str(row.get("owner", "")).strip() or "GC",
         "status": row.get("status", "open"),
+        "action_stage": str(row.get("action_stage", "")).strip() or None,
         "days_silent": _compute_days_silent(row.get("created_at"), row.get("days_silent", 0)),
         "due_date": row.get("due_date"),
         "trace_id": str(row.get("trace_id", "")).strip(),
@@ -605,17 +606,17 @@ async def get_active_jobs(gc_id: str) -> list[Job]:
     """Fetch active jobs and nested open items for a GC account."""
     client = get_client()
 
-    def _query(include_trace_id: bool = True) -> list[dict[str, Any]]:
-        open_item_columns = (
-            "id,job_id,type,description,owner,status,days_silent,due_date,created_at,trace_id"
-            if include_trace_id
-            else "id,job_id,type,description,owner,status,days_silent,due_date,created_at"
-        )
+    def _query(include_trace_id: bool = True, include_action_stage: bool = True) -> list[dict[str, Any]]:
+        open_item_columns = ["id", "job_id", "type", "description", "owner", "status", "days_silent", "due_date", "created_at"]
+        if include_trace_id:
+            open_item_columns.append("trace_id")
+        if include_action_stage:
+            open_item_columns.append("action_stage")
         response = (
             client.table("jobs")
             .select(
                 "id,name,type,status,address,contract_value,contract_type,"
-                f"est_completion,notes,last_updated,open_items({open_item_columns})"
+                f"est_completion,notes,last_updated,open_items({','.join(open_item_columns)})"
             )
             .eq("gc_id", gc_id)
             .eq("status", "active")
@@ -629,7 +630,18 @@ async def get_active_jobs(gc_id: str) -> list[Job]:
     except DatabaseError as exc:
         if not _is_missing_column_error(exc):
             raise
-        rows = await _run_db("get_active_jobs.legacy", lambda: _query(include_trace_id=False))
+        try:
+            rows = await _run_db(
+                "get_active_jobs.legacy_action_stage",
+                lambda: _query(include_action_stage=False),
+            )
+        except DatabaseError as legacy_exc:
+            if not _is_missing_column_error(legacy_exc):
+                raise
+            rows = await _run_db(
+                "get_active_jobs.legacy",
+                lambda: _query(include_trace_id=False, include_action_stage=False),
+            )
     try:
         return [_build_job(row) for row in rows]
     except Exception as exc:
@@ -670,6 +682,7 @@ async def insert_open_item(item: OpenItem, gc_id: str) -> None:
         "description": item.description,
         "owner": item.owner,
         "status": item.status,
+        "action_stage": item.action_stage,
         "days_silent": item.days_silent,
         "due_date": item.due_date.isoformat() if item.due_date else None,
         "trace_id": item.trace_id.strip() or None,
@@ -685,6 +698,7 @@ async def insert_open_item(item: OpenItem, gc_id: str) -> None:
             raise
         legacy_payload = dict(payload)
         legacy_payload.pop("trace_id", None)
+        legacy_payload.pop("action_stage", None)
 
         def _legacy_query() -> None:
             client.table("open_items").insert(legacy_payload).execute()
@@ -692,13 +706,20 @@ async def insert_open_item(item: OpenItem, gc_id: str) -> None:
         await _run_db("insert_open_item.legacy", _legacy_query)
 
 
-async def resolve_open_item(item_id: str, gc_id: str) -> None:
+async def resolve_open_item(
+    item_id: str,
+    gc_id: str,
+    *,
+    action_stage: str | None | object = _UNSET,
+) -> None:
     """Mark an open item as resolved and set resolved timestamp."""
     client = get_client()
     payload = {
         "status": "resolved",
         "resolved_at": _utcnow_iso(),
     }
+    if action_stage is not _UNSET:
+        payload["action_stage"] = (str(action_stage).strip() or None) if isinstance(action_stage, str) else action_stage
 
     def _query() -> None:
         (
@@ -709,10 +730,33 @@ async def resolve_open_item(item_id: str, gc_id: str) -> None:
             .execute()
         )
 
-    await _run_db("resolve_open_item", _query)
+    try:
+        await _run_db("resolve_open_item", _query)
+    except DatabaseError as exc:
+        if not _is_missing_column_error(exc) or action_stage is _UNSET:
+            raise
+        legacy_payload = dict(payload)
+        legacy_payload.pop("action_stage", None)
+
+        def _legacy_query() -> None:
+            (
+                client.table("open_items")
+                .update(legacy_payload)
+                .eq("id", item_id)
+                .eq("gc_id", gc_id)
+                .execute()
+            )
+
+        await _run_db("resolve_open_item.legacy", _legacy_query)
 
 
-async def update_open_item_status(item_id: str, gc_id: str, status: str) -> None:
+async def update_open_item_status(
+    item_id: str,
+    gc_id: str,
+    status: str,
+    *,
+    action_stage: str | None | object = _UNSET,
+) -> None:
     """Update one open item's status without resolving it."""
     client = get_client()
     payload = {
@@ -720,6 +764,8 @@ async def update_open_item_status(item_id: str, gc_id: str, status: str) -> None
     }
     if status != "resolved":
         payload["resolved_at"] = None
+    if action_stage is not _UNSET:
+        payload["action_stage"] = (str(action_stage).strip() or None) if isinstance(action_stage, str) else action_stage
 
     def _query() -> None:
         (
@@ -730,7 +776,24 @@ async def update_open_item_status(item_id: str, gc_id: str, status: str) -> None
             .execute()
         )
 
-    await _run_db("update_open_item_status", _query)
+    try:
+        await _run_db("update_open_item_status", _query)
+    except DatabaseError as exc:
+        if not _is_missing_column_error(exc) or action_stage is _UNSET:
+            raise
+        legacy_payload = dict(payload)
+        legacy_payload.pop("action_stage", None)
+
+        def _legacy_query() -> None:
+            (
+                client.table("open_items")
+                .update(legacy_payload)
+                .eq("id", item_id)
+                .eq("gc_id", gc_id)
+                .execute()
+            )
+
+        await _run_db("update_open_item_status.legacy", _legacy_query)
 
 
 async def insert_drafts(drafts: list[Draft], gc_id: str) -> None:
@@ -1302,7 +1365,7 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
         try:
             open_item_response = (
                 client.table("open_items")
-                .select("id,created_at,updated_at,resolved_at,status,type,description,owner,due_date,trace_id")
+                .select("id,created_at,updated_at,resolved_at,status,type,description,owner,due_date,trace_id,action_stage")
                 .eq("gc_id", gc_value)
                 .eq("job_id", job_value)
                 .order("updated_at", desc=True)
@@ -1315,19 +1378,42 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
                     continue
 
                 status = str(row.get("status", "")).strip().lower() or "open"
+                action_stage = str(row.get("action_stage", "")).strip().lower()
                 description = str(row.get("description", "")).strip() or "Open item tracked."
                 if status == "resolved":
                     event_type = "open_item_resolved"
                     title = "Open item resolved"
                     timestamp = row.get("resolved_at") or row.get("updated_at") or row.get("created_at")
                 else:
-                    event_type = "open_item_tracked"
+                    event_type = f"open_item_{action_stage or 'tracked'}"
                     title = "Open item tracked"
                     timestamp = row.get("created_at") or row.get("updated_at")
                 if item_type == "co":
-                    title = "Change tracked" if status != "resolved" else "Change resolved"
+                    if status == "resolved":
+                        title = "Change completed"
+                    elif action_stage == "drafted":
+                        title = "Change draft created"
+                    elif action_stage == "approved":
+                        title = "Change approved for send"
+                    elif action_stage == "sent":
+                        title = "Change sent"
+                    elif action_stage == "customer-approved":
+                        title = "Change approved by customer"
+                    else:
+                        title = "Change tracked"
                 elif item_type == "approval":
-                    title = "Approval tracked" if status != "resolved" else "Approval resolved"
+                    if status == "resolved":
+                        title = "Approval completed"
+                    elif action_stage == "drafted":
+                        title = "Approval draft created"
+                    elif action_stage == "approved":
+                        title = "Approval request approved for send"
+                    elif action_stage == "sent":
+                        title = "Approval request sent"
+                    elif action_stage == "customer-approved":
+                        title = "Approval confirmed"
+                    else:
+                        title = "Approval tracked"
 
                 events.append(
                     {
@@ -1341,6 +1427,7 @@ async def get_job_audit_timeline(gc_id: str, job_id: str, limit: int = 80) -> li
                             "open_item_id": str(row.get("id", "")).strip(),
                             "type": item_type,
                             "status": status,
+                            "action_stage": action_stage,
                             "owner": str(row.get("owner", "")).strip(),
                             "due_date": row.get("due_date"),
                         },

@@ -29,7 +29,7 @@ def _build_test_client() -> tuple[FastAPI, httpx.AsyncClient]:
 @pytest.mark.asyncio
 async def test_open_item_change_order_action_creates_review_draft(monkeypatch: pytest.MonkeyPatch) -> None:
     inserted_drafts: list[Draft] = []
-    open_item_status_updates: list[tuple[str, str, str]] = []
+    open_item_status_updates: list[tuple[str, str, str, str | None]] = []
 
     async def _fake_get_gc_by_clerk_user_id(_: str) -> str | None:
         return "00000000-0000-0000-0000-000000000001"
@@ -64,8 +64,15 @@ async def test_open_item_change_order_action_creates_review_draft(monkeypatch: p
         assert gc_id == "00000000-0000-0000-0000-000000000001"
         inserted_drafts.extend(drafts)
 
-    async def _fake_update_open_item_status(item_id: str, gc_id: str, status: str) -> None:
-        open_item_status_updates.append((item_id, gc_id, status))
+    async def _fake_update_open_item_status(
+        item_id: str,
+        gc_id: str,
+        status: str,
+        *,
+        action_stage: str | None | object = None,
+    ) -> None:
+        normalized_stage = action_stage if isinstance(action_stage, str) else None
+        open_item_status_updates.append((item_id, gc_id, status, normalized_stage))
 
     monkeypatch.setattr(jobs_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
     monkeypatch.setattr(jobs_module.queries, "get_active_jobs", _fake_get_active_jobs)
@@ -83,9 +90,10 @@ async def test_open_item_change_order_action_creates_review_draft(monkeypatch: p
     assert payload["data"]["draft"]["type"] == "CO"
     assert payload["data"]["draft"]["title"] == "Draft change order for Miller Job"
     assert payload["data"]["open_item"]["status"] == "in-progress"
+    assert payload["data"]["open_item"]["action_stage"] == "drafted"
     assert inserted_drafts[0].trace_id == "open-item-action:open-co-1"
     assert open_item_status_updates == [
-        ("open-co-1", "00000000-0000-0000-0000-000000000001", "in-progress")
+        ("open-co-1", "00000000-0000-0000-0000-000000000001", "in-progress", "drafted")
     ]
 
 
@@ -94,7 +102,7 @@ async def test_open_item_action_reuses_existing_pending_approval_draft(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     inserted_drafts: list[Draft] = []
-    open_item_status_updates: list[tuple[str, str, str]] = []
+    open_item_status_updates: list[tuple[str, str, str, str | None]] = []
 
     async def _fake_get_gc_by_clerk_user_id(_: str) -> str | None:
         return "00000000-0000-0000-0000-000000000001"
@@ -141,8 +149,15 @@ async def test_open_item_action_reuses_existing_pending_approval_draft(
         _ = gc_id
         inserted_drafts.extend(drafts)
 
-    async def _fake_update_open_item_status(item_id: str, gc_id: str, status: str) -> None:
-        open_item_status_updates.append((item_id, gc_id, status))
+    async def _fake_update_open_item_status(
+        item_id: str,
+        gc_id: str,
+        status: str,
+        *,
+        action_stage: str | None | object = None,
+    ) -> None:
+        normalized_stage = action_stage if isinstance(action_stage, str) else None
+        open_item_status_updates.append((item_id, gc_id, status, normalized_stage))
 
     monkeypatch.setattr(jobs_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
     monkeypatch.setattr(jobs_module.queries, "get_active_jobs", _fake_get_active_jobs)
@@ -161,5 +176,5 @@ async def test_open_item_action_reuses_existing_pending_approval_draft(
     assert payload["data"]["draft"]["type"] == "owner-update"
     assert inserted_drafts == []
     assert open_item_status_updates == [
-        ("open-approval-1", "00000000-0000-0000-0000-000000000001", "in-progress")
+        ("open-approval-1", "00000000-0000-0000-0000-000000000001", "in-progress", "drafted")
     ]

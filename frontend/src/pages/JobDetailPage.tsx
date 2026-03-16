@@ -4,11 +4,11 @@ import { useAuth } from "@clerk/clerk-react";
 import { Activity, ArrowLeft, Clock3, FileText, History, MessageSquareMore, Phone, Sparkles } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
-import { createOpenItemDraftAction, fetchJobDetail } from "../api/jobs";
+import { advanceOpenItemLifecycle, createOpenItemDraftAction, fetchJobDetail } from "../api/jobs";
 import { approveDraft, discardDraft, editDraft } from "../api/queue";
 import { logTranscriptAsUpdate } from "../api/transcripts";
 import { useQueue } from "../hooks/useQueue";
-import type { JobCallHistoryEntry, OpenItem, QueuePayload, TranscriptClassification } from "../types";
+import type { JobCallHistoryEntry, OpenItem, OpenItemActionStage, QueuePayload, TranscriptClassification } from "../types";
 
 type QueueMutationContext = {
   previousQueue: QueuePayload | undefined;
@@ -151,6 +151,14 @@ function unresolvedItemTone(item: OpenItem): string {
 
 function unresolvedItemLabel(item: OpenItem): string {
   return item.kind_label || item.type.replace(/-/g, " ");
+}
+
+function unresolvedItemStageTone(stage: OpenItemActionStage | null | undefined): string {
+  if (stage === "approved") return "border border-blue-200 bg-blue-50 text-[#2453d4]";
+  if (stage === "sent") return "border border-amber-200 bg-amber-50 text-amber-700";
+  if (stage === "customer-approved") return "border border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (stage === "drafted") return "border border-slate-200 bg-slate-100 text-slate-600";
+  return "border border-slate-200 bg-slate-100 text-slate-600";
 }
 
 const UPDATE_ACTION_TRANSCRIPT_CLASSES = new Set<TranscriptClassification>([
@@ -341,6 +349,33 @@ export function JobDetailPage() {
     },
   });
 
+  const openItemLifecycleMutation = useMutation({
+    mutationFn: ({ openItemId, stage }: { openItemId: string; stage: OpenItemActionStage }) =>
+      advanceOpenItemLifecycle(jobId, openItemId, stage),
+    onMutate: () => {
+      setErrorMessage(null);
+      setActionMessage(null);
+    },
+    onError: (error) => {
+      setErrorMessage(error instanceof Error ? error.message : "Could not update unresolved item lifecycle.");
+    },
+    onSuccess: async ({ open_item }, variables) => {
+      const label = open_item.kind_label || "Open item";
+      if (variables.stage === "sent") {
+        setActionMessage(`${label} marked sent and is now waiting on the customer.`);
+      } else if (variables.stage === "customer-approved") {
+        setActionMessage(`${label} marked customer approved.`);
+      } else {
+        setActionMessage(`${label} marked completed and removed from unresolved work.`);
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["queue", scope] }),
+        queryClient.invalidateQueries({ queryKey: ["job-detail", scope, jobId] }),
+        queryClient.invalidateQueries({ queryKey: ["jobs", scope] }),
+      ]);
+    },
+  });
+
   const isDraftLoading = (draftId: string): boolean => {
     return (
       (approveMutation.isPending && approveMutation.variables?.draftId === draftId) ||
@@ -459,6 +494,11 @@ export function JobDetailPage() {
                           {item.days_silent} days silent
                         </span>
                       ) : null}
+                      {item.action_stage_label ? (
+                        <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${unresolvedItemStageTone(item.action_stage)}`}>
+                          {item.action_stage_label}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-3 text-[16px] font-semibold text-slate-950">{item.description}</div>
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-[15px] text-slate-500">
@@ -466,6 +506,9 @@ export function JobDetailPage() {
                       {item.due_date ? <span>Due {item.due_date}</span> : null}
                       <span>Status: {item.status}</span>
                     </div>
+                    {item.action_stage_summary ? (
+                      <div className="mt-3 text-[15px] leading-7 text-slate-600">{item.action_stage_summary}</div>
+                    ) : null}
                     {item.action_trace_id && item.action_label ? (
                       <div className="mt-4 flex flex-wrap gap-3">
                         {pendingDraftTraceIds.has(item.action_trace_id) ? (
@@ -475,6 +518,74 @@ export function JobDetailPage() {
                           >
                             Open review draft
                           </Link>
+                        ) : item.action_stage === "approved" ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-xl border border-blue-200 bg-blue-50 px-4 text-[15px] font-semibold text-[#2453d4] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => openItemLifecycleMutation.mutate({ openItemId: item.id, stage: "sent" })}
+                            disabled={openItemLifecycleMutation.isPending}
+                          >
+                            {openItemLifecycleMutation.isPending &&
+                            openItemLifecycleMutation.variables?.openItemId === item.id &&
+                            openItemLifecycleMutation.variables?.stage === "sent"
+                              ? "Updating..."
+                              : "Mark sent"}
+                          </button>
+                        ) : item.action_stage === "sent" ? (
+                          <>
+                            <button
+                              type="button"
+                              className="inline-flex h-10 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[15px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                              onClick={() =>
+                                openItemLifecycleMutation.mutate({
+                                  openItemId: item.id,
+                                  stage: "customer-approved",
+                                })
+                              }
+                              disabled={openItemLifecycleMutation.isPending}
+                            >
+                              {openItemLifecycleMutation.isPending &&
+                              openItemLifecycleMutation.variables?.openItemId === item.id &&
+                              openItemLifecycleMutation.variables?.stage === "customer-approved"
+                                ? "Updating..."
+                                : "Mark customer approved"}
+                            </button>
+                            <button
+                              type="button"
+                              className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              onClick={() =>
+                                openItemLifecycleMutation.mutate({
+                                  openItemId: item.id,
+                                  stage: "completed",
+                                })
+                              }
+                              disabled={openItemLifecycleMutation.isPending}
+                            >
+                              {openItemLifecycleMutation.isPending &&
+                              openItemLifecycleMutation.variables?.openItemId === item.id &&
+                              openItemLifecycleMutation.variables?.stage === "completed"
+                                ? "Updating..."
+                                : "Mark completed"}
+                            </button>
+                          </>
+                        ) : item.action_stage === "customer-approved" ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() =>
+                              openItemLifecycleMutation.mutate({
+                                openItemId: item.id,
+                                stage: "completed",
+                              })
+                            }
+                            disabled={openItemLifecycleMutation.isPending}
+                          >
+                            {openItemLifecycleMutation.isPending &&
+                            openItemLifecycleMutation.variables?.openItemId === item.id &&
+                            openItemLifecycleMutation.variables?.stage === "completed"
+                              ? "Updating..."
+                              : "Mark completed"}
+                          </button>
                         ) : (
                           <button
                             type="button"

@@ -101,11 +101,21 @@ async def _sync_open_item_lifecycle_from_draft(
         return
 
     if action == "approved":
-        await queries.resolve_open_item(open_item_id, gc_id)
+        await queries.update_open_item_status(
+            open_item_id,
+            gc_id,
+            "in-progress",
+            action_stage="approved",
+        )
         return
 
     if action == "discarded":
-        await queries.update_open_item_status(open_item_id, gc_id, "open")
+        await queries.update_open_item_status(
+            open_item_id,
+            gc_id,
+            "open",
+            action_stage=None,
+        )
 
 
 @router.get("/queue", response_model=None)

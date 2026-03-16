@@ -21,7 +21,7 @@ import {
 import { useJobs } from "../hooks/useJobs";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useQueue } from "../hooks/useQueue";
-import type { Draft, QueuePayload, TranscriptClassification, TranscriptInboxItem } from "../types";
+import type { Draft, OpenItem, QueuePayload, TranscriptClassification, TranscriptInboxItem } from "../types";
 
 type QueueMutationContext = {
   previousQueue: QueuePayload | undefined;
@@ -67,10 +67,19 @@ function statusTone(status: string): string {
   return "border border-slate-200 bg-slate-100 text-slate-600";
 }
 
-function draftTone(type: string): string {
+function draftTone(type: string, sourceOpenItem?: OpenItem): string {
+  if (sourceOpenItem?.type === "CO") return "border border-orange-200 bg-orange-50 text-orange-600";
+  if (sourceOpenItem?.type === "approval") return "border border-blue-200 bg-blue-50 text-[#2453d4]";
   if (type === "follow-up") return "border border-orange-200 bg-orange-50 text-orange-600";
   if (type === "material-order") return "border border-blue-200 bg-blue-50 text-[#2453d4]";
   if (type === "transcript-review") return "border border-violet-200 bg-violet-50 text-violet-700";
+  return "border border-slate-200 bg-slate-100 text-slate-600";
+}
+
+function actionStageTone(stage: OpenItem["action_stage"]): string {
+  if (stage === "approved") return "border border-blue-200 bg-blue-50 text-[#2453d4]";
+  if (stage === "sent") return "border border-amber-200 bg-amber-50 text-amber-700";
+  if (stage === "customer-approved") return "border border-emerald-200 bg-emerald-50 text-emerald-700";
   return "border border-slate-200 bg-slate-100 text-slate-600";
 }
 
@@ -154,7 +163,13 @@ function inboxRawText(transcript: TranscriptInboxItem): string {
   return transcript.transcript_text || "Transcript text unavailable.";
 }
 
-function nextActionLabel(type: Draft["type"]): string {
+function nextActionLabel(type: Draft["type"], sourceOpenItem?: OpenItem): string {
+  if (sourceOpenItem?.type === "CO") {
+    return "Approve for send";
+  }
+  if (sourceOpenItem?.type === "approval") {
+    return "Approve approval request";
+  }
   switch (type) {
     case "follow-up":
       return "Review follow-up";
@@ -169,6 +184,16 @@ function nextActionLabel(type: Draft["type"]): string {
     default:
       return "Review draft";
   }
+}
+
+function draftTypeLabel(draft: Draft, sourceOpenItem?: OpenItem): string {
+  if (sourceOpenItem?.type === "CO") {
+    return "Change order draft";
+  }
+  if (sourceOpenItem?.type === "approval") {
+    return "Approval request";
+  }
+  return draft.type;
 }
 
 const UPDATE_ACTION_TRANSCRIPT_CLASSES = new Set<TranscriptClassification>([
@@ -209,6 +234,17 @@ export function QueuePage() {
   const queueGroups = queueQuery.data?.jobs ?? [];
   const transcriptInbox = queueQuery.data?.inbox?.transcripts ?? [];
   const jobs = jobsQuery.data?.jobs ?? [];
+  const openItemsByTraceId = useMemo(() => {
+    const map = new Map<string, OpenItem>();
+    jobs.forEach((job) => {
+      job.open_items.forEach((item) => {
+        if (item.action_trace_id) {
+          map.set(item.action_trace_id, item);
+        }
+      });
+    });
+    return map;
+  }, [jobs]);
 
   const pendingCount = useMemo(
     () => queueGroups.reduce((total, group) => total + group.drafts.length, 0) + transcriptInbox.length,
@@ -280,6 +316,7 @@ export function QueuePage() {
         setOpenDraftId(null);
       }
       void queryClient.invalidateQueries({ queryKey: ["queue", scope] });
+      void queryClient.invalidateQueries({ queryKey: ["jobs", scope] });
       delete exitTimersRef.current[draftId];
     }, 320);
   };
@@ -368,7 +405,10 @@ export function QueuePage() {
       setErrorMessage("Could not approve all drafts. Changes were reverted.");
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["queue", scope] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["queue", scope] }),
+        queryClient.invalidateQueries({ queryKey: ["jobs", scope] }),
+      ]);
     },
   });
 
@@ -746,6 +786,8 @@ export function QueuePage() {
             const transcript = draft.transcript;
             const rawTranscriptOpen = !!openTranscriptIds[draft.id];
             const jobLabel = group.job_name || draft.job_name;
+            const sourceOpenItem = draft.trace_id ? openItemsByTraceId.get(draft.trace_id) : undefined;
+            const isOpenItemActionDraft = Boolean(sourceOpenItem && (sourceOpenItem.type === "CO" || sourceOpenItem.type === "approval"));
 
             return (
               <article key={draft.id} className={`rounded-[28px] border bg-white shadow-sm transition ${isOpen ? "border-[#2453d4] ring-4 ring-blue-100" : "border-slate-200"} ${exitingDrafts[draft.id] ? "opacity-60" : "opacity-100"}`}>
@@ -759,7 +801,19 @@ export function QueuePage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[20px] font-semibold text-slate-950">{transcriptHeadline(draft)}</span>
                         <span className="inline-flex rounded-xl border border-slate-200 bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">{jobLabel}</span>
-                        <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${draftTone(draft.type)}`}>{draft.type}</span>
+                        <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${draftTone(draft.type, sourceOpenItem)}`}>
+                          {draftTypeLabel(draft, sourceOpenItem)}
+                        </span>
+                        {sourceOpenItem?.financial_exposure ? (
+                          <span className="inline-flex rounded-xl border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-600">
+                            Money at risk
+                          </span>
+                        ) : null}
+                        {sourceOpenItem?.action_stage_label ? (
+                          <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${actionStageTone(sourceOpenItem.action_stage)}`}>
+                            {sourceOpenItem.action_stage_label}
+                          </span>
+                        ) : null}
                         {isTranscriptDraft ? (
                           <>
                             <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${transcriptUrgencyTone(transcript?.urgency)}`}>
@@ -777,8 +831,16 @@ export function QueuePage() {
                         ) : null}
                       </div>
 
-                      <p className="mt-4 text-[17px] leading-8 text-slate-900">{isTranscriptDraft ? transcriptSummary(draft) : draft.why}</p>
-                      <p className="mt-3 text-[15px] leading-7 text-slate-500">{isTranscriptDraft ? transcriptActionLabel(draft) : `Needs attention: ${nextActionLabel(draft.type)}`}</p>
+                      <p className="mt-4 text-[17px] leading-8 text-slate-900">
+                        {isTranscriptDraft ? transcriptSummary(draft) : isOpenItemActionDraft ? sourceOpenItem?.description || draft.why : draft.why}
+                      </p>
+                      <p className="mt-3 text-[15px] leading-7 text-slate-500">
+                        {isTranscriptDraft
+                          ? transcriptActionLabel(draft)
+                          : isOpenItemActionDraft
+                            ? sourceOpenItem?.action_stage_summary || `Needs attention: ${nextActionLabel(draft.type, sourceOpenItem)}`
+                            : `Needs attention: ${nextActionLabel(draft.type)}`}
+                      </p>
                       {isTranscriptDraft && transcript?.recommended_actions?.length ? (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {transcript.recommended_actions.slice(0, 2).map((action) => (
@@ -891,6 +953,28 @@ export function QueuePage() {
                       </>
                     ) : (
                       <>
+                        {isOpenItemActionDraft ? (
+                          <div className="mb-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${draftTone(draft.type, sourceOpenItem)}`}>
+                                {draftTypeLabel(draft, sourceOpenItem)}
+                              </span>
+                              {sourceOpenItem?.action_stage_label ? (
+                                <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${actionStageTone(sourceOpenItem.action_stage)}`}>
+                                  {sourceOpenItem.action_stage_label}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="mt-3 text-[16px] font-semibold text-slate-950">
+                              {sourceOpenItem?.description || "Unresolved work needs follow-through."}
+                            </div>
+                            <div className="mt-2 text-[15px] leading-7 text-slate-500">
+                              {sourceOpenItem?.action_stage_summary ||
+                                "Approve this office draft before it goes out to the customer."}
+                            </div>
+                          </div>
+                        ) : null}
+
                         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                           <label className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500" htmlFor={`draft-content-${draft.id}`}>
                             Draft content
@@ -915,7 +999,7 @@ export function QueuePage() {
                             onClick={() => approveMutation.mutate({ draftId: draft.id })}
                             disabled={isDraftLoading(draft.id)}
                           >
-                            Approve
+                            {isOpenItemActionDraft ? "Approve for send" : "Approve"}
                           </button>
                           <button
                             type="button"
@@ -931,7 +1015,7 @@ export function QueuePage() {
                             onClick={() => discardMutation.mutate({ draftId: draft.id })}
                             disabled={isDraftLoading(draft.id)}
                           >
-                            Discard
+                            {isOpenItemActionDraft ? "Return to open" : "Discard"}
                           </button>
                         </div>
                       </>

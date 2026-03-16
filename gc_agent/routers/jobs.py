@@ -42,12 +42,38 @@ CHANGE_OPEN_ITEM_KEYWORDS = (
     "revised price",
 )
 OPEN_ITEM_ACTION_TRACE_PREFIX = "open-item-action:"
+OPEN_ITEM_ACTION_STAGE_LABELS = {
+    "drafted": "Drafted",
+    "approved": "Office approved",
+    "sent": "Sent",
+    "customer-approved": "Customer approved",
+    "completed": "Completed",
+}
+OPEN_ITEM_ACTION_STAGE_SUMMARIES = {
+    "drafted": "Draft is waiting on office review.",
+    "approved": "Office review is done. Next step is to send it out.",
+    "sent": "Sent out and waiting on the customer.",
+    "customer-approved": "Customer approved. Finish the work or paperwork to close the loop.",
+    "completed": "Closed out.",
+}
 
 
 class OpenItemDraftActionResponse(BaseModel):
     """Response payload for one generated unresolved-item follow-through draft."""
 
     draft: dict[str, Any]
+    open_item: dict[str, Any]
+
+
+class OpenItemLifecycleRequest(BaseModel):
+    """Request payload for advancing one unresolved item's follow-through stage."""
+
+    stage: str
+
+
+class OpenItemLifecycleResponse(BaseModel):
+    """Response payload for one updated unresolved-item lifecycle transition."""
+
     open_item: dict[str, Any]
 
 
@@ -150,6 +176,12 @@ def _serialize_open_item(item: OpenItem) -> dict[str, Any]:
         payload["action_trace_id"] = _action_trace_id(item.id)
         payload["action_draft_type"] = action["draft_type"]
         payload["action_label"] = action["label"]
+    if item.action_stage:
+        payload["action_stage_label"] = OPEN_ITEM_ACTION_STAGE_LABELS.get(
+            item.action_stage,
+            item.action_stage.replace("-", " "),
+        )
+        payload["action_stage_summary"] = OPEN_ITEM_ACTION_STAGE_SUMMARIES.get(item.action_stage)
     return payload
 
 
@@ -257,6 +289,33 @@ async def _find_existing_open_item_draft(gc_id: str, item_id: str) -> Draft | No
     return next((draft for draft in pending_drafts if draft.trace_id.strip() == trace_id), None)
 
 
+def _updated_open_item_for_stage(item: OpenItem, stage: str) -> OpenItem:
+    """Return an updated open item model for one lifecycle transition response."""
+    if stage == "completed":
+        return item.model_copy(update={"status": "resolved", "action_stage": "completed"})
+    return item.model_copy(update={"status": "in-progress", "action_stage": stage})
+
+
+def _validate_open_item_lifecycle_stage(item: OpenItem, stage: str) -> str | None:
+    """Return an error message when a lifecycle stage transition is invalid."""
+    normalized = stage.strip().lower()
+    if normalized not in {"sent", "customer-approved", "completed"}:
+        return "stage must be sent, customer-approved, or completed"
+
+    if _open_item_action_definition(item) is None:
+        return "open item does not support follow-through lifecycle"
+
+    current_stage = (item.action_stage or "").strip().lower()
+    if normalized == "sent" and current_stage not in {"approved", "sent"}:
+        return "open item must be office approved before it can be marked sent"
+    if normalized == "customer-approved" and current_stage not in {"sent", "customer-approved"}:
+        return "open item must be sent before it can be marked customer approved"
+    if normalized == "completed" and current_stage not in {"customer-approved", "completed"}:
+        return "open item must be customer approved before it can be marked completed"
+
+    return None
+
+
 @router.get("/jobs/briefing", response_model=None)
 async def refresh_briefing(current_gc: str = Depends(get_current_gc)) -> dict[str, Any] | JSONResponse:
     """Trigger briefing generation and return latest briefing text."""
@@ -355,11 +414,11 @@ async def draft_open_item_action(
                 return _error(400, "open item does not support a follow-through draft")
             await queries.insert_drafts([draft], gc_id)
             existing_draft = draft
-        await queries.update_open_item_status(open_item.id, gc_id, "in-progress")
+        await queries.update_open_item_status(open_item.id, gc_id, "in-progress", action_stage="drafted")
     except DatabaseError as exc:
         return _error(500, str(exc))
 
-    updated_open_item = open_item.model_copy(update={"status": "in-progress"})
+    updated_open_item = open_item.model_copy(update={"status": "in-progress", "action_stage": "drafted"})
     payload = OpenItemDraftActionResponse(
         draft=existing_draft.model_dump(mode="json"),
         open_item=_serialize_open_item(updated_open_item),
@@ -367,4 +426,59 @@ async def draft_open_item_action(
     return _success(payload.model_dump(mode="json"))
 
 
-__all__ = ["router", "list_jobs", "job_detail", "refresh_briefing", "draft_open_item_action"]
+@router.post("/jobs/{job_id}/open-items/{open_item_id}/lifecycle", response_model=None)
+async def advance_open_item_lifecycle(
+    job_id: str,
+    open_item_id: str,
+    payload: OpenItemLifecycleRequest,
+    current_gc: str = Depends(get_current_gc),
+) -> dict[str, Any] | JSONResponse:
+    """Advance one unresolved change or approval item after office review."""
+    gc_id, gc_error = await _resolve_gc_id(current_gc)
+    if gc_error is not None or gc_id is None:
+        return gc_error  # type: ignore[return-value]
+
+    try:
+        jobs = await queries.get_active_jobs(gc_id)
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    job = next((item for item in jobs if item.id == job_id), None)
+    if job is None:
+        return _error(404, "job_id not found")
+
+    open_item = next((item for item in job.open_items if item.id == open_item_id), None)
+    if open_item is None:
+        return _error(404, "open_item_id not found")
+
+    normalized_stage = payload.stage.strip().lower()
+    validation_error = _validate_open_item_lifecycle_stage(open_item, normalized_stage)
+    if validation_error is not None:
+        return _error(400, validation_error)
+
+    try:
+        if normalized_stage == "completed":
+            await queries.resolve_open_item(open_item.id, gc_id, action_stage="completed")
+        else:
+            await queries.update_open_item_status(
+                open_item.id,
+                gc_id,
+                "in-progress",
+                action_stage=normalized_stage,
+            )
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    updated_open_item = _updated_open_item_for_stage(open_item, normalized_stage)
+    response_payload = OpenItemLifecycleResponse(open_item=_serialize_open_item(updated_open_item))
+    return _success(response_payload.model_dump(mode="json"))
+
+
+__all__ = [
+    "router",
+    "list_jobs",
+    "job_detail",
+    "refresh_briefing",
+    "draft_open_item_action",
+    "advance_open_item_lifecycle",
+]

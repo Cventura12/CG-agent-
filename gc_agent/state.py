@@ -28,6 +28,7 @@ class OpenItem(BaseModel):
     description: str
     owner: str
     status: Literal["open", "in-progress", "resolved", "overdue"] = "open"
+    action_stage: Literal["drafted", "approved", "sent", "customer-approved", "completed"] | None = None
     days_silent: int = 0
     due_date: Optional[date] = None
     trace_id: str = ""

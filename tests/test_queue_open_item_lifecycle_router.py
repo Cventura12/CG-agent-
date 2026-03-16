@@ -27,9 +27,12 @@ def _build_test_client() -> tuple[FastAPI, httpx.AsyncClient]:
 
 
 @pytest.mark.asyncio
-async def test_approve_draft_resolves_origin_open_item(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_approve_draft_advances_origin_open_item_to_office_approved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     resolved_calls: list[tuple[str, str]] = []
     status_updates: list[tuple[str, str]] = []
+    open_item_status_updates: list[tuple[str, str, str, str | None]] = []
 
     async def _fake_get_gc_by_clerk_user_id(_: str) -> str | None:
         return "00000000-0000-0000-0000-000000000001"
@@ -44,11 +47,19 @@ async def test_approve_draft_resolves_origin_open_item(monkeypatch: pytest.Monke
     async def _fake_update_draft_status(draft_id: str, status: str) -> None:
         status_updates.append((draft_id, status))
 
-    async def _fake_resolve_open_item(item_id: str, gc_id: str) -> None:
+    async def _fake_resolve_open_item(item_id: str, gc_id: str, *, action_stage: str | None | object = None) -> None:
+        _ = action_stage
         resolved_calls.append((item_id, gc_id))
 
-    async def _fake_update_open_item_status(item_id: str, gc_id: str, status: str) -> None:
-        _ = (item_id, gc_id, status)
+    async def _fake_update_open_item_status(
+        item_id: str,
+        gc_id: str,
+        status: str,
+        *,
+        action_stage: str | None | object = None,
+    ) -> None:
+        normalized_stage = action_stage if isinstance(action_stage, str) else None
+        open_item_status_updates.append((item_id, gc_id, status, normalized_stage))
 
     async def _fake_get_draft_by_id(_: str) -> Draft | None:
         return Draft(
@@ -76,12 +87,15 @@ async def test_approve_draft_resolves_origin_open_item(monkeypatch: pytest.Monke
 
     assert response.status_code == 200
     assert status_updates == [("draft-co-1", "approved")]
-    assert resolved_calls == [("open-co-1", "00000000-0000-0000-0000-000000000001")]
+    assert resolved_calls == []
+    assert open_item_status_updates == [
+        ("open-co-1", "00000000-0000-0000-0000-000000000001", "in-progress", "approved")
+    ]
 
 
 @pytest.mark.asyncio
 async def test_discard_draft_reopens_origin_open_item(monkeypatch: pytest.MonkeyPatch) -> None:
-    open_item_status_updates: list[tuple[str, str, str]] = []
+    open_item_status_updates: list[tuple[str, str, str, str | None]] = []
 
     async def _fake_get_gc_by_clerk_user_id(_: str) -> str | None:
         return "00000000-0000-0000-0000-000000000001"
@@ -96,11 +110,18 @@ async def test_discard_draft_reopens_origin_open_item(monkeypatch: pytest.Monkey
     async def _fake_update_draft_status(draft_id: str, status: str) -> None:
         _ = (draft_id, status)
 
-    async def _fake_resolve_open_item(item_id: str, gc_id: str) -> None:
-        _ = (item_id, gc_id)
+    async def _fake_resolve_open_item(item_id: str, gc_id: str, *, action_stage: str | None | object = None) -> None:
+        _ = (item_id, gc_id, action_stage)
 
-    async def _fake_update_open_item_status(item_id: str, gc_id: str, status: str) -> None:
-        open_item_status_updates.append((item_id, gc_id, status))
+    async def _fake_update_open_item_status(
+        item_id: str,
+        gc_id: str,
+        status: str,
+        *,
+        action_stage: str | None | object = None,
+    ) -> None:
+        normalized_stage = action_stage if isinstance(action_stage, str) else None
+        open_item_status_updates.append((item_id, gc_id, status, normalized_stage))
 
     async def _fake_get_draft_by_id(_: str) -> Draft | None:
         return Draft(
@@ -128,13 +149,14 @@ async def test_discard_draft_reopens_origin_open_item(monkeypatch: pytest.Monkey
 
     assert response.status_code == 200
     assert open_item_status_updates == [
-        ("open-approval-1", "00000000-0000-0000-0000-000000000001", "open")
+        ("open-approval-1", "00000000-0000-0000-0000-000000000001", "open", None)
     ]
 
 
 @pytest.mark.asyncio
-async def test_approve_all_resolves_only_open_item_action_drafts(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_approve_all_advances_only_open_item_action_drafts(monkeypatch: pytest.MonkeyPatch) -> None:
     resolved_calls: list[tuple[str, str]] = []
+    open_item_status_updates: list[tuple[str, str, str, str | None]] = []
 
     async def _fake_get_gc_by_clerk_user_id(_: str) -> str | None:
         return "00000000-0000-0000-0000-000000000001"
@@ -168,11 +190,19 @@ async def test_approve_all_resolves_only_open_item_action_drafts(monkeypatch: py
     async def _fake_approve_all_queued_drafts(_: str) -> int:
         return 2
 
-    async def _fake_resolve_open_item(item_id: str, gc_id: str) -> None:
+    async def _fake_resolve_open_item(item_id: str, gc_id: str, *, action_stage: str | None | object = None) -> None:
+        _ = action_stage
         resolved_calls.append((item_id, gc_id))
 
-    async def _fake_update_open_item_status(item_id: str, gc_id: str, status: str) -> None:
-        _ = (item_id, gc_id, status)
+    async def _fake_update_open_item_status(
+        item_id: str,
+        gc_id: str,
+        status: str,
+        *,
+        action_stage: str | None | object = None,
+    ) -> None:
+        normalized_stage = action_stage if isinstance(action_stage, str) else None
+        open_item_status_updates.append((item_id, gc_id, status, normalized_stage))
 
     monkeypatch.setattr(queue_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
     monkeypatch.setattr(queue_module.queries, "get_queued_drafts", _fake_get_queued_drafts)
@@ -186,4 +216,7 @@ async def test_approve_all_resolves_only_open_item_action_drafts(monkeypatch: py
 
     assert response.status_code == 200
     assert response.json()["data"]["approved_count"] == 2
-    assert resolved_calls == [("open-co-1", "00000000-0000-0000-0000-000000000001")]
+    assert resolved_calls == []
+    assert open_item_status_updates == [
+        ("open-co-1", "00000000-0000-0000-0000-000000000001", "in-progress", "approved")
+    ]

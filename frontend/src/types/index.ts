@@ -11,6 +11,7 @@ export type OpenItemType =
   | "followup";
 
 export type OpenItemStatus = "open" | "in-progress" | "resolved" | "overdue";
+export type OpenItemActionStage = "drafted" | "approved" | "sent" | "customer-approved" | "completed";
 
 export interface OpenItem {
   id: string;
@@ -19,6 +20,9 @@ export interface OpenItem {
   description: string;
   owner: string;
   status: OpenItemStatus;
+  action_stage?: OpenItemActionStage | null;
+  action_stage_label?: string;
+  action_stage_summary?: string;
   days_silent: number;
   due_date: string | null;
   financial_exposure?: boolean;
@@ -235,6 +239,10 @@ export interface JobDetailPayload {
 
 export interface OpenItemDraftActionResponse {
   draft: Draft;
+  open_item: OpenItem;
+}
+
+export interface OpenItemLifecycleResponse {
   open_item: OpenItem;
 }
 
