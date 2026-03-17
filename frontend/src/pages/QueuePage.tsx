@@ -2,9 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
   ClipboardList,
+  Clock3,
+  ShieldAlert,
   Plus,
   RefreshCcw,
   Sparkles,
@@ -250,6 +253,34 @@ export function QueuePage() {
     () => queueGroups.reduce((total, group) => total + group.drafts.length, 0) + transcriptInbox.length,
     [queueGroups, transcriptInbox]
   );
+  const groupedDraftCount = useMemo(
+    () => queueGroups.reduce((total, group) => total + group.drafts.length, 0),
+    [queueGroups]
+  );
+  const activeJobCount = useMemo(
+    () => jobs.filter((job) => job.status !== "complete").length,
+    [jobs]
+  );
+  const moneyAtRiskCount = useMemo(
+    () =>
+      jobs.reduce(
+        (total, job) => total + job.open_items.filter((item) => item.financial_exposure).length,
+        0
+      ),
+    [jobs]
+  );
+  const stagedActionCount = useMemo(
+    () =>
+      jobs.reduce(
+        (total, job) =>
+          total +
+          job.open_items.filter(
+            (item) => item.action_stage && item.status.toLowerCase() !== "resolved"
+          ).length,
+        0
+      ),
+    [jobs]
+  );
 
   useEffect(() => {
     if (autoSelectedRef.current || jobs.length === 0) {
@@ -473,102 +504,156 @@ export function QueuePage() {
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
-        <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-[52rem]">
-            <div className="gc-overline">Review runtime</div>
-            <h1 className="gc-page-title mt-3">Queue</h1>
-            <p className="gc-page-copy mt-4 max-w-[44rem]">
-              Turn calls, updates, change drafts, and unresolved work into reviewed next steps before they die between field and office.
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <span className="gc-micro-pill">{pendingCount} items waiting</span>
-              <span className="gc-micro-pill">{isOnline ? "Live runtime connected" : "Offline cache active"}</span>
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_320px]">
+        <article className="gc-command-card dark gc-fade-up">
+          <div className="gc-command-body flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-[44rem]">
+              <div className="gc-overline">Office review surface</div>
+              <div className="mt-2 text-[40px] font-semibold tracking-[-0.07em] text-white">Queue</div>
+              <div className="mt-3 max-w-[38rem] text-[14px] leading-7 text-white/62">
+                Review calls, change drafts, approvals, and follow-through before they disappear between the field and the office.
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="gc-hero-status">
+                  {pendingCount > 0 ? `${pendingCount} items in office review` : "Queue clear"}
+                </span>
+                <span className="gc-micro-pill">
+                  {isOnline ? "Live runtime connected" : "Offline cache active"}
+                </span>
+                {transcriptInbox.length > 0 ? (
+                  <span className="gc-micro-pill">{transcriptInbox.length} unlinked calls</span>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex min-w-[220px] flex-col gap-2">
+              {pendingCount > 1 ? (
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => approveAllMutation.mutate()}
+                  disabled={approveAllMutation.isPending}
+                >
+                  {approveAllMutation.isPending ? "Approving..." : "Approve all waiting work"}
+                </button>
+              ) : null}
+              <Link
+                to="/quote"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                <span>New Quote</span>
+              </Link>
             </div>
           </div>
-          <div className="gc-hero-actions">
-            {pendingCount > 1 ? (
-              <button
-                type="button"
-                className="inline-flex h-11 items-center rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={() => approveAllMutation.mutate()}
-                disabled={approveAllMutation.isPending}
-              >
-                {approveAllMutation.isPending ? "Approving..." : "Approve all"}
-              </button>
-            ) : null}
-            <Link
-              to="/quote"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-5 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              <span>New Quote</span>
-            </Link>
+        </article>
+
+        <aside className="gc-command-card gc-fade-up gc-delay-2">
+          <div className="gc-command-head">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                <ShieldAlert className="h-4.5 w-4.5" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Operator read</div>
+                <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">The queue posture before you start clearing work.</div>
+              </div>
+            </div>
           </div>
-        </div>
+          <div className="gc-command-body">
+            <div className="space-y-3">
+              <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.72)] px-4 py-4">
+                <div className="text-[12px] uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Money at risk</div>
+                <div className="mt-2 text-[22px] font-semibold tracking-[-0.05em] text-[var(--gc-ink)]">{moneyAtRiskCount}</div>
+                <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                  {moneyAtRiskCount > 0
+                    ? "Open change or approval items still need office movement."
+                    : "No financially exposed items are leading the queue right now."}
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.72)] px-4 py-4">
+                  <div className="text-[12px] uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Unlinked communication</div>
+                  <div className="mt-2 text-[18px] font-semibold tracking-[-0.05em] text-[var(--gc-ink)]">{transcriptInbox.length}</div>
+                  <div className="mt-1 text-[12px] leading-6 text-[var(--gc-ink-soft)]">
+                    Calls still waiting for a job, quote, or logged update path.
+                  </div>
+                </div>
+                <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.72)] px-4 py-4">
+                  <div className="text-[12px] uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Staged follow-through</div>
+                  <div className="mt-2 text-[18px] font-semibold tracking-[-0.05em] text-[var(--gc-ink)]">{stagedActionCount}</div>
+                  <div className="mt-1 text-[12px] leading-6 text-[var(--gc-ink-soft)]">
+                    Drafted, approved, or sent work that still needs customer movement.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </section>
 
-      <div className="mt-5 grid gap-5 md:grid-cols-4">
-        {[
-          {
-            label: "Needs review",
-            value: pendingCount,
-            detail: pendingCount > 0 ? "Action needed" : "Queue clear",
-            tone: pendingCount > 0 ? "warn" : "ok",
-            hintClass: pendingCount > 0 ? "warn" : "ok",
-          },
-          {
-            label: "Unlinked calls",
-            value: transcriptInbox.length,
-            detail: transcriptInbox.length > 0 ? "Needs routing" : "No unlinked calls",
-            tone: transcriptInbox.length > 0 ? "warn" : "neutral",
-            hintClass: transcriptInbox.length > 0 ? "warn" : "",
-          },
-          {
-            label: "Tracked next steps",
-            value: queueGroups.reduce((sum, group) => sum + group.drafts.length, 0),
-            detail: queueGroups.length > 0 ? "Grouped by active job" : "No job drafts",
-            tone: "neutral",
-            hintClass: "",
-          },
-          {
-            label: "Jobs in motion",
-            value: jobs.filter((job) => job.status !== "complete").length,
-            detail: jobs.length > 0 ? "Live contractor workload" : "No jobs found",
-            tone: "neutral",
-            hintClass: "",
-          },
-        ].map((card, index) => (
-          <article key={card.label} className={`gc-kpi-card gc-fade-up gc-delay-${Math.min(index + 1, 4)} ${card.tone}`}>
-            <div className="gc-kpi-label">{card.label}</div>
-            <div className="gc-kpi-value">{card.value}</div>
-            <div className={`gc-kpi-hint ${card.hintClass}`}>{card.detail}</div>
+      <section className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-3 md:grid-cols-3">
+          <article className="gc-mini-kpi gc-fade-up gc-delay-1">
+            <div className="label">Needs review</div>
+            <div className="value">{pendingCount}</div>
+            <div className="hint">{pendingCount > 0 ? "Office review is waiting" : "Nothing stacked up"}</div>
           </article>
-        ))}
-      </div>
+          <article className="gc-mini-kpi gc-fade-up gc-delay-2">
+            <div className="label">Drafts in motion</div>
+            <div className="value">{groupedDraftCount}</div>
+            <div className="hint">{groupedDraftCount > 0 ? "Quote, change, and approval work" : "No active draft work"}</div>
+          </article>
+          <article className="gc-mini-kpi gc-fade-up gc-delay-3">
+            <div className="label">Active jobs</div>
+            <div className="value">{activeJobCount}</div>
+            <div className="hint">{activeJobCount > 0 ? "Jobs generating queue work" : "No jobs in motion"}</div>
+          </article>
+        </div>
 
-      <div className="mt-5 flex flex-wrap gap-2.5">
-        {jobFilterButtons.map((group) => {
-          const isActive = selectedJobId === group.job_id;
-          return (
-            <button
-              key={group.job_id ?? "all"}
-              type="button"
-              onClick={() => setSelectedJobId(group.job_id)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition ${
-                isActive
-                  ? "border-[#315fff]/18 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-white shadow-[0_16px_30px_rgba(49,95,255,0.24)]"
-                  : "border-[var(--gc-line)] bg-white/72 text-[var(--gc-ink-soft)] hover:border-[var(--gc-line-strong)] hover:bg-white"
-              }`}
-            >
-              <span>{group.job_name}</span>
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-[rgba(49,95,255,0.08)] text-[#214be0]"}`}>
-                {group.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>{errorMessage ? (
+        <article className="gc-command-card gc-fade-up gc-delay-4">
+          <div className="gc-command-head">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                <Activity className="h-4.5 w-4.5" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Review lens</div>
+                <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">Focus the queue by job without losing the live count.</div>
+              </div>
+            </div>
+          </div>
+          <div className="gc-command-body">
+            <div className="flex flex-wrap gap-2.5">
+              {jobFilterButtons.map((group) => {
+                const isActive = selectedJobId === group.job_id;
+                return (
+                  <button
+                    key={group.job_id ?? "all"}
+                    type="button"
+                    onClick={() => setSelectedJobId(group.job_id)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition ${
+                      isActive
+                        ? "border-[#315fff]/18 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-white shadow-[0_16px_30px_rgba(49,95,255,0.24)]"
+                        : "border-[var(--gc-line)] bg-white/72 text-[var(--gc-ink-soft)] hover:border-[var(--gc-line-strong)] hover:bg-white"
+                    }`}
+                  >
+                    <span>{group.job_name}</span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        isActive ? "bg-white/20 text-white" : "bg-[rgba(49,95,255,0.08)] text-[#214be0]"
+                      }`}
+                    >
+                      {group.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </article>
+      </section>
+
+      {errorMessage ? (
         <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[15px] text-orange-700">
           {errorMessage}
         </div>
@@ -581,17 +666,20 @@ export function QueuePage() {
       ) : null}
 
       {transcriptInbox.length > 0 ? (
-        <section className="mt-5 overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(246,249,255,0.82))] shadow-[var(--gc-shadow)]">
-          <div className="flex items-center justify-between border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(255,140,47,0.08),transparent_48%),rgba(255,255,255,0.58)] px-5 py-4">
-            <div className="flex items-center gap-3 text-[16px] font-semibold text-[var(--gc-ink)]">
-              <AlertTriangle className="h-5 w-5 text-orange-500" aria-hidden="true" />
-              <span>Transcript Inbox</span>
+        <section className="gc-command-card mt-4 overflow-hidden gc-fade-up gc-delay-2">
+          <div className="gc-command-head">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(255,140,47,0.14)] text-[#bc610b]">
+                <AlertTriangle className="h-4.5 w-4.5" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Transcript inbox</div>
+                <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">Calls that still need a job, quote path, or logged update.</div>
+              </div>
             </div>
-            <span className="gc-chip warn">
-              {transcriptInbox.length}
-            </span>
+            <span className="gc-chip warn">{transcriptInbox.length}</span>
           </div>
-          <div className="space-y-4 px-5 py-5">
+          <div className="space-y-3 px-4 pb-4">
             {transcriptInbox.map((transcript) => {
               const selectedJob = linkSelections[transcript.transcript_id] ?? "";
               const transcriptOpen = !!openTranscriptIds[`inbox-${transcript.transcript_id}`];
@@ -602,7 +690,7 @@ export function QueuePage() {
                 transcriptLogUpdateMutation.isPending;
 
               return (
-                <article key={transcript.transcript_id} className="rounded-[20px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.7)] p-5 shadow-sm">
+                <article key={transcript.transcript_id} className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.78)] p-4 shadow-sm">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -619,17 +707,17 @@ export function QueuePage() {
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-3 text-[15px] leading-7 text-[var(--gc-ink)]">{inboxSummary(transcript)}</p>
-                      <p className="mt-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">{inboxActionCopy(transcript)}</p>
+                      <p className="mt-2.5 text-[14px] leading-6 text-[var(--gc-ink)]">{inboxSummary(transcript)}</p>
+                      <p className="mt-1.5 text-[12px] leading-6 text-[var(--gc-ink-soft)]">{inboxActionCopy(transcript)}</p>
                     </div>
-                    <div className="rounded-[16px] border border-[var(--gc-line)] bg-white px-4 py-3 text-right shadow-sm">
-                      <div className="text-[24px] font-bold tracking-[-0.04em] text-[var(--gc-ink)]">{confidenceLabel(transcript.confidence)}</div>
+                    <div className="rounded-[14px] border border-[var(--gc-line)] bg-white px-3.5 py-3 text-right shadow-sm">
+                      <div className="text-[21px] font-bold tracking-[-0.04em] text-[var(--gc-ink)]">{confidenceLabel(transcript.confidence)}</div>
                       <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Inbox review</div>
                     </div>
                   </div>
 
                   {transcript.recommended_actions.length ? (
-                    <div className="mt-5 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       {transcript.recommended_actions.slice(0, 3).map((action) => (
                         <span key={`${transcript.transcript_id}-${action}`} className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-[#2453d4]">
                           {action}
@@ -639,13 +727,13 @@ export function QueuePage() {
                   ) : null}
 
                   {transcript.risk_flags.length ? (
-                    <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-[15px] text-orange-700">
+                    <div className="mt-4 rounded-[16px] border border-orange-200 bg-orange-50 px-4 py-3 text-[13px] text-orange-700">
                       {transcript.risk_flags[0]}
                     </div>
                   ) : null}
 
                   {transcript.missing_information.length ? (
-                    <div className="mt-5">
+                    <div className="mt-4">
                       <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                         Missing information
                       </div>
@@ -659,7 +747,7 @@ export function QueuePage() {
                     </div>
                   ) : null}
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                  <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
                     <div>
                       <label className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500" htmlFor={`link-job-${transcript.transcript_id}`}>
                         Link to job
@@ -687,12 +775,12 @@ export function QueuePage() {
                       <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Caller / source</div>
                       <div className="mt-2 text-[15px] text-slate-600">
                         {(transcript.source || "call_transcript").replace(/_/g, " ")}
-                        {transcript.provider ? ` · ${transcript.provider}` : ""}
+                        {transcript.provider ? ` Â· ${transcript.provider}` : ""}
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-6 flex flex-wrap gap-3">
+                  <div className="mt-5 flex flex-wrap gap-2.5">
                     {transcript.classification === "estimate_request" ? (
                       <Link
                         to={`/quote?transcript_id=${encodeURIComponent(transcript.transcript_id)}`}
@@ -757,7 +845,7 @@ export function QueuePage() {
                   </div>
 
                   {transcriptOpen ? (
-                    <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+                    <div className="mt-4 rounded-[18px] border border-slate-200 bg-white p-4">
                       <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Raw transcript</div>
                       <pre className="mt-3 whitespace-pre-wrap font-mono text-[12px] leading-6 text-slate-600">{inboxRawText(transcript)}</pre>
                     </div>
@@ -776,8 +864,16 @@ export function QueuePage() {
       ) : null}
 
       {!queueQuery.isLoading && visibleDrafts.length === 0 && transcriptInbox.length === 0 ? (
-        <div className="mt-5 rounded-[22px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.82))] px-5 py-6 text-[14px] text-[var(--gc-ink-soft)] shadow-[var(--gc-shadow)]">
-          No queued drafts are waiting right now.
+        <div className="gc-command-card mt-4 overflow-hidden">
+          <div className="gc-command-body flex flex-col items-center justify-center px-6 py-10 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-dashed border-[var(--gc-line-strong)] bg-[rgba(255,255,255,0.62)] text-[var(--gc-ink-muted)]">
+              <Clock3 className="h-4.5 w-4.5" aria-hidden="true" />
+            </div>
+            <div className="mt-4 text-[16px] font-semibold text-[var(--gc-ink)]">Queue is clear</div>
+            <div className="mt-2 max-w-[28rem] text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+              Calls, unresolved changes, approvals, and follow-through drafts will appear here automatically as work needs office review.
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -794,16 +890,19 @@ export function QueuePage() {
             const isOpenItemActionDraft = Boolean(sourceOpenItem && (sourceOpenItem.type === "CO" || sourceOpenItem.type === "approval"));
 
             return (
-              <article key={draft.id} className={`rounded-[22px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.84))] shadow-[var(--gc-shadow)] transition ${isOpen ? "border-[#2453d4] ring-4 ring-blue-100" : "border-[var(--gc-line)]"} ${exitingDrafts[draft.id] ? "opacity-60" : "opacity-100"}`}>
+              <article key={draft.id} className={`overflow-hidden rounded-[20px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,249,255,0.82))] shadow-[var(--gc-shadow)] transition ${isOpen ? "border-[#2453d4] ring-4 ring-blue-100" : "border-[var(--gc-line)]"} ${exitingDrafts[draft.id] ? "opacity-60" : "opacity-100"}`}>
                 <button
                   type="button"
-                  className="block w-full rounded-[22px] px-5 py-5 text-left"
+                  className="block w-full px-4 py-4 text-left"
                   onClick={() => setOpenDraftId((current) => (current === draft.id ? null : draft.id))}
                 >
-                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
+                      <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--gc-ink-muted)]">
+                        {isTranscriptDraft ? "Communication review" : isOpenItemActionDraft ? "Financial follow-through" : "Draft review"}
+                      </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[17px] font-semibold text-[var(--gc-ink)]">{transcriptHeadline(draft)}</span>
+                        <span className="text-[16px] font-semibold text-[var(--gc-ink)]">{transcriptHeadline(draft)}</span>
                         <span className="inline-flex rounded-xl border border-[var(--gc-line)] bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--gc-ink-soft)]">{jobLabel}</span>
                         <span className={`inline-flex rounded-xl px-2.5 py-1 text-[11px] font-semibold ${draftTone(draft.type, sourceOpenItem)}`}>
                           {draftTypeLabel(draft, sourceOpenItem)}
@@ -835,10 +934,10 @@ export function QueuePage() {
                         ) : null}
                       </div>
 
-                      <p className="mt-3 text-[15px] leading-7 text-[var(--gc-ink)]">
+                      <p className="mt-2.5 text-[14px] leading-6 text-[var(--gc-ink)]">
                         {isTranscriptDraft ? transcriptSummary(draft) : isOpenItemActionDraft ? sourceOpenItem?.description || draft.why : draft.why}
                       </p>
-                      <p className="mt-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                      <p className="mt-1.5 text-[12px] leading-6 text-[var(--gc-ink-soft)]">
                         {isTranscriptDraft
                           ? transcriptActionLabel(draft)
                           : isOpenItemActionDraft
@@ -859,15 +958,15 @@ export function QueuePage() {
                       ) : null}
                     </div>
 
-                    <div className="rounded-[16px] border border-[var(--gc-line)] bg-white px-4 py-3 text-right shadow-sm">
-                      <div className="text-[22px] font-bold tracking-[-0.04em] text-[var(--gc-ink)]">{isTranscriptDraft ? confidenceLabel(transcript?.confidence) : formatCreatedAt(draft.created_at)}</div>
+                    <div className="rounded-[14px] border border-[var(--gc-line)] bg-white px-3.5 py-3 text-right shadow-sm">
+                      <div className="text-[20px] font-bold tracking-[-0.04em] text-[var(--gc-ink)]">{isTranscriptDraft ? confidenceLabel(transcript?.confidence) : formatCreatedAt(draft.created_at)}</div>
                       <span className={`mt-2 inline-flex rounded-xl px-2.5 py-1 text-[11px] font-semibold ${statusTone(draft.status)}`}>{draft.status}</span>
                     </div>
                   </div>
                 </button>
 
                 {isOpen ? (
-                  <div className="border-t border-[var(--gc-line)] px-5 py-5">
+                  <div className="border-t border-[var(--gc-line)] px-4 py-4">
                     {isTranscriptDraft ? (
                       <>
                         {transcript?.recommended_actions?.length ? (
@@ -881,7 +980,7 @@ export function QueuePage() {
                         ) : null}
 
                         {transcript?.risk_flags?.length ? (
-                          <div className="mb-4 rounded-[16px] border border-orange-200 bg-orange-50 px-4 py-3 text-[13px] text-orange-700">
+                          <div className="mb-4 rounded-[14px] border border-orange-200 bg-orange-50 px-4 py-3 text-[13px] text-orange-700">
                             {transcript.risk_flags[0]}
                           </div>
                         ) : null}
@@ -958,7 +1057,7 @@ export function QueuePage() {
                     ) : (
                       <>
                         {isOpenItemActionDraft ? (
-                          <div className="mb-4 rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.62)] p-4">
+                          <div className="mb-4 rounded-[16px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.62)] p-4">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${draftTone(draft.type, sourceOpenItem)}`}>
                                 {draftTypeLabel(draft, sourceOpenItem)}
@@ -979,7 +1078,7 @@ export function QueuePage() {
                           </div>
                         ) : null}
 
-                        <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.62)] p-4">
+                        <div className="rounded-[16px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.62)] p-4">
                           <label className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500" htmlFor={`draft-content-${draft.id}`}>
                             Draft content
                           </label>
@@ -1032,31 +1131,31 @@ export function QueuePage() {
         </section>
 
         <aside className="space-y-6">
-          <section className="rounded-[22px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.84))] p-5 shadow-[var(--gc-shadow)]">
+          <section className="gc-command-card overflow-hidden">
             <div className="flex items-center gap-3 text-[15px] font-semibold text-[var(--gc-ink)]">
               <ClipboardList className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
-              <span>How to work this queue</span>
+              <span>Review posture</span>
             </div>
             <div className="mt-4 space-y-4 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
               <div>
-                <div className="font-semibold text-slate-900">Start with what changed</div>
-                <div className="mt-1">Every item leads with the summary so you can decide what needs office action before opening the full detail.</div>
+                <div className="font-semibold text-slate-900">Start with the financial edge</div>
+                <div className="mt-1">Money-at-risk change orders and approvals should clear before lower-signal communication cleanup.</div>
               </div>
               <div>
-                <div className="font-semibold text-slate-900">Keep communication compact</div>
-                <div className="mt-1">Raw transcript text stays hidden until you ask for it. Summary, risk, and next action stay on top.</div>
+                <div className="font-semibold text-slate-900">Read summary before raw text</div>
+                <div className="mt-1">The top of each item shows what changed, why it matters, and the next office move before you expand detail.</div>
               </div>
               <div>
-                <div className="font-semibold text-slate-900">Route unlinked work quickly</div>
-                <div className="mt-1">Use the inbox when a call has not been linked to a job yet, then turn it into a quote, update, or reviewed record.</div>
+                <div className="font-semibold text-slate-900">Route unlinked work fast</div>
+                <div className="mt-1">Use the transcript inbox when a call has not been attached to a job yet, then turn it into a quote, update, or reviewed record.</div>
               </div>
             </div>
           </section>
 
-          <section className="rounded-[22px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.84))] p-5 shadow-[var(--gc-shadow)]">
+          <section className="gc-command-card overflow-hidden">
             <div className="flex items-center gap-3 text-[15px] font-semibold text-[var(--gc-ink)]">
               <Sparkles className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              <span>Jobs in motion</span>
+              <span>Active job threads</span>
             </div>
             <div className="mt-4 space-y-3">
               {jobs.slice(0, 4).map((job) => (
@@ -1067,7 +1166,7 @@ export function QueuePage() {
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-semibold text-[var(--gc-ink)]">{job.name}</div>
-                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">{job.type} · {job.contract_type}</div>
+                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">{job.type} Â· {job.contract_type}</div>
                   </div>
                   <span className="text-[11px] font-medium text-[var(--gc-ink-muted)]">{job.status}</span>
                 </Link>
@@ -1085,7 +1184,7 @@ export function QueuePage() {
           </section>
 
           {!isOnline ? (
-            <section className="rounded-3xl border border-blue-200 bg-blue-50 p-7 shadow-sm">
+            <section className="rounded-[20px] border border-blue-200 bg-blue-50 p-5 shadow-sm">
               <div className="flex items-center gap-3 text-[18px] font-semibold text-[#2453d4]">
                 <RefreshCcw className="h-5 w-5" aria-hidden="true" />
                 <span>Offline queue cache</span>
@@ -1100,5 +1199,6 @@ export function QueuePage() {
     </div>
   );
 }
+
 
 

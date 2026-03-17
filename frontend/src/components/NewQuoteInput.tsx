@@ -173,14 +173,14 @@ export function NewQuoteInput({
         : "Files or photos";
 
   return (
-    <div className="overflow-hidden rounded-[30px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.86))] shadow-[var(--gc-shadow)] backdrop-blur-[18px]">
+    <div className="overflow-hidden rounded-[22px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,249,255,0.86))] shadow-[var(--gc-shadow)] backdrop-blur-[18px]">
       {activeMode ? (
-        <div className="border-b border-[var(--gc-line)] px-6 py-5">
-          <div className="rounded-[24px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5 shadow-[0_12px_28px_rgba(15,22,38,0.06)]">
-            <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="border-b border-[var(--gc-line)] bg-[rgba(49,95,255,0.03)] px-5 py-4">
+          <div className="rounded-[16px] border border-[var(--gc-line)] bg-white/72 px-4 py-4 shadow-[0_10px_22px_rgba(15,22,38,0.04)]">
+            <div className="mb-3 flex items-start justify-between gap-4">
               <div>
-                <div className="text-[15px] font-semibold text-[var(--gc-ink)]">{slotTitle}</div>
-                <div className="mt-1 text-sm leading-6 text-[var(--gc-ink-soft)]">
+                <div className="text-[13px] font-semibold text-[var(--gc-ink)]">{slotTitle}</div>
+                <div className="mt-1 text-[12px] leading-6 text-[var(--gc-ink-soft)]">
                   {activeMode === "voice"
                     ? "Capture a voice note, then keep shaping the draft below before you generate the quote."
                     : activeMode === "pdf"
@@ -191,15 +191,15 @@ export function NewQuoteInput({
               <button
                 type="button"
                 onClick={dismissAttachment}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--gc-line)] bg-white/80 text-[var(--gc-ink-soft)] transition hover:border-[var(--gc-line-strong)] hover:text-[var(--gc-ink)]"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--gc-line)] bg-white/80 text-[var(--gc-ink-soft)] transition hover:border-[var(--gc-line-strong)] hover:text-[var(--gc-ink)]"
                 aria-label={`Dismiss ${slotTitle.toLowerCase()}`}
               >
-                <X className="h-4 w-4" aria-hidden="true" />
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </div>
 
             {activeMode === "voice" ? (
-              <div className="flex flex-col items-center rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(241,245,255,0.72))] px-5 py-8 text-center">
+              <div className="flex flex-col items-center rounded-[16px] border border-dashed border-[var(--gc-line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(241,245,255,0.72))] px-4 py-6 text-center">
                 <button
                   type="button"
                   onPointerDown={onBeginRecording}
@@ -207,22 +207,22 @@ export function NewQuoteInput({
                   onPointerLeave={onStopRecording}
                   onPointerCancel={onStopRecording}
                   disabled={!voiceSupported || isBusy}
-                  className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-[#5f81ff]/24 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-white shadow-[0_18px_34px_rgba(49,95,255,0.28)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full border border-[#5f81ff]/24 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-white shadow-[0_18px_34px_rgba(49,95,255,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ touchAction: "none" }}
                 >
                   {isRecording ? (
-                    <Square className="h-6 w-6" aria-hidden="true" />
+                    <Square className="h-5 w-5" aria-hidden="true" />
                   ) : (
-                    <Mic className="h-6 w-6" aria-hidden="true" />
+                    <Mic className="h-5 w-5" aria-hidden="true" />
                   )}
                 </button>
-                <div className="text-[15px] font-semibold text-[var(--gc-ink)]">
+                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">
                   {isRecording ? "Recording now" : "Hold to record"}
                 </div>
-                <div className="mt-2 max-w-xl text-sm leading-6 text-[var(--gc-ink-soft)]">{helperText}</div>
+                <div className="mt-2 max-w-xl text-[12px] leading-6 text-[var(--gc-ink-soft)]">{helperText}</div>
               </div>
             ) : (
-              <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(241,245,255,0.72))] px-5 py-5">
+              <div className="rounded-[16px] border border-dashed border-[var(--gc-line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(241,245,255,0.72))] px-4 py-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
@@ -265,13 +265,16 @@ export function NewQuoteInput({
         </div>
       ) : null}
 
-      <div className="px-6 py-6">
-        <label className="lbl" htmlFor="quote-notes">
-          Transcript / field notes
-        </label>
+      <div className="px-5 py-5">
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <label className="lbl" htmlFor="quote-notes">
+            Transcript / field notes
+          </label>
+          <span className="text-[11px] text-[var(--gc-ink-muted)]">Describe the work like you would text the office</span>
+        </div>
         <textarea
           id="quote-notes"
-          className="txta mt-3"
+          className="txta !mt-0 min-h-[196px] rounded-[18px] !bg-white"
           rows={activeMode ? 6 : 8}
           value={notes}
           onChange={(event) => onNotesChange(event.target.value)}
@@ -279,13 +282,13 @@ export function NewQuoteInput({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gc-line)] px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gc-line)] bg-[rgba(246,248,255,0.72)] px-5 py-3.5">
         <div className="relative flex items-center gap-3">
           <button
             ref={triggerRef}
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--gc-line-strong)] bg-white/78 text-[var(--gc-ink-soft)] transition hover:border-[rgba(49,95,255,0.22)] hover:bg-white hover:text-[var(--gc-ink)]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--gc-line-strong)] bg-white/78 text-[var(--gc-ink-soft)] transition hover:border-[rgba(49,95,255,0.22)] hover:bg-white hover:text-[var(--gc-ink)]"
             aria-label="Add input"
             aria-expanded={isMenuOpen}
             aria-haspopup="menu"
@@ -299,7 +302,7 @@ export function NewQuoteInput({
             <div
               ref={menuRef}
               role="menu"
-              className="absolute bottom-[calc(100%+12px)] left-0 z-20 min-w-[240px] overflow-hidden rounded-[20px] border p-2"
+              className="absolute bottom-[calc(100%+10px)] left-0 z-20 min-w-[240px] overflow-hidden rounded-[18px] border p-2"
               style={popoverStyle}
             >
               <button
@@ -335,7 +338,7 @@ export function NewQuoteInput({
 
         <button
           type="button"
-          className="cta min-w-[220px]"
+          className="cta min-w-[196px]"
           onClick={onGenerate}
           disabled={generateDisabled}
         >

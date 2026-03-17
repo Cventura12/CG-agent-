@@ -89,36 +89,36 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-transparent text-slate-950">
-      <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(49,95,255,0.14),transparent_22rem),radial-gradient(circle_at_top_right,rgba(255,140,47,0.1),transparent_20rem)]">
-        <aside className="hidden w-[248px] shrink-0 flex-col border-r border-white/8 bg-[linear-gradient(180deg,#060b15_0%,#0a1120_38%,#0e1628_100%)] text-white shadow-[28px_0_90px_rgba(2,6,16,0.34)] lg:flex">
-          <div className="border-b border-white/8 px-5 py-5">
+      <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(49,95,255,0.12),transparent_18rem),radial-gradient(circle_at_top_right,rgba(255,140,47,0.08),transparent_16rem)]">
+        <aside className="hidden w-[212px] shrink-0 flex-col border-r border-white/8 bg-[linear-gradient(180deg,#040812_0%,#08111f_46%,#0c1524_100%)] text-white shadow-[22px_0_70px_rgba(2,6,16,0.28)] lg:flex">
+          <div className="border-b border-white/8 px-4 py-4">
             <Link to="/" className="flex items-center gap-3 no-underline">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-[14px] border border-white/10 bg-[linear-gradient(135deg,#6c89ff,#2f5dff)] shadow-[0_14px_36px_rgba(49,95,255,0.38)]">
-                <Workflow className="h-5 w-5 text-white" aria-hidden="true" />
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/10 bg-[linear-gradient(135deg,#6c89ff,#2f5dff)] shadow-[0_12px_30px_rgba(49,95,255,0.34)]">
+                <Workflow className="h-4.5 w-4.5 text-white" aria-hidden="true" />
               </div>
               <div>
-                <div className="text-[17px] font-semibold tracking-[-0.05em] text-white">GC Agent</div>
-                <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.22em] text-white/38">
-                  Field to office runtime
+                <div className="text-[16px] font-semibold tracking-[-0.05em] text-white">GC Agent</div>
+                <div className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-white/34">
+                  Execution OS
                 </div>
               </div>
             </Link>
-            <div className="mt-4 flex items-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] text-white/56">
+            <div className="mt-4 flex items-center gap-2 rounded-[12px] border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] text-white/54">
               <Activity className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true" />
               <span>{queueCount > 0 ? `${queueCount} items need review` : "Runtime is quiet"}</span>
             </div>
           </div>
 
           <div className="px-4 pt-4">
-            <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className="rounded-[14px] border border-white/8 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/28" aria-hidden="true" />
                 <input
                   type="search"
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="Find jobs, quotes, calls"
-                  className="h-10 w-full rounded-[14px] border border-transparent bg-transparent pl-10 pr-3 text-[13px] text-white/84 outline-none placeholder:text-white/24 focus:border-white/8 focus:bg-white/[0.03]"
+                  placeholder="Search"
+                  className="h-9 w-full rounded-[12px] border border-transparent bg-transparent pl-10 pr-3 text-[13px] text-white/84 outline-none placeholder:text-white/24 focus:border-white/8 focus:bg-white/[0.03]"
                 />
               </div>
             </div>
@@ -140,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <Link
                           key={item.href}
                           to={item.href}
-                          className={`group relative block overflow-hidden rounded-[16px] border px-3 py-2.5 no-underline transition ${
+                          className={`group relative block overflow-hidden rounded-[14px] border px-3 py-2 no-underline transition ${
                             isActive
                               ? "border-white/10 bg-[linear-gradient(135deg,rgba(49,95,255,0.22),rgba(49,95,255,0.04))] shadow-[0_14px_34px_rgba(3,7,18,0.24)]"
                               : "border-transparent hover:border-white/6 hover:bg-white/[0.035]"
@@ -161,7 +161,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                               <div className={`text-[13px] font-semibold ${isActive ? "text-white" : "text-white/72"}`}>
                                 {item.label}
                               </div>
-                              <div className="mt-0.5 line-clamp-1 text-[11px] leading-4 text-white/32">{item.description}</div>
                             </div>
                             {badge ? (
                               <span className="rounded-full border border-orange-300/18 bg-orange-400/12 px-2 py-1 font-mono text-[10px] text-orange-200">
@@ -209,33 +208,36 @@ export function AppShell({ children }: { children: ReactNode }) {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-[64px] items-center justify-between border-b border-white/8 bg-[rgba(4,8,15,0.78)] px-4 backdrop-blur-[18px] sm:px-6 lg:px-8">
+          <header className="sticky top-0 z-20 flex h-[54px] items-center justify-between border-b border-white/8 bg-[linear-gradient(180deg,rgba(4,8,15,0.94),rgba(6,11,19,0.82))] px-4 backdrop-blur-[20px] sm:px-6 lg:px-8">
             <div className="hidden items-center gap-3 md:flex">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.16em] text-white/34">Operator surface</div>
-                <div className="mt-1 text-[15px] font-semibold tracking-[-0.03em] text-white">{activeSection}</div>
+              <div className="inline-flex items-center gap-3 rounded-full border border-white/8 bg-white/[0.035] px-3.5 py-1.5">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(74,222,128,0.12)]" />
+                  <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/32">Operator runtime</span>
+                </span>
+                <span className="h-3.5 w-px bg-white/8" />
+                <span className="text-[13px] font-semibold tracking-[-0.02em] text-white">{activeSection}</span>
+                <span className="text-[11px] text-white/42">{queueCount > 0 ? `${queueCount} waiting` : "Queue clear"}</span>
               </div>
-              <span className="gc-hero-status">Watching queue and follow-through</span>
-              <span className="gc-micro-pill">{queueCount > 0 ? `${queueCount} items waiting` : "Queue clear"}</span>
             </div>
-            <div className="ml-auto flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-2.5">
               <Link
                 to="/queue"
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 text-[12px] font-semibold text-white/82 no-underline transition hover:border-white/20 hover:bg-white/[0.08]"
+                className="inline-flex h-8.5 items-center gap-2 rounded-[11px] border border-white/10 bg-white/[0.035] px-3 text-[12px] font-semibold text-white/82 no-underline transition hover:border-white/18 hover:bg-white/[0.07]"
               >
                 <ClipboardList className="h-4 w-4" aria-hidden="true" />
-                <span>Open Queue</span>
+                <span>Queue</span>
               </Link>
               <Link
                 to="/quote"
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-3.5 text-[12px] font-semibold text-white no-underline shadow-[0_16px_34px_rgba(49,95,255,0.28)] transition hover:brightness-105"
+                className="inline-flex h-8.5 items-center gap-2 rounded-[11px] border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-3.5 text-[12px] font-semibold text-white no-underline shadow-[0_16px_34px_rgba(49,95,255,0.28)] transition hover:brightness-105"
               >
                 <FileText className="h-4 w-4" aria-hidden="true" />
-                <span>New Quote</span>
+                <span>New quote</span>
               </Link>
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/72 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-[11px] border border-white/10 bg-white/[0.035] text-white/72 transition hover:border-white/18 hover:bg-white/[0.07] hover:text-white"
                 aria-label="Notifications"
               >
                 <Bell className="h-4 w-4" aria-hidden="true" />

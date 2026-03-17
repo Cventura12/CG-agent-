@@ -1,7 +1,17 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
-import { TriangleAlert } from "lucide-react";
+import {
+  Clock3,
+  Download,
+  FileSpreadsheet,
+  Mail,
+  MessageSquareMore,
+  Phone,
+  ShieldAlert,
+  Sparkles,
+  TriangleAlert,
+} from "lucide-react";
 
 import { fetchTranscriptQuotePrefill } from "../api/transcripts";
 import { NewQuoteInput, type NewQuoteInputMode } from "../components/NewQuoteInput";
@@ -1155,30 +1165,53 @@ export function QuotePage() {
           : quoteReviewRequired
             ? "Review required"
             : "Ready";
+  const reviewStatusTone =
+    decisionStatus === "discarded"
+      ? "tr"
+      : quoteReviewRequired
+        ? "ta"
+        : "tg";
+  const deliveryChannelOptions = [
+    { key: "sms", label: "SMS", icon: Phone },
+    { key: "whatsapp", label: "WhatsApp", icon: MessageSquareMore },
+    { key: "email", label: "Email", icon: Mail },
+  ] as const;
+  const latestDeliveryAttempt = deliveryHistory[0] ?? null;
+  const deliveryStatusSummary = latestDeliveryAttempt
+    ? `${latestDeliveryAttempt.channel.toUpperCase()} • ${latestDeliveryAttempt.status}`
+    : "No delivery attempt yet";
+  const draftGuidePoints = activeQuote
+    ? [
+        "Approve when the pricing and scope are good enough for customer review.",
+        "Use Send when you want the quote to move and reminders to start.",
+        "Keep edits minimal and operational. This is a send surface, not a document builder.",
+      ]
+    : [
+        "Keep the request tight. One concrete field note beats a paragraph of filler.",
+        "Add measurements, material grade, schedule pressure, or access constraints when you have them.",
+        "The goal is a draft you can review fast, not a perfect intake form.",
+      ];
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
-        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-[52rem]">
+      <section className="gc-command-card dark gc-fade-up">
+        <div className="gc-command-body flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-[48rem]">
             <div className="gc-overline">Communication to quote</div>
-            <div className="gc-page-title mt-3">New Quote</div>
-            <div className="gc-page-copy mt-4 max-w-[44rem]">
-              Turn calls, notes, and field detail into a reviewable draft, then move it through send and customer follow-through without losing context.
+            <div className="mt-2 text-[42px] font-semibold tracking-[-0.07em] text-white">New Quote</div>
+            <div className="mt-3 max-w-[40rem] text-[14px] leading-7 text-white/62">
+              Use one composer to turn messy field input into a draft you can actually review, price, send, and follow through.
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2.5">
-              <span className="gc-micro-pill">
-                {apiReady ? "Public quote runtime connected" : "API credentials required"}
-              </span>
-              <span className="gc-micro-pill">
-                {transcriptPrefill ? "Transcript context loaded" : "Manual intake ready"}
-              </span>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="gc-hero-status">{apiReady ? "Quote runtime connected" : "API credentials required"}</span>
+              <span className="gc-micro-pill">{transcriptPrefill ? "Transcript attached" : "Manual intake"}</span>
+              <span className="gc-micro-pill">{isOnline ? "Live sync" : "Offline cache"}</span>
             </div>
           </div>
-          <div className="gc-hero-actions">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3.5 text-[12px] font-semibold text-white/86 transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => void syncQueuedNotes()}
               disabled={
                 !apiReady ||
@@ -1188,7 +1221,7 @@ export function QuotePage() {
                 quoteMutation.isPending
               }
             >
-              {isQueueSyncing ? "Syncing..." : offlineQueue.length > 0 ? "Sync queued notes" : "Ready to draft"}
+              {isQueueSyncing ? "Syncing..." : offlineQueue.length > 0 ? "Sync queued notes" : "Ready"}
             </button>
           </div>
         </div>
@@ -1217,7 +1250,7 @@ export function QuotePage() {
         </div>
       ) : null}
 
-      <div className="tcol" style={{ marginTop: 20 }}>
+      <div className="tcol" style={{ marginTop: 14 }}>
         <div className="vs">
           {phase === "input" ? (
             <div className="overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.86))] shadow-[var(--gc-shadow)] backdrop-blur-[18px]">
@@ -1366,246 +1399,320 @@ export function QuotePage() {
 
           {phase === "review" && activeQuote ? (
             <div className="vs ani">
-              <div className="panel">
-                <div className="ph2 sp">
-                  <div className="hs">
-                    <span className="ptl">Quote Draft</span>
-                    <span className="tag ts" style={{ fontSize: 8 }}>
-                      {activeQuote.quote_id}
-                    </span>
-                  </div>
-                  <div className="hs" style={{ gap: 10 }}>
-                    <span className={`cnum ${confidenceClass}`}>
-                      {confidenceScore}
-                      <span style={{ fontSize: 8, opacity: 0.6 }}>%</span>
-                    </span>
-                    <div className="ctrack" style={{ width: 88 }}>
-                      <div className="cfill" style={{ width: `${confidenceScore}%`, background: confidenceFill }} />
+              <section className="overflow-hidden rounded-[26px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,249,255,0.9))] shadow-[var(--gc-shadow)]">
+                <div className="border-b border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(49,95,255,0.18),transparent_34%),linear-gradient(135deg,rgba(9,14,26,0.96),rgba(15,24,42,0.94))] px-5 py-5 text-white">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                    <div className="max-w-[38rem]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="gc-overline !text-white/38">Quote draft</span>
+                        <span className="gc-micro-pill">{activeQuote.quote_id}</span>
+                      </div>
+                      <div className="mt-3 text-[30px] font-semibold tracking-[-0.07em]">
+                        {activeQuote.quote_draft.customer_name || "Customer pending"}
+                      </div>
+                      <div className="mt-1 text-[14px] leading-7 text-white/60">
+                        {activeQuote.quote_draft.project_address || "Project address pending"}
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <span className={`gc-chip ${reviewStatusTone}`}>{reviewStatusLabel}</span>
+                        <span className={`gc-chip ${quoteSendBlocked ? "warn" : "success"}`}>
+                          {quoteSendBlocked ? "Send blocked" : "Ready to deliver"}
+                        </span>
+                        <span className="gc-chip soft !border-white/10 !bg-white/[0.06] !text-white/80">
+                          Pricing baseline {activeQuote.cold_start.active ? "partial" : "applied"}
+                        </span>
+                      </div>
                     </div>
-                    <span
-                      className={`tag td ${
-                        decisionStatus === "discarded"
-                          ? "tr"
-                          : quoteReviewRequired
-                            ? "ta"
-                            : "tg"
-                      }`}
-                    >
-                      {reviewStatusLabel}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="pb lg">
-                  <div className={`alert ${quoteReviewRequired ? "awarn" : "aok"}`} style={{ marginBottom: 14 }}>
-                    <span>{quoteReviewRequired ? "!" : "?"}</span>
-                    <div>
-                      <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                        {confidenceScore}% CONFIDENCE · PRICING BASELINE {activeQuote.cold_start.active ? "PARTIAL" : "APPLIED"}
-                      </strong>
-                      <div style={{ marginTop: 3, fontSize: 12 }}>
-                        {quoteReviewRequired
-                          ? "Review is required before this quote can be sent."
-                          : clarificationQuestions.length > 0
-                            ? `${clarificationQuestions.length} clarification item${clarificationQuestions.length === 1 ? "" : "s"} flagged below.`
-                            : "Quote is ready for delivery or export."}
+                    <div className="rounded-[20px] border border-white/10 bg-white/[0.05] px-5 py-4 text-right">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-white/40">Draft total</div>
+                      <div className="mt-2 text-[34px] font-semibold tracking-[-0.07em]">{formatCurrency(activeQuote.quote_draft.total_price)}</div>
+                      <div className="mt-1 text-[12px] text-white/54">
+                        {confidenceScore}% confidence • {quoteReviewRequired ? "Review before send" : "Customer-ready"}
                       </div>
                     </div>
                   </div>
+                </div>
 
+                <div className="space-y-4 px-5 py-5">
                   {quoteMissingInformation.length ? (
-                    <div className="alert awarn" style={{ marginBottom: 14 }}>
-                      <span>!</span>
-                      <div>
-                        <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                          MISSING INFORMATION TO CONFIRM
-                        </strong>
-                        <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                          {quoteMissingInformation.map((item) => (
-                            <span key={`quote-missing-${item}`} className="tag ts">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
+                    <div className="rounded-[18px] border border-[rgba(255,140,47,0.2)] bg-[rgba(255,140,47,0.08)] px-4 py-4">
+                      <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#bc610b]">
+                        <ShieldAlert className="h-4 w-4" aria-hidden="true" />
+                        Missing information to confirm
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {quoteMissingInformation.map((item) => (
+                          <span key={`quote-missing-${item}`} className="tag ta">
+                            {item}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   ) : null}
 
                   {quoteEvidenceSignals.length ? (
-                    <div className="alert ainfo" style={{ marginBottom: 14 }}>
-                      <span>i</span>
-                      <div>
-                        <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                          WHAT THIS DRAFT IS BASED ON
-                        </strong>
-                        <div style={{ marginTop: 6 }} className="vs">
-                          {quoteEvidenceSignals.map((signal) => (
-                            <div key={signal} style={{ fontSize: 12, color: "var(--cream)" }}>
-                              {signal}
-                            </div>
-                          ))}
-                        </div>
+                    <div className="rounded-[18px] border border-[rgba(49,95,255,0.14)] bg-[rgba(49,95,255,0.06)] px-4 py-4">
+                      <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#214be0]">
+                        <Sparkles className="h-4 w-4" aria-hidden="true" />
+                        What this draft is reading from
+                      </div>
+                      <div className="mt-3 grid gap-2 md:grid-cols-2">
+                        {quoteEvidenceSignals.map((signal) => (
+                          <div
+                            key={signal}
+                            className="rounded-[14px] border border-[rgba(49,95,255,0.1)] bg-white/72 px-3 py-3 text-[13px] leading-6 text-[var(--gc-ink-soft)]"
+                          >
+                            {signal}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : null}
 
-                  <div style={{ marginBottom: 14 }}>
-                    <div className="sh">Project</div>
-                    <div style={{ fontSize: 12, color: "var(--cream)" }}>
-                      {activeQuote.quote_draft.project_address || "Project address pending"}
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+                    <div className="rounded-[22px] border border-[var(--gc-line)] bg-white/72 p-4">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--gc-ink-muted)]">
+                        Scope of work
+                      </div>
+                      <div className="mt-3 whitespace-pre-wrap text-[14px] leading-7 text-[var(--gc-ink-soft)]">
+                        {activeQuote.quote_draft.scope_of_work}
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        marginTop: 2,
-                        fontFamily: "'Syne Mono', monospace",
-                        fontSize: 8,
-                        color: "var(--fog)",
-                        letterSpacing: "0.6px",
-                      }}
-                    >
-                      {activeQuote.quote_draft.customer_name || "CUSTOMER PENDING"}
-                    </div>
-                  </div>
 
-                  <div style={{ marginBottom: 14 }}>
-                    <div className="sh">Scope</div>
-                    <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-                      {activeQuote.quote_draft.scope_of_work}
-                    </div>
-                  </div>
-
-                  <div className="sh">Line Items</div>
-                  <table className="lit">
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Qty</th>
-                        <th style={{ textAlign: "right" }}>Unit</th>
-                        <th style={{ textAlign: "right" }}>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lineItems.length > 0 ? (
-                        lineItems.map((item, index) => (
-                          <tr key={`${lineItemLabel(item)}-${index}`}>
-                            <td>{lineItemLabel(item)}</td>
-                            <td style={{ fontFamily: "'Syne Mono', monospace", fontSize: 9, color: "var(--fog)" }}>
-                              {item.quantity ?? 0} {item.unit ?? "unit"}
-                            </td>
-                            <td style={{ textAlign: "right", fontFamily: "'Syne Mono', monospace", fontSize: 9, color: "var(--fog)" }}>
-                              {typeof item.unit_cost === "number" && Number.isFinite(item.unit_cost)
-                                ? formatCurrency(item.unit_cost)
-                                : "--"}
-                            </td>
-                            <td>{formatCurrency(lineItemTotal(item))}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={4} style={{ textAlign: "left", color: "var(--fog)" }}>
-                            No material line items were returned.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-
-                  <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 12, gap: 8, alignItems: "baseline" }}>
-                    <span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.2px" }}>
-                      TOTAL
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "'Oswald', sans-serif",
-                        fontSize: 26,
-                        fontWeight: 600,
-                        color: "var(--amber-hot)",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      {formatCurrency(activeQuote.quote_draft.total_price)}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ borderTop: "1px solid var(--wire)", padding: "12px 14px" }}>
-                  <div className="sh">Assumptions</div>
-                  <div className="vs">
-                    {assumptions.length > 0 ? (
-                      assumptions.map((assumption) => (
-                        <div key={assumption} className="alert awarn" style={{ fontSize: 12 }}>
-                          <span style={{ flexShrink: 0 }}>!</span>
-                          <div>{assumption}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ fontSize: 12, color: "var(--fog)" }}>No explicit assumptions were returned.</div>
-                    )}
-
-                    {clarificationQuestions.length > 0 ? (
-                      <div className="alert ainfo" style={{ fontSize: 12 }}>
-                        <span>i</span>
-                        <div>
-                          <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                            CLARIFICATION NEEDED
-                          </strong>
-                          <div style={{ marginTop: 4 }}>
-                            {clarificationQuestions.map((question) => (
-                              <div key={question}>{question}</div>
-                            ))}
+                    <div className="rounded-[22px] border border-[var(--gc-line)] bg-[rgba(249,251,255,0.9)] p-4">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--gc-ink-muted)]">
+                        Draft posture
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        <div className="rounded-[16px] border border-[var(--gc-line)] bg-white/80 px-3 py-3">
+                          <div className="text-[11px] uppercase tracking-[0.1em] text-[var(--gc-ink-muted)]">Confidence</div>
+                          <div className="mt-1 flex items-end justify-between gap-3">
+                            <div className={`text-[28px] font-semibold tracking-[-0.06em] ${confidenceClass}`}>{confidenceScore}%</div>
+                            <div className="h-2 w-[96px] overflow-hidden rounded-full bg-[rgba(24,45,99,0.08)]">
+                              <div className="h-full rounded-full" style={{ width: `${confidenceScore}%`, background: confidenceFill }} />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ) : null}
 
-                    {exclusions.length > 0 ? (
-                      <div style={{ paddingTop: 6 }}>
-                        <div className="sh">Exclusions</div>
-                        <div className="vs">
-                          {exclusions.map((item) => (
-                            <div key={item} style={{ fontSize: 12, color: "var(--steel)" }}>
-                              {item}
+                        <div className="grid gap-2">
+                          {[
+                            ["Price book", estimateSignalSummary],
+                            ["Trade focus", memoryTrade],
+                            ["Similar jobs", similarJobsLabel],
+                          ].map(([label, value]) => (
+                            <div key={label} className="flex items-start justify-between gap-3 rounded-[14px] border border-[var(--gc-line)] bg-white/76 px-3 py-3">
+                              <div className="text-[12px] text-[var(--gc-ink-muted)]">{label}</div>
+                              <div className="max-w-[11rem] text-right font-mono text-[12px] text-[var(--gc-blue)]">{value}</div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    ) : null}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[var(--gc-line)] bg-white/76 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--gc-ink-muted)]">
+                        Line items
+                      </div>
+                      <div className="text-[11px] text-[var(--gc-ink-muted)]">
+                        {lineItems.length > 0 ? `${lineItems.length} priced item${lineItems.length === 1 ? "" : "s"}` : "No line items returned"}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 divide-y divide-[rgba(24,45,99,0.08)]">
+                      {lineItems.length > 0 ? (
+                        lineItems.map((item, index) => (
+                          <div key={`${lineItemLabel(item)}-${index}`} className="grid gap-2 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                            <div>
+                              <div className="text-[14px] font-semibold text-[var(--gc-ink)]">{lineItemLabel(item)}</div>
+                              <div className="mt-1 text-[12px] leading-6 text-[var(--gc-ink-soft)]">
+                                {item.quantity ?? 0} {item.unit ?? "unit"}
+                                {typeof item.unit_cost === "number" && Number.isFinite(item.unit_cost)
+                                  ? ` • ${formatCurrency(item.unit_cost)} each`
+                                  : ""}
+                              </div>
+                            </div>
+                            <div className="text-right text-[16px] font-semibold tracking-[-0.03em] text-[var(--gc-ink)]">
+                              {formatCurrency(lineItemTotal(item))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-3 text-[13px] text-[var(--gc-ink-soft)]">
+                          No material line items were returned.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-[22px] border border-[var(--gc-line)] bg-white/72 p-4">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--gc-ink-muted)]">
+                        Assumptions & clarification
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {assumptions.length > 0 ? (
+                          assumptions.map((assumption) => (
+                            <div key={assumption} className="rounded-[14px] border border-[rgba(255,140,47,0.16)] bg-[rgba(255,140,47,0.08)] px-3 py-3 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                              {assumption}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-[14px] border border-[var(--gc-line)] bg-white/70 px-3 py-3 text-[13px] text-[var(--gc-ink-soft)]">
+                            No explicit assumptions returned.
+                          </div>
+                        )}
+
+                        {clarificationQuestions.length > 0 ? (
+                          <div className="rounded-[14px] border border-[rgba(49,95,255,0.16)] bg-[rgba(49,95,255,0.07)] px-3 py-3">
+                            <div className="text-[11px] uppercase tracking-[0.12em] text-[#214be0]">Clarification needed</div>
+                            <div className="mt-2 space-y-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                              {clarificationQuestions.map((question) => (
+                                <div key={question}>{question}</div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[22px] border border-[var(--gc-line)] bg-white/72 p-4">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--gc-ink-muted)]">
+                        Exclusions & send posture
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        <div className="rounded-[14px] border border-[var(--gc-line)] bg-white/70 px-3 py-3 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                          {quoteReviewRequired
+                            ? "This draft still needs contractor review before anything goes to the customer."
+                            : "This draft is staged for delivery. The right rail controls send and customer follow-through."}
+                        </div>
+
+                        {exclusions.length > 0 ? (
+                          <div className="space-y-2">
+                            {exclusions.map((item) => (
+                              <div key={item} className="rounded-[14px] border border-[var(--gc-line)] bg-white/70 px-3 py-3 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                                {item}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-[14px] border border-[var(--gc-line)] bg-white/70 px-3 py-3 text-[13px] text-[var(--gc-ink-soft)]">
+                            No exclusions were returned on this draft.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ borderTop: "1px solid var(--wire)", padding: "10px 14px", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    className="btn bg"
-                    onClick={() => decisionMutation.mutate("approve")}
-                    disabled={decisionMutation.isPending || !apiReady}
-                  >
-                    {decisionMutation.isPending && decisionMutation.variables === "approve" ? "Saving..." : "Approve"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn bw"
-                    onClick={() => setEditMode((current) => !current)}
-                    disabled={decisionMutation.isPending || !apiReady}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="btn brd"
-                    onClick={() => decisionMutation.mutate("discard")}
-                    disabled={decisionMutation.isPending || !apiReady}
-                  >
-                    {decisionMutation.isPending && decisionMutation.variables === "discard" ? "Saving..." : "Discard"}
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gc-line)] bg-[rgba(248,250,255,0.72)] px-5 py-4">
+                  <div className="text-[12px] leading-6 text-[var(--gc-ink-soft)]">
+                    {quoteReviewRequired
+                      ? "Approve or edit the draft first. Send stays blocked until the review state is clean."
+                      : "The draft is ready to move. Use the rail to send, export, or let reminders take over."}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn bg"
+                      onClick={() => decisionMutation.mutate("approve")}
+                      disabled={decisionMutation.isPending || !apiReady}
+                    >
+                      {decisionMutation.isPending && decisionMutation.variables === "approve" ? "Saving..." : "Approve"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn bw"
+                      onClick={() => setEditMode((current) => !current)}
+                      disabled={decisionMutation.isPending || !apiReady}
+                    >
+                      {editMode ? "Close edits" : "Edit draft"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn brd"
+                      onClick={() => decisionMutation.mutate("discard")}
+                      disabled={decisionMutation.isPending || !apiReady}
+                    >
+                      {decisionMutation.isPending && decisionMutation.variables === "discard" ? "Saving..." : "Discard"}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </section>
 
               {decisionMessage ? (
                 <div className="alert aok">
                   <span>OK</span>
                   <div>{decisionMessage}</div>
                 </div>
+              ) : null}
+
+              {editMode ? (
+                <section className="overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(246,249,255,0.86))] shadow-[var(--gc-shadow)]">
+                  <div className="border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(49,95,255,0.08),transparent_45%),rgba(255,255,255,0.56)] px-5 py-4">
+                    <div className="text-[15px] font-semibold text-[var(--gc-ink)]">Contractor edits</div>
+                    <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                      Tighten scope and price here, then save the edits back into the approved draft.
+                    </div>
+                  </div>
+                  <div className="space-y-4 px-5 py-5">
+                    <div>
+                      <label className="lbl" htmlFor="edited-scope">
+                        Scope edits
+                      </label>
+                      <textarea
+                        id="edited-scope"
+                        className="txta"
+                        rows={7}
+                        value={editedScopeOfWork}
+                        onChange={(event) => setEditedScopeOfWork(event.target.value)}
+                      />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="lbl" htmlFor="edited-total">
+                          Final total price
+                        </label>
+                        <input
+                          id="edited-total"
+                          className="inp"
+                          type="number"
+                          value={editedTotalPrice}
+                          onChange={(event) => setEditedTotalPrice(event.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="lbl" htmlFor="feedback-note">
+                          Feedback note
+                        </label>
+                        <input
+                          id="feedback-note"
+                          className="inp"
+                          type="text"
+                          value={feedbackNote}
+                          onChange={(event) => setFeedbackNote(event.target.value)}
+                          placeholder="Why this changed"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="cta"
+                      style={{ width: "100%", textAlign: "center", display: "block" }}
+                      onClick={() => decisionMutation.mutate("edit")}
+                      disabled={decisionMutation.isPending || !apiReady}
+                    >
+                      {decisionMutation.isPending && decisionMutation.variables === "edit"
+                        ? "Saving edits..."
+                        : "Save edits + approve"}
+                    </button>
+                  </div>
+                </section>
               ) : null}
             </div>
           ) : null}
@@ -1614,79 +1721,87 @@ export function QuotePage() {
         <div className="vs him">
           {phase === "review" && activeQuote ? (
             <>
-              <div className="panel ani">
-                <div className="ph2">
-                  <span className="ptl">Delivery</span>
-                  <button
-                    type="button"
-                    className="btn bw sm"
-                    onClick={() => void loadDeliveryHistory(activeQuote.quote_id)}
-                    disabled={isDeliveryHistoryLoading || !apiReady}
-                  >
-                    {isDeliveryHistoryLoading ? "Refreshing..." : "Refresh"}
-                  </button>
+              <section className="overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(245,248,255,0.88))] shadow-[var(--gc-shadow)]">
+                <div className="border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(49,95,255,0.08),transparent_45%),rgba(255,255,255,0.56)] px-5 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[15px] font-semibold text-[var(--gc-ink)]">Send & delivery</div>
+                      <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">Move the quote out, then watch response and delivery here.</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn bw sm"
+                      onClick={() => void loadDeliveryHistory(activeQuote.quote_id)}
+                      disabled={isDeliveryHistoryLoading || !apiReady}
+                    >
+                      {isDeliveryHistoryLoading ? "Refreshing..." : "Refresh"}
+                    </button>
+                  </div>
                 </div>
-                <div className="pb vs" style={{ gap: 10 }}>
-                  <div>
-                    <div className="lbl">Send via</div>
-                    <div className="hs" style={{ flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                      {[
-                        { key: "sms", label: "SMS" },
-                        { key: "whatsapp", label: "WhatsApp" },
-                        { key: "email", label: "Email" },
-                      ].map((option) => (
+
+                <div className="space-y-4 px-5 py-5">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {deliveryChannelOptions.map((option) => {
+                      const Icon = option.icon;
+                      const active = deliveryChannel === option.key;
+                      return (
                         <button
                           key={option.key}
                           type="button"
-                          className={`btn sm ${deliveryChannel === option.key ? "ba" : "bw"}`}
-                          onClick={() =>
-                            setDeliveryChannel(option.key as "whatsapp" | "sms" | "email")
-                          }
+                          className={`flex h-10 items-center justify-center gap-2 rounded-[14px] border px-3 text-[12px] font-semibold transition ${
+                            active
+                              ? "border-[rgba(49,95,255,0.2)] bg-[rgba(49,95,255,0.12)] text-[var(--gc-blue)] shadow-[0_8px_20px_rgba(49,95,255,0.12)]"
+                              : "border-[var(--gc-line)] bg-white/74 text-[var(--gc-ink-soft)] hover:border-[rgba(49,95,255,0.18)] hover:text-[var(--gc-ink)]"
+                          }`}
+                          onClick={() => setDeliveryChannel(option.key)}
                         >
+                          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                           {option.label}
                         </button>
-                      ))}
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid gap-4">
+                    <div>
+                      <label className="lbl" htmlFor="delivery-destination">
+                        {deliveryDestinationLabel}
+                      </label>
+                      <input
+                        id="delivery-destination"
+                        className="inp"
+                        type={deliveryChannel === "email" ? "email" : "text"}
+                        value={deliveryDestination}
+                        onChange={(event) => setDeliveryDestination(event.target.value)}
+                        placeholder={deliveryDestinationPlaceholder}
+                      />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="lbl" htmlFor="delivery-destination">
-                      {deliveryDestinationLabel}
-                    </label>
-                    <input
-                      id="delivery-destination"
-                      className="inp"
-                      type={deliveryChannel === "email" ? "email" : "text"}
-                      value={deliveryDestination}
-                      onChange={(event) => setDeliveryDestination(event.target.value)}
-                      placeholder={deliveryDestinationPlaceholder}
-                    />
-                  </div>
+                    <div>
+                      <label className="lbl" htmlFor="delivery-name">
+                        Client name
+                      </label>
+                      <input
+                        id="delivery-name"
+                        className="inp"
+                        value={deliveryRecipientName}
+                        onChange={(event) => setDeliveryRecipientName(event.target.value)}
+                        placeholder="Optional"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="lbl" htmlFor="delivery-name">
-                      Client name
-                    </label>
-                    <input
-                      id="delivery-name"
-                      className="inp"
-                      value={deliveryRecipientName}
-                      onChange={(event) => setDeliveryRecipientName(event.target.value)}
-                      placeholder="Optional"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="lbl" htmlFor="delivery-override">
-                      Message override
-                    </label>
-                    <input
-                      id="delivery-override"
-                      className="inp"
-                      value={deliveryMessageOverride}
-                      onChange={(event) => setDeliveryMessageOverride(event.target.value)}
-                      placeholder="Leave blank to use the default message"
-                    />
+                    <div>
+                      <label className="lbl" htmlFor="delivery-override">
+                        Message override
+                      </label>
+                      <input
+                        id="delivery-override"
+                        className="inp"
+                        value={deliveryMessageOverride}
+                        onChange={(event) => setDeliveryMessageOverride(event.target.value)}
+                        placeholder="Leave blank to use the default message"
+                      />
+                    </div>
                   </div>
 
                   <button
@@ -1697,47 +1812,22 @@ export function QuotePage() {
                     disabled={directDeliveryMutation.isPending || !apiReady || quoteSendBlocked}
                   >
                     {directDeliveryMutation.isPending
-                      ? "SENDING..."
+                      ? "Sending quote..."
                       : quoteSendBlocked
-                        ? "REVIEW REQUIRED BEFORE SEND"
-                        : "SEND QUOTE"}
+                        ? "Review required before send"
+                        : "Send quote"}
                   </button>
 
                   {quoteSendBlocked ? (
-                    <div className="alert awarn" style={{ fontSize: 12 }}>
-                      <span>!</span>
-                      <div>
-                        <strong style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "1px" }}>
-                          DELIVERY BLOCKED
-                        </strong>
-                        <div style={{ marginTop: 6 }} className="vs">
-                          {quoteBlockingReasons.map((reason) => (
-                            <div key={reason}>{reason}</div>
-                          ))}
-                        </div>
+                    <div className="rounded-[16px] border border-[rgba(255,140,47,0.18)] bg-[rgba(255,140,47,0.09)] px-4 py-4">
+                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#bc610b]">Delivery blocked</div>
+                      <div className="mt-2 space-y-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                        {quoteBlockingReasons.map((reason) => (
+                          <div key={reason}>{reason}</div>
+                        ))}
                       </div>
                     </div>
                   ) : null}
-
-                  <button
-                    type="button"
-                    className="btn bw"
-                    style={{ width: "100%", justifyContent: "center" }}
-                    onClick={() => sendMutation.mutate(activeQuote)}
-                    disabled={sendMutation.isPending || !apiReady}
-                  >
-                    {sendMutation.isPending ? "Generating PDF..." : "Open PDF"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn bw"
-                    style={{ width: "100%", justifyContent: "center" }}
-                    onClick={() => exportXlsxMutation.mutate(activeQuote)}
-                    disabled={exportXlsxMutation.isPending || !apiReady}
-                  >
-                    {exportXlsxMutation.isPending ? "Exporting..." : "Export XLSX"}
-                  </button>
 
                   {deliveryMessage ? (
                     <div className="alert aok" style={{ fontSize: 12 }}>
@@ -1753,188 +1843,144 @@ export function QuotePage() {
                     </div>
                   ) : null}
 
-                  <div style={{ paddingTop: 4 }}>
-                    <div className="sh">Delivery Status</div>
-                    {isDeliveryHistoryLoading ? (
-                      <div style={{ fontSize: 12, color: "var(--fog)" }}>Refreshing latest delivery state...</div>
-                    ) : deliveryHistory.length === 0 ? (
-                      <div style={{ fontSize: 12, color: "var(--fog)" }}>
-                        No delivery attempts recorded yet. Once you send the quote, status will show here.
-                      </div>
-                    ) : (
-                      <div className="vs" style={{ gap: 6 }}>
-                        {deliveryHistory.map((attempt) => (
-                          <div
-                            key={attempt.delivery_id}
-                            style={{ border: "1px solid var(--wire)", padding: "8px 10px" }}
-                          >
-                            <div className="sp" style={{ marginBottom: 4, gap: 8 }}>
-                              <div style={{ fontSize: 12, color: "var(--cream)" }}>
-                                {attempt.channel.toUpperCase()} · {attempt.recipient || attempt.destination}
-                              </div>
-                              <span className={`tag ${deliveryStatusTone(attempt.status)}`}>{attempt.status}</span>
-                            </div>
-                            <div
-                              style={{
-                                fontFamily: "'Syne Mono', monospace",
-                                fontSize: 8,
-                                color: "var(--fog)",
-                                letterSpacing: "0.5px",
-                              }}
-                            >
-                              {attempt.destination} · {formatDeliveryTimestamp(attempt.sent_at)}
-                            </div>
-                            {attempt.error_message ? (
-                              <div style={{ marginTop: 6, fontSize: 12, color: "var(--red-hi)" }}>
-                                {attempt.error_message}
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {editMode ? (
-                <div className="panel ani a1">
-                  <div className="ph2">
-                    <span className="ptl">Contractor Edits</span>
-                  </div>
-                  <div className="pb vs">
-                    <div>
-                      <label className="lbl" htmlFor="edited-scope">
-                        Scope edits
-                      </label>
-                      <textarea
-                        id="edited-scope"
-                        className="txta"
-                        rows={6}
-                        value={editedScopeOfWork}
-                        onChange={(event) => setEditedScopeOfWork(event.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="lbl" htmlFor="edited-total">
-                        Final total price
-                      </label>
-                      <input
-                        id="edited-total"
-                        className="inp"
-                        type="number"
-                        value={editedTotalPrice}
-                        onChange={(event) => setEditedTotalPrice(event.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="lbl" htmlFor="feedback-note">
-                        Feedback note
-                      </label>
-                      <input
-                        id="feedback-note"
-                        className="inp"
-                        type="text"
-                        value={feedbackNote}
-                        onChange={(event) => setFeedbackNote(event.target.value)}
-                        placeholder="Why this changed"
-                      />
-                    </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      className="btn bw"
+                      style={{ width: "100%", justifyContent: "center" }}
+                      onClick={() => sendMutation.mutate(activeQuote)}
+                      disabled={sendMutation.isPending || !apiReady}
+                    >
+                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                      {sendMutation.isPending ? "Generating PDF..." : "Open PDF"}
+                    </button>
 
                     <button
                       type="button"
-                      className="cta"
-                      style={{ width: "100%", textAlign: "center", display: "block" }}
-                      onClick={() => decisionMutation.mutate("edit")}
-                      disabled={decisionMutation.isPending || !apiReady}
+                      className="btn bw"
+                      style={{ width: "100%", justifyContent: "center" }}
+                      onClick={() => exportXlsxMutation.mutate(activeQuote)}
+                      disabled={exportXlsxMutation.isPending || !apiReady}
                     >
-                      {decisionMutation.isPending && decisionMutation.variables === "edit"
-                        ? "SAVING..."
-                        : "SAVE EDITS + APPROVE"}
+                      <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />
+                      {exportXlsxMutation.isPending ? "Exporting..." : "Export XLSX"}
                     </button>
                   </div>
-                </div>
-              ) : null}
 
-              <div className="panel ani a1">
-                <div className="ph2">
-                  <span className="ptl">Customer Follow-through</span>
+                  <div className="rounded-[18px] border border-[var(--gc-line)] bg-white/74 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--gc-ink-muted)]">
+                        Delivery status
+                      </div>
+                      <span className={`tag ${latestDeliveryAttempt ? deliveryStatusTone(latestDeliveryAttempt.status) : "ts"}`}>
+                        {latestDeliveryAttempt ? latestDeliveryAttempt.status : "Idle"}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                      {deliveryStatusSummary}
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {isDeliveryHistoryLoading ? (
+                        <div className="text-[12px] text-[var(--gc-ink-soft)]">Refreshing latest delivery state...</div>
+                      ) : deliveryHistory.length === 0 ? (
+                        <div className="text-[12px] text-[var(--gc-ink-soft)]">
+                          No delivery attempts recorded yet. Once you send the quote, status will show here.
+                        </div>
+                      ) : (
+                        deliveryHistory.map((attempt) => (
+                          <div
+                            key={attempt.delivery_id}
+                            className="rounded-[14px] border border-[var(--gc-line)] bg-[rgba(248,250,255,0.86)] px-3 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-[13px] font-semibold text-[var(--gc-ink)]">
+                                  {attempt.channel.toUpperCase()} • {attempt.recipient || attempt.destination}
+                                </div>
+                                <div className="mt-1 font-mono text-[11px] text-[var(--gc-ink-muted)]">
+                                  {attempt.destination} • {formatDeliveryTimestamp(attempt.sent_at)}
+                                </div>
+                              </div>
+                              <span className={`tag ${deliveryStatusTone(attempt.status)}`}>{attempt.status}</span>
+                            </div>
+                            {attempt.error_message ? (
+                              <div className="mt-2 text-[12px] leading-6 text-[var(--red-hi)]">{attempt.error_message}</div>
+                            ) : null}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="pb">
+              </section>
+
+              <section className="overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(245,248,255,0.88))] shadow-[var(--gc-shadow)]">
+                <div className="border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(49,95,255,0.08),transparent_45%),rgba(255,255,255,0.56)] px-5 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[15px] font-semibold text-[var(--gc-ink)]">Customer follow-through</div>
+                      <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">This is where the office keeps momentum after the draft leaves review.</div>
+                    </div>
+                    <span className={`gc-chip ${followupTone(followupState)}`}>{followupStatusLabel(followupState)}</span>
+                  </div>
+                </div>
+                <div className="space-y-4 px-5 py-5">
                   {isFollowupLoading ? (
-                    <div style={{ fontSize: 12, color: "var(--fog)" }}>Checking the latest reminder schedule...</div>
+                    <div className="text-[12px] text-[var(--gc-ink-soft)]">Checking the latest reminder schedule...</div>
                   ) : (
                     <>
-                      <div className="sp" style={{ marginBottom: 8 }}>
-                        <span style={{ fontSize: 12, color: "var(--steel)" }}>Auto reminders</span>
-                        <div className="hs" style={{ gap: 8 }}>
-                          {canStopFollowup ? (
-                            <button
-                              type="button"
-                              className="btn bw sm"
-                              onClick={() => stopFollowupMutation.mutate()}
-                              disabled={stopFollowupMutation.isPending}
-                            >
-                              {stopFollowupMutation.isPending ? "Stopping..." : "Stop reminders"}
-                            </button>
-                          ) : null}
-                          <span className={`tag ${followupTone(followupState)}`}>{followupStatusLabel(followupState)}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ fontSize: 12, color: "var(--cream)", marginBottom: 10 }}>
+                      <div className="rounded-[16px] border border-[var(--gc-line)] bg-white/74 px-4 py-4 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
                         {followupSummary(followupState)}
                       </div>
 
-                      <div className="ir">
-                        <span className="ik">Next reminder</span>
-                        <span className="iv">
-                          {followupState && (followupState.status === "scheduled" || followupState.status === "pending_destination")
-                            ? formatDeliveryTimestamp(followupState.next_due_at)
-                            : "Not scheduled"}
-                        </span>
-                      </div>
-                      <div className="ir">
-                        <span className="ik">Reminders sent</span>
-                        <span className="iv m">{followupState?.reminder_count ?? 0}</span>
-                      </div>
-                      <div className="ir">
-                        <span className="ik">Last reminder</span>
-                        <span className="iv">{formatDeliveryTimestamp(followupState?.last_reminder_at ?? null)}</span>
-                      </div>
-                      <div className="ir">
-                        <span className="ik">Channel</span>
-                        <span className="iv">{followupChannel(followupState?.channel ?? null)}</span>
+                      <div className="grid gap-2">
+                        {[
+                          [
+                            "Next reminder",
+                            followupState &&
+                            (followupState.status === "scheduled" || followupState.status === "pending_destination")
+                              ? formatDeliveryTimestamp(followupState.next_due_at)
+                              : "Not scheduled",
+                          ],
+                          ["Reminders sent", String(followupState?.reminder_count ?? 0)],
+                          ["Last reminder", formatDeliveryTimestamp(followupState?.last_reminder_at ?? null)],
+                          ["Channel", followupChannel(followupState?.channel ?? null)],
+                        ].map(([label, value]) => (
+                          <div key={label} className="flex items-center justify-between gap-3 rounded-[14px] border border-[var(--gc-line)] bg-white/70 px-3 py-3">
+                            <div className="text-[12px] text-[var(--gc-ink-muted)]">{label}</div>
+                            <div className="text-right text-[12px] font-medium text-[var(--gc-ink)]">{value}</div>
+                          </div>
+                        ))}
                       </div>
 
                       {followupState?.status === "stopped" ? (
-                        <div style={{ marginTop: 10, border: "1px solid var(--wire)", padding: "9px 10px" }}>
-                          <div className="lbl" style={{ marginBottom: 2 }}>
-                            Why it stopped
-                          </div>
-                          <div style={{ fontSize: 12, color: "var(--cream)" }}>
+                        <div className="rounded-[16px] border border-[rgba(255,140,47,0.16)] bg-[rgba(255,140,47,0.08)] px-4 py-4">
+                          <div className="text-[11px] uppercase tracking-[0.12em] text-[#bc610b]">Why it stopped</div>
+                          <div className="mt-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
                             {followupStopReason(followupState.stop_reason)}
                           </div>
                           {followupState.stopped_at ? (
-                            <div
-                              style={{
-                                marginTop: 4,
-                                fontFamily: "'Syne Mono', monospace",
-                                fontSize: 8,
-                                color: "var(--fog)",
-                              }}
-                            >
+                            <div className="mt-2 font-mono text-[11px] text-[var(--gc-ink-muted)]">
                               STOPPED {formatDeliveryTimestamp(followupState.stopped_at).toUpperCase()}
                             </div>
                           ) : null}
                         </div>
                       ) : null}
+
+                      {canStopFollowup ? (
+                        <button
+                          type="button"
+                          className="btn bw"
+                          onClick={() => stopFollowupMutation.mutate()}
+                          disabled={stopFollowupMutation.isPending}
+                        >
+                          {stopFollowupMutation.isPending ? "Stopping..." : "Stop reminders"}
+                        </button>
+                      ) : null}
                     </>
                   )}
                 </div>
-              </div>
+              </section>
 
               {followupMessage ? (
                 <div className="alert aok">
@@ -1945,11 +1991,16 @@ export function QuotePage() {
             </>
           ) : null}
 
-          <div className="panel ani a2">
-            <div className="ph2">
-              <span className="ptl">Quote Context</span>
+          <section className="overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(245,248,255,0.88))] shadow-[var(--gc-shadow)]">
+            <div className="border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(49,95,255,0.08),transparent_45%),rgba(255,255,255,0.56)] px-5 py-4">
+              <div className="text-[15px] font-semibold text-[var(--gc-ink)]">
+                {activeQuote ? "Draft context" : "Quote context"}
+              </div>
+              <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">
+                Pricing memory, intake signal, and the constraints shaping the current draft.
+              </div>
             </div>
-            <div className="pb">
+            <div className="space-y-3 px-5 py-5">
               {[
                 ["Price book", estimateSignalSummary, true],
                 ["Trade focus", memoryTrade, false],
@@ -1966,32 +2017,29 @@ export function QuotePage() {
                   false,
                 ],
               ].map(([key, value, badge]) => (
-                <div className="ir" key={String(key)}>
-                  <span className="ik">{key}</span>
+                <div key={String(key)} className="flex items-start justify-between gap-3 rounded-[14px] border border-[var(--gc-line)] bg-white/74 px-3 py-3">
+                  <div className="text-[12px] text-[var(--gc-ink-muted)]">{key}</div>
                   {badge ? (
-                    <span className={`tag ${estimateSignalTone}`} style={{ marginLeft: "auto" }}>
-                      {value}
-                    </span>
+                    <span className={`tag ${estimateSignalTone}`}>{value}</span>
                   ) : (
-                    <span className="iv m">{value}</span>
+                    <span className="max-w-[11rem] text-right font-mono text-[12px] text-[var(--gc-blue)]">{value}</span>
                   )}
                 </div>
               ))}
-              <hr className="wd" />
+
               <button
                 type="button"
                 className="btn bw"
-                style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+                style={{ width: "100%", justifyContent: "center" }}
                 onClick={() => navigate("/onboarding?pricing=1")}
               >
                 Import price book
               </button>
+
               {readinessSignals.length ? (
-                <div style={{ marginBottom: 10 }}>
-                  <div className="lbl" style={{ marginBottom: 6 }}>
-                    Draft evidence
-                  </div>
-                  <div className="hs" style={{ flexWrap: "wrap", gap: 6 }}>
+                <div>
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Draft evidence</div>
+                  <div className="flex flex-wrap gap-2">
                     {readinessSignals.map((signal) => (
                       <span key={`evidence-${signal}`} className="tag tb">
                         {signal}
@@ -2000,70 +2048,50 @@ export function QuotePage() {
                   </div>
                 </div>
               ) : null}
-              <div
-                style={{
-                  fontFamily: "'Syne Mono', monospace",
-                  fontSize: 8,
-                  color: "var(--fog)",
-                  lineHeight: 1.8,
-                  letterSpacing: "0.4px",
-                }}
-              >
-                PRICE BOOKS AND APPROVED QUOTES SHAPE FUTURE DRAFTS
-                <br />
-                MISSING DETAILS KEEP THE DRAFT IN REVIEW BEFORE SEND
-                <br />
-                {bypassAuth ? "DEMO MODE ACTIVE" : apiReady ? "PUBLIC QUOTE DELIVERY CONNECTED" : "CONFIGURE PUBLIC API CREDENTIALS"}
-              </div>
-            </div>
-          </div>
 
-          {!activeQuote ? (
-            <div className="panel ani a3">
-              <div className="ph2">
-                <span className="ptl">Before You Draft</span>
-              </div>
-              <div className="pb">
-                <div className="vs" style={{ gap: 10 }}>
-                  <div style={{ fontSize: 12, color: "var(--steel)", lineHeight: 1.7 }}>
-                    Keep the request short and concrete. The draft does not need every answer yet, but thin input means more review before anything goes to the customer.
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "'Syne Mono', monospace",
-                      fontSize: 8,
-                      color: "var(--fog)",
-                      lineHeight: 1.8,
-                      letterSpacing: "0.4px",
-                    }}
-                  >
-                    INCLUDE:
-                    <br />
-                    MEASUREMENTS · MATERIAL GRADE · SITE ACCESS · DEADLINE
-                  </div>
+              <div className="rounded-[16px] border border-[var(--gc-line)] bg-[rgba(9,14,26,0.96)] px-4 py-4 text-white shadow-[var(--gc-shadow-strong)]">
+                <div className="text-[11px] uppercase tracking-[0.12em] text-white/38">Runtime note</div>
+                <div className="mt-2 text-[13px] leading-6 text-white/62">
+                  {bypassAuth
+                    ? "Demo mode is active. Delivery and follow-through are running against demo credentials."
+                    : apiReady
+                      ? "Public quote delivery is connected. Missing details still keep the draft in review before send."
+                      : "Configure public API credentials before you try to send customer-facing quotes."}
                 </div>
               </div>
             </div>
-          ) : activeQuote.rendered_quote ? (
-            <div className="panel ani a3">
-              <div className="ph2">
-                <span className="ptl">Rendered Preview</span>
+          </section>
+
+          <section className="overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(245,248,255,0.88))] shadow-[var(--gc-shadow)]">
+            <div className="border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(49,95,255,0.08),transparent_45%),rgba(255,255,255,0.56)] px-5 py-4">
+              <div className="text-[15px] font-semibold text-[var(--gc-ink)]">
+                {activeQuote && activeQuote.rendered_quote ? "Rendered preview" : "Before you draft"}
               </div>
-              <div className="pb">
-                <pre
-                  style={{
-                    whiteSpace: "pre-wrap",
-                    fontFamily: "'Syne Mono', monospace",
-                    fontSize: 10,
-                    lineHeight: 1.8,
-                    color: "var(--steel)",
-                  }}
-                >
-                  {activeQuote.rendered_quote}
-                </pre>
+              <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">
+                {activeQuote && activeQuote.rendered_quote
+                  ? "This is the customer-facing render the delivery tools will send or export."
+                  : "A fast draft beats a bloated intake form. Use this panel to keep the ask sharp."}
               </div>
             </div>
-          ) : null}
+            <div className="px-5 py-5">
+              {activeQuote && activeQuote.rendered_quote ? (
+                <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-[18px] border border-[var(--gc-line)] bg-[rgba(247,249,255,0.92)] px-4 py-4 font-mono text-[11px] leading-7 text-[var(--gc-ink-soft)]">
+                  {activeQuote.rendered_quote}
+                </pre>
+              ) : (
+                <div className="space-y-3">
+                  {draftGuidePoints.map((point) => (
+                    <div key={point} className="flex gap-3 rounded-[14px] border border-[var(--gc-line)] bg-white/74 px-3 py-3">
+                      <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(49,95,255,0.1)] text-[var(--gc-blue)]">
+                        <Clock3 className="h-3 w-3" aria-hidden="true" />
+                      </span>
+                      <div className="text-[13px] leading-6 text-[var(--gc-ink-soft)]">{point}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>

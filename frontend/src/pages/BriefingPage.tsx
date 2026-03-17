@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {  ArrowRight,
   CheckCircle2,
@@ -209,40 +209,67 @@ export function BriefingPage() {
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
-        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-[52rem]">
-            <div className="gc-overline">Morning command surface</div>
-            <h1 className="gc-page-title mt-3">Morning Briefing</h1>
-            <p className="gc-page-copy mt-3 max-w-[42rem]">
-              Start with the work most likely to slip: unresolved money, stalled calls, and follow-through that still needs an office decision.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2.5">
-              <span className="gc-hero-status">{isOnline ? "Live queue and job signals connected" : "Offline cache active"}</span>
-              <span className="gc-micro-pill">{formatToday()}</span>
-              {moneyAtRiskCount > 0 ? <span className="gc-micro-pill">{moneyAtRiskCount} money-at-risk items</span> : null}
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_320px]">
+        <article className="gc-command-card dark gc-fade-up">
+          <div className="gc-command-body flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-[44rem]">
+              <div className="gc-overline">Today / command surface</div>
+              <div className="mt-2 text-[40px] font-semibold tracking-[-0.07em] text-white">Morning Briefing</div>
+              <div className="mt-3 max-w-[38rem] text-[14px] leading-7 text-white/62">
+                Start where money, calls, and follow-through are most likely to slip. This page is for triage first, browsing second.
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="gc-hero-status">{isOnline ? "Queue and job signals live" : "Offline cache active"}</span>
+                <span className="gc-micro-pill">{formatToday()}</span>
+                {moneyAtRiskCount > 0 ? <span className="gc-micro-pill">{moneyAtRiskCount} money-at-risk items</span> : null}
+              </div>
+            </div>
+            <div className="flex min-w-[220px] flex-col gap-2">
+              <Link
+                to="/queue"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white no-underline transition hover:bg-white/[0.1]"
+              >
+                <Orbit className="h-4 w-4" aria-hidden="true" />
+                <span>Open queue</span>
+              </Link>
+              <Link
+                to="/quote"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
+              >
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                <span>Create quote</span>
+              </Link>
             </div>
           </div>
-          <div className="gc-hero-actions">
-            <Link
-              to="/queue"
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white no-underline transition hover:bg-white/[0.1]"
-            >
-              <Orbit className="h-4 w-4" aria-hidden="true" />
-              <span>Open queue</span>
-            </Link>
-            <Link
-              to="/quote"
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
-            >
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-              <span>Create quote</span>
-            </Link>
+        </article>
+
+        <article className="gc-command-card gc-fade-up gc-delay-2">
+          <div className="gc-command-head">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                <Sparkles className="h-4.5 w-4.5" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">System read</div>
+                <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">What the office should care about before diving into detail.</div>
+              </div>
+            </div>
           </div>
-        </div>
+          <div className="gc-command-body">
+            <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.74)] px-4 py-4">
+              <div className="text-[12px] uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Quote conversion</div>
+              <div className="mt-2 text-[22px] font-semibold tracking-[-0.05em] text-[var(--gc-ink)]">{winRate}%</div>
+              <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                {moneyAtRiskCount > 0
+                  ? `${moneyAtRiskCount} open item${moneyAtRiskCount === 1 ? "" : "s"} could affect margin if the office doesn’t move today.`
+                  : "No financially exposed items are leading the board right now."}
+              </div>
+            </div>
+          </div>
+        </article>
       </section>
 
-      <section className="mt-4 gc-mini-kpi-row">
+      <section className="mt-4 grid gap-3 md:grid-cols-3">
         <article className="gc-mini-kpi gc-fade-up gc-delay-1">
           <div className="label">Queue pressure</div>
           <div className="value">{queueCount}</div>
@@ -258,11 +285,6 @@ export function BriefingPage() {
           <div className="value">{followupsToday}</div>
           <div className="hint">{followupsToday > 0 ? "Responses still need pressure" : "No reminders due now"}</div>
         </article>
-        <article className="gc-mini-kpi gc-fade-up gc-delay-4">
-          <div className="label">30d conversion</div>
-          <div className="value">{winRate}%</div>
-          <div className="hint">How often quotes are turning into wins</div>
-        </article>
       </section>
 
       <section className="gc-command-grid mt-4">
@@ -274,8 +296,8 @@ export function BriefingPage() {
                   <ShieldAlert className="h-4.5 w-4.5" aria-hidden="true" />
                 </div>
                 <div>
-                  <div className="text-[14px] font-semibold text-white">Focus now</div>
-                  <div className="mt-1 text-[12px] text-white/48">What deserves a decision before the day runs away.</div>
+                  <div className="text-[14px] font-semibold text-white">Priority stack</div>
+                    <div className="mt-1 text-[12px] text-white/48">What deserves a decision before the day runs away.</div>
                 </div>
               </div>
               <Link to="/queue" className="text-[11px] font-semibold text-white/72 no-underline transition hover:text-white">
@@ -412,8 +434,8 @@ export function BriefingPage() {
                   <Sparkles className="h-4.5 w-4.5" aria-hidden="true" />
                 </div>
                 <div>
-                  <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Agent readout</div>
-                  <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">One recommendation worth acting on.</div>
+                  <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Operator read</div>
+                  <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">The one recommendation worth acting on first.</div>
                 </div>
               </div>
             </div>
@@ -432,7 +454,7 @@ export function BriefingPage() {
           <aside className="gc-command-card gc-fade-up gc-delay-4">
             <div className="gc-command-head">
               <div>
-                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">What the agent is watching</div>
+                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">System watch</div>
                 <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">Fast signal summary before you drop into queue or jobs.</div>
               </div>
             </div>

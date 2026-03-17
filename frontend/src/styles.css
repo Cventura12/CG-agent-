@@ -1100,13 +1100,13 @@
 
   .gc-command-grid {
     display: grid;
-    gap: 14px;
-    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    gap: 12px;
+    grid-template-columns: minmax(0, 1.58fr) minmax(300px, 0.82fr);
   }
 
   .gc-command-card {
     border: 1px solid var(--gc-line);
-    border-radius: 24px;
+    border-radius: 20px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 255, 0.82));
     box-shadow: var(--gc-shadow);
     overflow: hidden;
@@ -1125,12 +1125,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    padding: 14px 16px;
+    padding: 13px 15px;
     border-bottom: 1px solid var(--gc-line);
   }
 
   .gc-command-body {
-    padding: 16px;
+    padding: 15px;
   }
 
   .gc-mini-kpi-row {
@@ -1141,10 +1141,10 @@
 
   .gc-mini-kpi {
     border: 1px solid var(--gc-line);
-    border-radius: 18px;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.74);
-    padding: 12px 13px;
-    min-height: 88px;
+    padding: 11px 12px;
+    min-height: 82px;
   }
 
   .gc-mini-kpi .label {
@@ -1183,9 +1183,9 @@
     gap: 12px;
     align-items: start;
     border: 1px solid var(--gc-line);
-    border-radius: 18px;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.74);
-    padding: 14px;
+    padding: 12px 13px;
   }
 
   .gc-action-item .dot {
