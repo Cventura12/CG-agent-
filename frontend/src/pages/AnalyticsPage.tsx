@@ -118,7 +118,7 @@ export function AnalyticsPage() {
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
+      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
         <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-[52rem]">
             <div className="gc-overline">Runtime signal map</div>
@@ -263,3 +263,4 @@ export function AnalyticsPage() {
     </div>
   );
 }
+

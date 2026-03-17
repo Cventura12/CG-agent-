@@ -209,15 +209,15 @@ export function BriefingPage() {
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
-        <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
+      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
+        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-[52rem]">
             <div className="gc-overline">Morning command surface</div>
             <h1 className="gc-page-title mt-3">Morning Briefing</h1>
-            <p className="gc-page-copy mt-4 max-w-[44rem]">
-              See what changed, what is stuck, and where money or follow-through needs a decision before it slips.
+            <p className="gc-page-copy mt-3 max-w-[42rem]">
+              Start with the work most likely to slip: unresolved money, stalled calls, and follow-through that still needs an office decision.
             </p>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <span className="gc-hero-status">{isOnline ? "Live queue and job signals connected" : "Offline cache active"}</span>
               <span className="gc-micro-pill">{formatToday()}</span>
               {moneyAtRiskCount > 0 ? <span className="gc-micro-pill">{moneyAtRiskCount} money-at-risk items</span> : null}
@@ -226,14 +226,14 @@ export function BriefingPage() {
           <div className="gc-hero-actions">
             <Link
               to="/queue"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white no-underline transition hover:bg-white/[0.1]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white no-underline transition hover:bg-white/[0.1]"
             >
               <Orbit className="h-4 w-4" aria-hidden="true" />
               <span>Open queue</span>
             </Link>
             <Link
               to="/quote"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
             >
               <Sparkles className="h-4 w-4" aria-hidden="true" />
               <span>Create quote</span>
@@ -242,189 +242,217 @@ export function BriefingPage() {
         </div>
       </section>
 
-      <section className="gc-kpi-grid gc-four mt-5">
-        <article className={`gc-kpi-card gc-fade-up gc-delay-1 ${queueCount > 0 ? "warn" : "ok"}`}>
-          <div className="gc-kpi-label">Queue pressure</div>
-          <div className="gc-kpi-value">{queueCount}</div>
-          <div className={`gc-kpi-hint ${queueCount > 0 ? "warn" : "ok"}`}>{queueCount > 0 ? "Review work is stacking up" : "All clear"}</div>
+      <section className="mt-4 gc-mini-kpi-row">
+        <article className="gc-mini-kpi gc-fade-up gc-delay-1">
+          <div className="label">Queue pressure</div>
+          <div className="value">{queueCount}</div>
+          <div className="hint">{queueCount > 0 ? "Office review is waiting" : "Nothing stacked up"}</div>
         </article>
-        <article className="gc-kpi-card neutral gc-fade-up gc-delay-2">
-          <div className="gc-kpi-label">Quotes in motion</div>
-          <div className="gc-kpi-value">{activeQuotes}</div>
-          <div className="gc-kpi-hint">Awaiting review, send, or customer response</div>
+        <article className="gc-mini-kpi gc-fade-up gc-delay-2">
+          <div className="label">Quotes moving</div>
+          <div className="value">{activeQuotes}</div>
+          <div className="hint">In review, sent, or awaiting response</div>
         </article>
-        <article className={`gc-kpi-card gc-fade-up gc-delay-3 ${followupsToday > 0 ? "warn" : "ok"}`}>
-          <div className="gc-kpi-label">Follow-through due</div>
-          <div className="gc-kpi-value">{followupsToday}</div>
-          <div className={`gc-kpi-hint ${followupsToday > 0 ? "warn" : "ok"}`}>{followupsToday > 0 ? "Active reminders running" : "No reminders queued"}</div>
+        <article className="gc-mini-kpi gc-fade-up gc-delay-3">
+          <div className="label">Follow-through due</div>
+          <div className="value">{followupsToday}</div>
+          <div className="hint">{followupsToday > 0 ? "Responses still need pressure" : "No reminders due now"}</div>
         </article>
-        <article className="gc-kpi-card neutral gc-fade-up gc-delay-4">
-          <div className="gc-kpi-label">Quote conversion</div>
-          <div className="gc-kpi-value">{winRate}%</div>
-          <div className="gc-kpi-hint">30-day approval and conversion signal</div>
+        <article className="gc-mini-kpi gc-fade-up gc-delay-4">
+          <div className="label">30d conversion</div>
+          <div className="value">{winRate}%</div>
+          <div className="hint">How often quotes are turning into wins</div>
         </article>
       </section>
 
-      <section className="gc-stack-grid mt-5">
-        <div className="space-y-5">
-          <article className="gc-stack-card gc-fade-up gc-delay-2">
-            <div className="gc-stack-header">
+      <section className="gc-command-grid mt-4">
+        <div className="space-y-4">
+          <article className="gc-command-card dark gc-fade-up gc-delay-2">
+            <div className="gc-command-head border-white/10">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(255,140,47,0.12)] text-[#bc610b]">
-                  <ShieldAlert className="h-5 w-5" aria-hidden="true" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(255,140,47,0.14)] text-[#ffb06c]">
+                  <ShieldAlert className="h-4.5 w-4.5" aria-hidden="true" />
                 </div>
                 <div>
-                  <div className="gc-stack-title">Needs action now</div>
-                  <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">The agent is surfacing unresolved work worth deciding today.</div>
+                  <div className="text-[14px] font-semibold text-white">Focus now</div>
+                  <div className="mt-1 text-[12px] text-white/48">What deserves a decision before the day runs away.</div>
                 </div>
               </div>
-              <Link to="/queue" className="gc-stack-link">
-                View queue ?
+              <Link to="/queue" className="text-[11px] font-semibold text-white/72 no-underline transition hover:text-white">
+                Open queue
               </Link>
             </div>
-            <div>
+            <div className="gc-command-body">
               {attentionItems.length === 0 ? (
-                <div className="px-6 py-8 text-[14px] leading-7 text-[var(--gc-ink-soft)]">
-                  Nothing urgent is demanding review right now. New field updates, missed follow-through, and unresolved changes will land here automatically.
+                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-5 text-[13px] leading-7 text-white/60">
+                  Nothing urgent is demanding review right now. New calls, unresolved changes, and stalled follow-through will appear here automatically.
                 </div>
               ) : (
-                attentionItems.map((item) => (
-                  <div key={item.id} className="gc-list-row">
-                    <span className={`gc-signal-dot ${item.tone === "orange" ? "warn" : "info"}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="gc-row-title">{item.title}</div>
-                        {item.stageLabel ? <span className="gc-chip soft">{item.stageLabel}</span> : null}
+                <div className="gc-action-stack">
+                  {attentionItems.map((item) => (
+                    <div key={item.id} className={`gc-action-item ${item.tone === "orange" ? "warn" : ""} border-white/10 bg-white/[0.05]`}>
+                      <span className="dot" />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="title text-white">{item.title}</div>
+                          {item.stageLabel ? <span className="gc-chip soft bg-white/10 text-white/72">{item.stageLabel}</span> : null}
+                        </div>
+                        <div className="copy text-white/62">{item.detail}</div>
                       </div>
-                      <div className="gc-row-copy">{item.detail}</div>
-                    </div>
-                    <Link
-                      to={item.href}
-                      className="inline-flex h-10 shrink-0 items-center rounded-xl border border-[var(--gc-line-strong)] bg-white px-4 text-[12px] font-semibold text-[var(--gc-ink)] no-underline transition hover:border-[rgba(49,95,255,0.22)] hover:bg-[rgba(49,95,255,0.04)]"
-                    >
-                      {item.ctaLabel}
-                    </Link>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
-
-          <article className="gc-stack-card gc-fade-up gc-delay-3">
-            <div className="gc-stack-header">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(49,95,255,0.1)] text-[#214be0]">
-                  <RadioTower className="h-5 w-5" aria-hidden="true" />
-                </div>
-                <div>
-                  <div className="gc-stack-title">Recent operational changes</div>
-                  <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">Signals from jobs, calls, and work moving through the office.</div>
-                </div>
-              </div>
-            </div>
-            <div>
-              {recentUpdates.length === 0 ? (
-                <div className="px-6 py-8 text-[14px] leading-7 text-[var(--gc-ink-soft)]">No recent job activity yet.</div>
-              ) : (
-                recentUpdates.map((job) => (
-                  <Link key={job.id} to={`/jobs/${job.id}`} className="gc-list-row text-inherit no-underline">
-                    <div
-                      className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-                        job.health === "blocked"
-                          ? "bg-[rgba(255,140,47,0.14)] text-[#bc610b]"
-                          : job.health === "at-risk"
-                            ? "bg-[rgba(49,95,255,0.1)] text-[#214be0]"
-                            : "bg-[rgba(29,155,102,0.12)] text-[#147a4f]"
-                      }`}
-                    >
-                      {job.health === "blocked" ? (
-                        <MessageSquareWarning className="h-5 w-5" aria-hidden="true" />
-                      ) : (
-                        <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="gc-row-title">{job.name}</div>
-                        {job.open_items[0]?.action_stage_label ? (
-                          <span className={openItemStageClass(job.open_items[0].action_stage)}>
-                            {job.open_items[0].action_stage_label}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="gc-row-copy">
-                        {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Latest status is ${job.status}.`}
-                      </div>
-                      <div className="mt-3 inline-flex items-center gap-2 text-[12px] text-[var(--gc-ink-muted)]">
-                        <Clock3 className="h-4 w-4" aria-hidden="true" />
-                        <span>{formatRelativeDate(job.last_updated)}</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </article>
-        </div>
-
-        <div className="space-y-5">
-          <aside className="gc-side-panel gc-fade-up gc-delay-3">
-            <div className="gc-side-body">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="gc-stack-title">Follow-through running today</div>
-                  <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">What is already moving and what still needs a nudge.</div>
-                </div>
-                <span className="gc-chip soft">{followupJobs.length} live</span>
-              </div>
-
-              <div className="mt-5 space-y-4">
-                {(followupJobs.length > 0 ? followupJobs : jobs.filter((job) => job.open_items.length > 0))
-                  .slice(0, 3)
-                  .map((job, index) => (
-                    <div key={job.id} className={`${index > 0 ? "border-t border-[var(--gc-line)] pt-4" : ""}`}>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-[16px] font-semibold text-[var(--gc-ink)]">{job.name}</div>
-                        {job.open_items[0]?.action_stage_label ? (
-                          <span className={openItemStageClass(job.open_items[0].action_stage)}>
-                            {job.open_items[0].action_stage_label}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 text-[14px] leading-7 text-[var(--gc-ink-soft)]">
-                        {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Last update ${formatRelativeDate(job.last_updated)}`}
-                      </div>
-                      <div className="mt-3 inline-flex rounded-xl bg-[rgba(49,95,255,0.08)] px-3 py-2 text-[12px] font-medium text-[#214be0]">
-                        {(job.operational_summary?.followthrough_count ?? 0) > 0 ||
-                        job.open_items.some((item) => item.type === "follow-up" || item.type === "followup")
-                          ? "Reminder is active"
-                          : "Review timing before this stalls"}
-                      </div>
+                      <Link to={item.href} className="gc-action-cta border-white/10 bg-white/10 text-white hover:bg-white/14">
+                        {item.ctaLabel}
+                      </Link>
                     </div>
                   ))}
-              </div>
+                </div>
+              )}
             </div>
-          </aside>
+          </article>
 
-          <aside className="gc-side-panel gc-fade-up gc-delay-4">
-            <div className="gc-side-body">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <article className="gc-command-card gc-fade-up gc-delay-3">
+              <div className="gc-command-head">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                    <RadioTower className="h-4.5 w-4.5" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Live changes</div>
+                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">Signals coming in from jobs and calls.</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                {recentUpdates.length === 0 ? (
+                  <div className="px-4 py-5 text-[13px] leading-7 text-[var(--gc-ink-soft)]">No fresh operational changes yet.</div>
+                ) : (
+                  recentUpdates.map((job) => (
+                    <Link key={job.id} to={`/jobs/${job.id}`} className="gc-list-row text-inherit no-underline">
+                      <div
+                        className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] ${
+                          job.health === "blocked"
+                            ? "bg-[rgba(255,140,47,0.14)] text-[#bc610b]"
+                            : job.health === "at-risk"
+                              ? "bg-[rgba(49,95,255,0.1)] text-[#214be0]"
+                              : "bg-[rgba(29,155,102,0.12)] text-[#147a4f]"
+                        }`}
+                      >
+                        {job.health === "blocked" ? (
+                          <MessageSquareWarning className="h-4.5 w-4.5" aria-hidden="true" />
+                        ) : (
+                          <CheckCircle2 className="h-4.5 w-4.5" aria-hidden="true" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="gc-row-title">{job.name}</div>
+                          {job.open_items[0]?.action_stage_label ? (
+                            <span className={openItemStageClass(job.open_items[0].action_stage)}>
+                              {job.open_items[0].action_stage_label}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="gc-row-copy">
+                          {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Latest status is ${job.status}.`}
+                        </div>
+                        <div className="mt-2 inline-flex items-center gap-2 text-[11px] text-[var(--gc-ink-muted)]">
+                          <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span>{formatRelativeDate(job.last_updated)}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </article>
+
+            <article className="gc-command-card gc-fade-up gc-delay-4">
+              <div className="gc-command-head">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                    <Clock3 className="h-4.5 w-4.5" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Follow-through live</div>
+                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">Responses and reminders that still need handling.</div>
+                  </div>
+                </div>
+                <span className="gc-chip soft">{followupJobs.length} active</span>
+              </div>
+              <div className="px-4 py-4">
+                <div className="space-y-3">
+                  {(followupJobs.length > 0 ? followupJobs : jobs.filter((job) => job.open_items.length > 0))
+                    .slice(0, 3)
+                    .map((job) => (
+                      <div key={job.id} className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.74)] px-4 py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-[14px] font-semibold text-[var(--gc-ink)]">{job.name}</div>
+                          {job.open_items[0]?.action_stage_label ? (
+                            <span className={openItemStageClass(job.open_items[0].action_stage)}>
+                              {job.open_items[0].action_stage_label}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                          {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Last update ${formatRelativeDate(job.last_updated)}`}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <aside className="gc-command-card gc-fade-up gc-delay-3">
+            <div className="gc-command-head">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(49,95,255,0.1)] text-[#214be0]">
-                  <Sparkles className="h-5 w-5" aria-hidden="true" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                  <Sparkles className="h-4.5 w-4.5" aria-hidden="true" />
                 </div>
                 <div>
-                  <div className="gc-stack-title">Agent readout</div>
-                  <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">One operating recommendation from the current runtime.</div>
+                  <div className="text-[14px] font-semibold text-[var(--gc-ink)]">Agent readout</div>
+                  <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">One recommendation worth acting on.</div>
                 </div>
               </div>
-              <p className="mt-5 text-[15px] leading-8 text-[var(--gc-ink-soft)]">{insightText}</p>
+            </div>
+            <div className="gc-command-body">
+              <p className="text-[14px] leading-7 text-[var(--gc-ink-soft)]">{insightText}</p>
               <Link
                 to="/analytics"
-                className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--gc-line-strong)] bg-white px-4 text-[12px] font-semibold text-[var(--gc-ink)] no-underline transition hover:border-[rgba(49,95,255,0.22)] hover:bg-[rgba(49,95,255,0.04)]"
+                className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-[var(--gc-line-strong)] bg-white px-3.5 text-[12px] font-semibold text-[var(--gc-ink)] no-underline transition hover:border-[rgba(49,95,255,0.22)] hover:bg-[rgba(49,95,255,0.04)]"
               >
                 Review analytics
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
+            </div>
+          </aside>
+
+          <aside className="gc-command-card gc-fade-up gc-delay-4">
+            <div className="gc-command-head">
+              <div>
+                <div className="text-[14px] font-semibold text-[var(--gc-ink)]">What the agent is watching</div>
+                <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">Fast signal summary before you drop into queue or jobs.</div>
+              </div>
+            </div>
+            <div className="gc-command-body">
+              <div className="space-y-3">
+                <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.74)] px-4 py-4">
+                  <div className="text-[12px] uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Calls waiting for routing</div>
+                  <div className="mt-2 text-[22px] font-semibold tracking-[-0.05em] text-[var(--gc-ink)]">{transcriptInbox.length}</div>
+                  <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                    {transcriptInbox.length > 0 ? "Unlinked communication still needs a job or quote path." : "No unlinked call work is waiting."}
+                  </div>
+                </div>
+                <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.74)] px-4 py-4">
+                  <div className="text-[12px] uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Money at risk</div>
+                  <div className="mt-2 text-[22px] font-semibold tracking-[-0.05em] text-[var(--gc-ink)]">{moneyAtRiskCount}</div>
+                  <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
+                    {moneyAtRiskCount > 0 ? "Unpriced change or unresolved approvals are still exposed." : "No financially exposed open items detected."}
+                  </div>
+                </div>
+              </div>
             </div>
           </aside>
         </div>

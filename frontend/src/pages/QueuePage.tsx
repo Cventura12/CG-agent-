@@ -1,4 +1,4 @@
-ï»¿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import {
@@ -473,7 +473,7 @@ export function QueuePage() {
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
+      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
         <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-[52rem]">
             <div className="gc-overline">Review runtime</div>
@@ -547,7 +547,7 @@ export function QueuePage() {
         ))}
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-5 flex flex-wrap gap-2.5">
         {jobFilterButtons.map((group) => {
           const isActive = selectedJobId === group.job_id;
           return (
@@ -555,7 +555,7 @@ export function QueuePage() {
               key={group.job_id ?? "all"}
               type="button"
               onClick={() => setSelectedJobId(group.job_id)}
-              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[12px] font-semibold transition ${
+              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition ${
                 isActive
                   ? "border-[#315fff]/18 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-white shadow-[0_16px_30px_rgba(49,95,255,0.24)]"
                   : "border-[var(--gc-line)] bg-white/72 text-[var(--gc-ink-soft)] hover:border-[var(--gc-line-strong)] hover:bg-white"
@@ -581,17 +581,17 @@ export function QueuePage() {
       ) : null}
 
       {transcriptInbox.length > 0 ? (
-        <section className="mt-8 overflow-hidden rounded-[28px] border border-orange-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-orange-100 bg-orange-50/60 px-7 py-5">
-            <div className="flex items-center gap-3 text-[20px] font-semibold text-slate-950">
+        <section className="mt-5 overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(246,249,255,0.82))] shadow-[var(--gc-shadow)]">
+          <div className="flex items-center justify-between border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(255,140,47,0.08),transparent_48%),rgba(255,255,255,0.58)] px-5 py-4">
+            <div className="flex items-center gap-3 text-[16px] font-semibold text-[var(--gc-ink)]">
               <AlertTriangle className="h-5 w-5 text-orange-500" aria-hidden="true" />
               <span>Transcript Inbox</span>
             </div>
-            <span className="rounded-xl border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-900">
+            <span className="gc-chip warn">
               {transcriptInbox.length}
             </span>
           </div>
-          <div className="space-y-5 px-7 py-7">
+          <div className="space-y-4 px-5 py-5">
             {transcriptInbox.map((transcript) => {
               const selectedJob = linkSelections[transcript.transcript_id] ?? "";
               const transcriptOpen = !!openTranscriptIds[`inbox-${transcript.transcript_id}`];
@@ -602,29 +602,29 @@ export function QueuePage() {
                 transcriptLogUpdateMutation.isPending;
 
               return (
-                <article key={transcript.transcript_id} className="rounded-3xl border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+                <article key={transcript.transcript_id} className="rounded-[20px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.7)] p-5 shadow-sm">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[20px] font-semibold text-slate-950">{inboxCallerLabel(transcript)}</span>
-                        <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${transcriptUrgencyTone(transcript.urgency)}`}>
+                        <span className="text-[17px] font-semibold text-[var(--gc-ink)]">{inboxCallerLabel(transcript)}</span>
+                        <span className={`inline-flex rounded-xl px-2.5 py-1 text-[11px] font-semibold ${transcriptUrgencyTone(transcript.urgency)}`}>
                           {transcript.urgency || "normal"}
                         </span>
-                        <span className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600">
+                        <span className="inline-flex rounded-xl border border-[var(--gc-line)] bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--gc-ink-soft)]">
                           {classificationLabel(transcript.classification)}
                         </span>
                         {transcript.linked_quote_id ? (
-                          <span className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-semibold text-[#2453d4]">
+                          <span className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#2453d4]">
                             {transcript.linked_quote_id}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-4 text-[17px] leading-8 text-slate-900">{inboxSummary(transcript)}</p>
-                      <p className="mt-3 text-[15px] leading-7 text-slate-500">{inboxActionCopy(transcript)}</p>
+                      <p className="mt-3 text-[15px] leading-7 text-[var(--gc-ink)]">{inboxSummary(transcript)}</p>
+                      <p className="mt-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">{inboxActionCopy(transcript)}</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-right shadow-sm">
-                      <div className="text-[28px] font-bold tracking-[-0.04em] text-slate-950">{confidenceLabel(transcript.confidence)}</div>
-                      <div className="mt-1 text-sm font-medium text-slate-500">Inbox review</div>
+                    <div className="rounded-[16px] border border-[var(--gc-line)] bg-white px-4 py-3 text-right shadow-sm">
+                      <div className="text-[24px] font-bold tracking-[-0.04em] text-[var(--gc-ink)]">{confidenceLabel(transcript.confidence)}</div>
+                      <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Inbox review</div>
                     </div>
                   </div>
 
@@ -687,7 +687,7 @@ export function QueuePage() {
                       <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Caller / source</div>
                       <div className="mt-2 text-[15px] text-slate-600">
                         {(transcript.source || "call_transcript").replace(/_/g, " ")}
-                        {transcript.provider ? ` Â· ${transcript.provider}` : ""}
+                        {transcript.provider ? ` · ${transcript.provider}` : ""}
                       </div>
                     </div>
                   </div>
@@ -776,12 +776,12 @@ export function QueuePage() {
       ) : null}
 
       {!queueQuery.isLoading && visibleDrafts.length === 0 && transcriptInbox.length === 0 ? (
-        <div className="mt-8 rounded-3xl border border-slate-200 bg-white px-7 py-8 text-[15px] text-slate-500 shadow-sm">
+        <div className="mt-5 rounded-[22px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.82))] px-5 py-6 text-[14px] text-[var(--gc-ink-soft)] shadow-[var(--gc-shadow)]">
           No queued drafts are waiting right now.
         </div>
       ) : null}
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_360px]">
+      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.75fr)_320px]">
         <section className="space-y-4">
           {visibleDrafts.map(({ draft, group }) => {
             const isOpen = openDraftId === draft.id;
@@ -794,40 +794,40 @@ export function QueuePage() {
             const isOpenItemActionDraft = Boolean(sourceOpenItem && (sourceOpenItem.type === "CO" || sourceOpenItem.type === "approval"));
 
             return (
-              <article key={draft.id} className={`rounded-[28px] border bg-white shadow-sm transition ${isOpen ? "border-[#2453d4] ring-4 ring-blue-100" : "border-slate-200"} ${exitingDrafts[draft.id] ? "opacity-60" : "opacity-100"}`}>
+              <article key={draft.id} className={`rounded-[22px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.84))] shadow-[var(--gc-shadow)] transition ${isOpen ? "border-[#2453d4] ring-4 ring-blue-100" : "border-[var(--gc-line)]"} ${exitingDrafts[draft.id] ? "opacity-60" : "opacity-100"}`}>
                 <button
                   type="button"
-                  className="block w-full rounded-[28px] px-7 py-7 text-left"
+                  className="block w-full rounded-[22px] px-5 py-5 text-left"
                   onClick={() => setOpenDraftId((current) => (current === draft.id ? null : draft.id))}
                 >
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[20px] font-semibold text-slate-950">{transcriptHeadline(draft)}</span>
-                        <span className="inline-flex rounded-xl border border-slate-200 bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">{jobLabel}</span>
-                        <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${draftTone(draft.type, sourceOpenItem)}`}>
+                        <span className="text-[17px] font-semibold text-[var(--gc-ink)]">{transcriptHeadline(draft)}</span>
+                        <span className="inline-flex rounded-xl border border-[var(--gc-line)] bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--gc-ink-soft)]">{jobLabel}</span>
+                        <span className={`inline-flex rounded-xl px-2.5 py-1 text-[11px] font-semibold ${draftTone(draft.type, sourceOpenItem)}`}>
                           {draftTypeLabel(draft, sourceOpenItem)}
                         </span>
                         {sourceOpenItem?.financial_exposure ? (
-                          <span className="inline-flex rounded-xl border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-600">
+                          <span className="inline-flex rounded-xl border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-600">
                             Money at risk
                           </span>
                         ) : null}
                         {sourceOpenItem?.action_stage_label ? (
-                          <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${actionStageTone(sourceOpenItem.action_stage)}`}>
+                          <span className={`inline-flex rounded-xl px-2.5 py-1 text-[11px] font-semibold ${actionStageTone(sourceOpenItem.action_stage)}`}>
                             {sourceOpenItem.action_stage_label}
                           </span>
                         ) : null}
                         {isTranscriptDraft ? (
                           <>
-                            <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${transcriptUrgencyTone(transcript?.urgency)}`}>
+                            <span className={`inline-flex rounded-xl px-2.5 py-1 text-[11px] font-semibold ${transcriptUrgencyTone(transcript?.urgency)}`}>
                               {transcript?.urgency ?? "normal"}
                             </span>
-                            <span className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600">
+                            <span className="inline-flex rounded-xl border border-[var(--gc-line)] bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--gc-ink-soft)]">
                               {classificationLabel(transcript?.classification)}
                             </span>
                             {transcript?.linked_quote_id ? (
-                              <span className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-semibold text-[#2453d4]">
+                              <span className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#2453d4]">
                                 {transcript.linked_quote_id}
                               </span>
                             ) : null}
@@ -835,10 +835,10 @@ export function QueuePage() {
                         ) : null}
                       </div>
 
-                      <p className="mt-4 text-[17px] leading-8 text-slate-900">
+                      <p className="mt-3 text-[15px] leading-7 text-[var(--gc-ink)]">
                         {isTranscriptDraft ? transcriptSummary(draft) : isOpenItemActionDraft ? sourceOpenItem?.description || draft.why : draft.why}
                       </p>
-                      <p className="mt-3 text-[15px] leading-7 text-slate-500">
+                      <p className="mt-2 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
                         {isTranscriptDraft
                           ? transcriptActionLabel(draft)
                           : isOpenItemActionDraft
@@ -859,15 +859,15 @@ export function QueuePage() {
                       ) : null}
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-right shadow-sm">
-                      <div className="text-[28px] font-bold tracking-[-0.04em] text-slate-950">{isTranscriptDraft ? confidenceLabel(transcript?.confidence) : formatCreatedAt(draft.created_at)}</div>
-                      <span className={`mt-2 inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${statusTone(draft.status)}`}>{draft.status}</span>
+                    <div className="rounded-[16px] border border-[var(--gc-line)] bg-white px-4 py-3 text-right shadow-sm">
+                      <div className="text-[22px] font-bold tracking-[-0.04em] text-[var(--gc-ink)]">{isTranscriptDraft ? confidenceLabel(transcript?.confidence) : formatCreatedAt(draft.created_at)}</div>
+                      <span className={`mt-2 inline-flex rounded-xl px-2.5 py-1 text-[11px] font-semibold ${statusTone(draft.status)}`}>{draft.status}</span>
                     </div>
                   </div>
                 </button>
 
                 {isOpen ? (
-                  <div className="border-t border-slate-200 px-7 py-6">
+                  <div className="border-t border-[var(--gc-line)] px-5 py-5">
                     {isTranscriptDraft ? (
                       <>
                         {transcript?.recommended_actions?.length ? (
@@ -881,7 +881,7 @@ export function QueuePage() {
                         ) : null}
 
                         {transcript?.risk_flags?.length ? (
-                          <div className="mb-5 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-[15px] text-orange-700">
+                          <div className="mb-4 rounded-[16px] border border-orange-200 bg-orange-50 px-4 py-3 text-[13px] text-orange-700">
                             {transcript.risk_flags[0]}
                           </div>
                         ) : null}
@@ -958,7 +958,7 @@ export function QueuePage() {
                     ) : (
                       <>
                         {isOpenItemActionDraft ? (
-                          <div className="mb-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                          <div className="mb-4 rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.62)] p-4">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${draftTone(draft.type, sourceOpenItem)}`}>
                                 {draftTypeLabel(draft, sourceOpenItem)}
@@ -979,7 +979,7 @@ export function QueuePage() {
                           </div>
                         ) : null}
 
-                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.62)] p-4">
                           <label className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500" htmlFor={`draft-content-${draft.id}`}>
                             Draft content
                           </label>
@@ -1032,12 +1032,12 @@ export function QueuePage() {
         </section>
 
         <aside className="space-y-6">
-          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+          <section className="rounded-[22px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.84))] p-5 shadow-[var(--gc-shadow)]">
+            <div className="flex items-center gap-3 text-[15px] font-semibold text-[var(--gc-ink)]">
               <ClipboardList className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
               <span>How to work this queue</span>
             </div>
-            <div className="mt-6 space-y-5 text-[15px] leading-7 text-slate-500">
+            <div className="mt-4 space-y-4 text-[13px] leading-6 text-[var(--gc-ink-soft)]">
               <div>
                 <div className="font-semibold text-slate-900">Start with what changed</div>
                 <div className="mt-1">Every item leads with the summary so you can decide what needs office action before opening the full detail.</div>
@@ -1053,23 +1053,23 @@ export function QueuePage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+          <section className="rounded-[22px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,255,0.84))] p-5 shadow-[var(--gc-shadow)]">
+            <div className="flex items-center gap-3 text-[15px] font-semibold text-[var(--gc-ink)]">
               <Sparkles className="h-5 w-5 text-emerald-600" aria-hidden="true" />
               <span>Jobs in motion</span>
             </div>
-            <div className="mt-6 space-y-4">
+            <div className="mt-4 space-y-3">
               {jobs.slice(0, 4).map((job) => (
                 <Link
                   key={job.id}
                   to={`/jobs/${job.id}`}
-                  className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-inherit no-underline transition hover:bg-white"
+                  className="flex items-start justify-between gap-4 rounded-[16px] border border-[var(--gc-line)] bg-white/72 px-4 py-3 text-inherit no-underline transition hover:bg-white"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-[16px] font-semibold text-slate-950">{job.name}</div>
-                    <div className="mt-1 text-sm text-slate-500">{job.type} Â· {job.contract_type}</div>
+                    <div className="truncate text-[14px] font-semibold text-[var(--gc-ink)]">{job.name}</div>
+                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">{job.type} · {job.contract_type}</div>
                   </div>
-                  <span className="text-sm font-medium text-slate-400">{job.status}</span>
+                  <span className="text-[11px] font-medium text-[var(--gc-ink-muted)]">{job.status}</span>
                 </Link>
               ))}
               {jobs.length === 0 ? (
@@ -1078,7 +1078,7 @@ export function QueuePage() {
                 </div>
               ) : null}
             </div>
-            <Link to="/jobs" className="mt-5 inline-flex items-center gap-2 text-[15px] font-medium text-slate-500 no-underline hover:text-slate-900">
+            <Link to="/jobs" className="mt-4 inline-flex items-center gap-2 text-[13px] font-medium text-[var(--gc-ink-soft)] no-underline hover:text-[var(--gc-ink)]">
               Open jobs board
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
@@ -1100,4 +1100,5 @@ export function QueuePage() {
     </div>
   );
 }
+
 

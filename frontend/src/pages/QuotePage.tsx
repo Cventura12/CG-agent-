@@ -1158,15 +1158,15 @@ export function QuotePage() {
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
-        <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
+      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
+        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-[52rem]">
             <div className="gc-overline">Communication to quote</div>
             <div className="gc-page-title mt-3">New Quote</div>
             <div className="gc-page-copy mt-4 max-w-[44rem]">
               Turn calls, notes, and field detail into a reviewable draft, then move it through send and customer follow-through without losing context.
             </div>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <span className="gc-micro-pill">
                 {apiReady ? "Public quote runtime connected" : "API credentials required"}
               </span>
@@ -1178,7 +1178,7 @@ export function QuotePage() {
           <div className="gc-hero-actions">
             <button
               type="button"
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => void syncQueuedNotes()}
               disabled={
                 !apiReady ||
@@ -1220,18 +1220,18 @@ export function QuotePage() {
       <div className="tcol" style={{ marginTop: 20 }}>
         <div className="vs">
           {phase === "input" ? (
-            <div className="overflow-hidden rounded-[30px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.86))] shadow-[var(--gc-shadow)] backdrop-blur-[18px]">
-              <div className="border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(49,95,255,0.08),transparent_45%),rgba(255,255,255,0.56)] px-7 py-6">
-                <div className="text-[18px] font-semibold text-[var(--gc-ink)]">Input context</div>
-                <div className="mt-2 text-[15px] leading-7 text-[var(--gc-ink-soft)]">Capture what happened, tighten the request, and only then draft the quote.</div>
+            <div className="overflow-hidden rounded-[24px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.86))] shadow-[var(--gc-shadow)] backdrop-blur-[18px]">
+              <div className="border-b border-[var(--gc-line)] bg-[linear-gradient(135deg,rgba(49,95,255,0.08),transparent_45%),rgba(255,255,255,0.56)] px-5 py-4">
+                <div className="text-[15px] font-semibold text-[var(--gc-ink)]">Input context</div>
+                <div className="mt-1.5 text-[13px] leading-6 text-[var(--gc-ink-soft)]">Capture what happened, tighten the request, and only then draft the quote.</div>
               </div>
 
-              <div className="px-7 py-7">
-                <div className="mb-5 flex items-center justify-between gap-4 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(49,95,255,0.06)] px-4 py-3">
+              <div className="px-5 py-5">
+                <div className="mb-4 flex items-center justify-between gap-4 rounded-[18px] border border-[var(--gc-line)] bg-[rgba(49,95,255,0.06)] px-4 py-3">
                   <div>
                     <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--gc-ink-muted)]">Estimate readiness</div>
-                    <div className="mt-1 text-[15px] font-semibold text-[var(--gc-ink)]">{readinessHeadline}</div>
-                    <div className="mt-1 text-sm text-[var(--gc-ink-soft)]">{readinessDetail}</div>
+                    <div className="mt-1 text-[14px] font-semibold text-[var(--gc-ink)]">{readinessHeadline}</div>
+                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">{readinessDetail}</div>
                   </div>
                   <span className={`gc-chip ${isOnline ? "info" : "warn"}`}>{isOnline ? "Live" : "Offline cache"}</span>
                 </div>
@@ -1314,8 +1314,8 @@ export function QuotePage() {
                   isBusy={quoteMutation.isPending || isQueueSyncing}
                 />
 
-                <div className="mt-6 rounded-2xl bg-slate-50 p-5">
-                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">What helps this estimate</div>
+                <div className="mt-4 rounded-[18px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.62)] p-4">
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--gc-ink-muted)]">What sharpens the draft</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {preflightChecklist.map((item) => (
                       <span key={`preflight-${item}`} className="tag ts">

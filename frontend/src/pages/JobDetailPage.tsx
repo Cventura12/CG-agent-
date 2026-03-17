@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { Activity, ArrowLeft, Clock3, FileText, History, MessageSquareMore, Phone, Sparkles } from "lucide-react";
@@ -403,7 +403,7 @@ export function JobDetailPage() {
 
   return (
     <div className="pw gc-page">
-      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
+      <section className="gc-page-header gc-fade-up rounded-[28px] px-5 py-6 sm:px-7 sm:py-7">
         <div className="relative z-10 flex flex-col gap-6">
           <Link
             to="/jobs"
@@ -833,4 +833,5 @@ export function JobDetailPage() {
     </div>
   );
 }
+
 
