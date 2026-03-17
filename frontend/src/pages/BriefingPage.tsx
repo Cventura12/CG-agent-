@@ -206,6 +206,16 @@ export function BriefingPage() {
       .sort((left, right) => new Date(right.last_updated).getTime() - new Date(left.last_updated).getTime())
       .slice(0, 4);
   }, [jobs]);
+  const briefingHeadline =
+    attentionItems.length === 0
+      ? "Nothing needs you right now"
+      : attentionItems.length === 1
+        ? "One thing needs you now"
+        : `${attentionItems.length} things need you now`;
+  const briefingSubcopy =
+    attentionItems.length === 0
+      ? "The agent is watching calls, jobs, and follow-through. When work slips, it will surface here first."
+      : "The agent already pulled the highest-signal work to the top. Clear the stack before you drop into browsing.";
 
   return (
     <div className="pw gc-page">
@@ -214,9 +224,9 @@ export function BriefingPage() {
           <div className="gc-command-body flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-[44rem]">
               <div className="gc-overline">Today / command surface</div>
-              <div className="mt-2 text-[40px] font-semibold tracking-[-0.07em] text-white">Morning Briefing</div>
+              <div className="mt-2 text-[40px] font-semibold tracking-[-0.07em] text-white">{briefingHeadline}</div>
               <div className="mt-3 max-w-[38rem] text-[14px] leading-7 text-white/62">
-                Start where money, calls, and follow-through are most likely to slip. This page is for triage first, browsing second.
+                {briefingSubcopy}
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="gc-hero-status">{isOnline ? "Queue and job signals live" : "Offline cache active"}</span>
@@ -234,7 +244,7 @@ export function BriefingPage() {
               </Link>
               <Link
                 to="/quote"
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#ff9e6f]/20 bg-[linear-gradient(135deg,#ff9158,#e8622a)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(232,98,42,0.24)] transition hover:brightness-105"
               >
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
                 <span>Create quote</span>

@@ -501,6 +501,12 @@ export function QueuePage() {
       (discardMutation.isPending && discardMutation.variables?.draftId === draftId)
     );
   };
+  const queueHeadline =
+    pendingCount === 0 ? "Nothing is waiting on the office" : `${pendingCount} item${pendingCount === 1 ? "" : "s"} surfaced for review`;
+  const queueSubcopy =
+    pendingCount === 0
+      ? "The agent is watching calls, changes, approvals, and follow-through. It will interrupt you here when something actually needs a decision."
+      : "Calls, unresolved changes, approvals, and follow-through drafts are stacked here in the order the office should clear them.";
 
   return (
     <div className="pw gc-page">
@@ -509,9 +515,9 @@ export function QueuePage() {
           <div className="gc-command-body flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-[44rem]">
               <div className="gc-overline">Office review surface</div>
-              <div className="mt-2 text-[40px] font-semibold tracking-[-0.07em] text-white">Queue</div>
+              <div className="mt-2 text-[40px] font-semibold tracking-[-0.07em] text-white">{queueHeadline}</div>
               <div className="mt-3 max-w-[38rem] text-[14px] leading-7 text-white/62">
-                Review calls, change drafts, approvals, and follow-through before they disappear between the field and the office.
+                {queueSubcopy}
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="gc-hero-status">
@@ -538,7 +544,7 @@ export function QueuePage() {
               ) : null}
               <Link
                 to="/quote"
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#ff9e6f]/20 bg-[linear-gradient(135deg,#ff9158,#e8622a)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(232,98,42,0.24)] transition hover:brightness-105"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 <span>New Quote</span>
