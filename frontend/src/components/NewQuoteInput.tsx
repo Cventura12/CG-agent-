@@ -107,16 +107,18 @@ export function NewQuoteInput({
     () =>
       isDarkPopoverTheme
         ? {
-            backgroundColor: "#0f172a",
-            borderColor: "rgba(148, 163, 184, 0.25)",
-            boxShadow: "0 18px 48px rgba(2, 6, 23, 0.45)",
-            color: "#e2e8f0",
+            background:
+              "linear-gradient(180deg, rgba(12,18,34,0.98), rgba(15,24,43,0.96))",
+            borderColor: "rgba(255,255,255,0.08)",
+            boxShadow: "0 24px 54px rgba(3, 7, 18, 0.42)",
+            color: "#f5f8ff",
           }
         : {
-            backgroundColor: "#0f172a",
-            borderColor: "rgba(148, 163, 184, 0.18)",
-            boxShadow: "0 18px 48px rgba(15, 23, 42, 0.18)",
-            color: "#f8fafc",
+            background:
+              "linear-gradient(180deg, rgba(12,18,34,0.98), rgba(15,24,43,0.96))",
+            borderColor: "rgba(255,255,255,0.08)",
+            boxShadow: "0 24px 54px rgba(6, 12, 26, 0.26)",
+            color: "#f5f8ff",
           },
     [isDarkPopoverTheme]
   );
@@ -171,25 +173,25 @@ export function NewQuoteInput({
         : "Files or photos";
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-[30px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.86))] shadow-[var(--gc-shadow)] backdrop-blur-[18px]">
       {activeMode ? (
-        <div className="border-b border-slate-200 px-6 py-5">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
+        <div className="border-b border-[var(--gc-line)] px-6 py-5">
+          <div className="rounded-[24px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5 shadow-[0_12px_28px_rgba(15,22,38,0.06)]">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <div className="text-[15px] font-semibold text-slate-950">{slotTitle}</div>
-                <div className="mt-1 text-sm text-slate-500">
+                <div className="text-[15px] font-semibold text-[var(--gc-ink)]">{slotTitle}</div>
+                <div className="mt-1 text-sm leading-6 text-[var(--gc-ink-soft)]">
                   {activeMode === "voice"
-                    ? "Capture a voice note, then keep editing the draft below before you generate the quote."
+                    ? "Capture a voice note, then keep shaping the draft below before you generate the quote."
                     : activeMode === "pdf"
-                      ? "Attach a PDF scope sheet and keep typing any missing scope details below."
-                      : "Attach a photo or image file and keep typing any field notes below."}
+                      ? "Attach a scope PDF, then keep writing missing field context below."
+                      : "Attach a photo or file, then keep writing the job request below."}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={dismissAttachment}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--gc-line)] bg-white/80 text-[var(--gc-ink-soft)] transition hover:border-[var(--gc-line-strong)] hover:text-[var(--gc-ink)]"
                 aria-label={`Dismiss ${slotTitle.toLowerCase()}`}
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -197,7 +199,7 @@ export function NewQuoteInput({
             </div>
 
             {activeMode === "voice" ? (
-              <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center">
+              <div className="flex flex-col items-center rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(241,245,255,0.72))] px-5 py-8 text-center">
                 <button
                   type="button"
                   onPointerDown={onBeginRecording}
@@ -205,7 +207,7 @@ export function NewQuoteInput({
                   onPointerLeave={onStopRecording}
                   onPointerCancel={onStopRecording}
                   disabled={!voiceSupported || isBusy}
-                  className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#2453d4] text-white transition hover:bg-[#1f46b3] disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-[#5f81ff]/24 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-white shadow-[0_18px_34px_rgba(49,95,255,0.28)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ touchAction: "none" }}
                 >
                   {isRecording ? (
@@ -214,15 +216,13 @@ export function NewQuoteInput({
                     <Mic className="h-6 w-6" aria-hidden="true" />
                   )}
                 </button>
-                <div className="text-[15px] font-semibold text-slate-950">
+                <div className="text-[15px] font-semibold text-[var(--gc-ink)]">
                   {isRecording ? "Recording now" : "Hold to record"}
                 </div>
-                <div className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-                  {helperText}
-                </div>
+                <div className="mt-2 max-w-xl text-sm leading-6 text-[var(--gc-ink-soft)]">{helperText}</div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-5">
+              <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(241,245,255,0.72))] px-5 py-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
@@ -252,7 +252,7 @@ export function NewQuoteInput({
                     </button>
                   ) : null}
                 </div>
-                <div className="mt-4 text-sm text-slate-500">
+                <div className="mt-4 text-sm text-[var(--gc-ink-soft)]">
                   {selectedUploadFile
                     ? `Attached: ${selectedUploadFile.name}`
                     : activeMode === "pdf"
@@ -279,13 +279,13 @@ export function NewQuoteInput({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gc-line)] px-6 py-4">
         <div className="relative flex items-center gap-3">
           <button
             ref={triggerRef}
             type="button"
             onClick={() => setIsMenuOpen((current) => !current)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-950"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--gc-line-strong)] bg-white/78 text-[var(--gc-ink-soft)] transition hover:border-[rgba(49,95,255,0.22)] hover:bg-white hover:text-[var(--gc-ink)]"
             aria-label="Add input"
             aria-expanded={isMenuOpen}
             aria-haspopup="menu"
@@ -293,19 +293,19 @@ export function NewQuoteInput({
             <Plus className="h-4 w-4" aria-hidden="true" />
           </button>
 
-          <span className="tag ts">{readinessLabel}</span>
+          <span className="gc-chip soft">{readinessLabel}</span>
 
           {isMenuOpen ? (
             <div
               ref={menuRef}
               role="menu"
-              className="absolute bottom-[calc(100%+12px)] left-0 z-20 min-w-[240px] overflow-hidden rounded-2xl border p-2"
+              className="absolute bottom-[calc(100%+12px)] left-0 z-20 min-w-[240px] overflow-hidden rounded-[20px] border p-2"
               style={popoverStyle}
             >
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-white/10"
+                className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-sm transition hover:bg-white/10"
                 onClick={openPhotoChooser}
               >
                 <Paperclip className="h-4 w-4" aria-hidden="true" />
@@ -314,7 +314,7 @@ export function NewQuoteInput({
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-white/10"
+                className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-sm transition hover:bg-white/10"
                 onClick={openVoiceMode}
               >
                 <Mic className="h-4 w-4" aria-hidden="true" />
@@ -323,7 +323,7 @@ export function NewQuoteInput({
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-white/10"
+                className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-sm transition hover:bg-white/10"
                 onClick={openPdfChooser}
               >
                 <FileText className="h-4 w-4" aria-hidden="true" />

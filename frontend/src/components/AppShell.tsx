@@ -1,4 +1,4 @@
-﻿import { useClerk, useUser } from "@clerk/clerk-react";
+import { useClerk, useUser } from "@clerk/clerk-react";
 import {
   Bell,
   BriefcaseBusiness,
@@ -9,6 +9,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Workflow,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -34,7 +35,7 @@ function initialsFromName(value: string): string {
 }
 
 function navIcon(href: string) {
-  const className = "h-5 w-5";
+  const className = "h-[18px] w-[18px]";
 
   switch (href) {
     case "/":
@@ -62,8 +63,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [searchValue, setSearchValue] = useState("");
 
   const groupedNav = useMemo(() => {
-    return ["Operations", "Field"].map((section) => ({
-      section,
+    return [
+      { label: "Workflow", section: "Operations" as const },
+      { label: "Reporting", section: "Field" as const },
+    ].map(({ label, section }) => ({
+      label,
       items: APP_NAV_ITEMS.filter((item) => item.section === section),
     }));
   }, []);
@@ -78,107 +82,152 @@ export function AppShell({ children }: { children: ReactNode }) {
   const operatorInitials = initialsFromName(operatorName);
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-slate-900">
+    <div className="min-h-screen bg-transparent text-slate-950">
       <div className="flex min-h-screen">
-        <aside className="hidden w-[316px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
-          <div className="border-b border-slate-200 px-7 py-6">
-            <Link to="/" className="text-[26px] font-bold tracking-[-0.04em] text-[#2453d4] no-underline">
-              GC Agent
+        <aside className="hidden w-[288px] shrink-0 flex-col border-r border-white/10 bg-[linear-gradient(180deg,#09111f_0%,#10182c_48%,#141f37_100%)] text-white shadow-[24px_0_80px_rgba(5,9,19,0.28)] lg:flex">
+          <div className="border-b border-white/10 px-6 py-6">
+            <Link to="/" className="flex items-center gap-3 no-underline">
+              <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] shadow-[0_14px_34px_rgba(49,95,255,0.35)]">
+                <Workflow className="h-5 w-5 text-white" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="text-[18px] font-semibold tracking-[-0.04em] text-white">GC Agent</div>
+                <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.22em] text-white/45">
+                  Execution Control
+                </div>
+              </div>
             </Link>
           </div>
 
           <div className="px-4 pt-5">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-              <input
-                type="search"
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-                placeholder="Search jobs, quotes..."
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-[15px] text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
-              />
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
+                  placeholder="Find jobs, quotes, calls"
+                  className="h-11 w-full rounded-[16px] border border-transparent bg-transparent pl-11 pr-4 text-[14px] text-white/85 outline-none placeholder:text-white/28 focus:border-white/10 focus:bg-white/[0.03]"
+                />
+              </div>
             </div>
           </div>
 
           <nav className="flex-1 px-4 py-6">
-            <div className="space-y-1">
-              {groupedNav.flatMap((group) => group.items).map((item) => {
-                const isActive = item.match(location.pathname);
-                const badge = item.href === "/queue" && queueCount > 0 ? queueCount : item.badge;
+            <div className="space-y-6">
+              {groupedNav.map((group) => (
+                <div key={group.label} className="space-y-2">
+                  <div className="px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-white/32">
+                    {group.label}
+                  </div>
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
+                      const isActive = item.match(location.pathname);
+                      const badge = item.href === "/queue" && queueCount > 0 ? queueCount : item.badge;
 
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-semibold no-underline transition ${
-                      isActive
-                        ? "bg-[#2453d4] text-white shadow-[0_8px_18px_rgba(37,83,212,0.22)]"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <span className={`${isActive ? "text-white" : "text-slate-500"}`}>{navIcon(item.href)}</span>
-                    <span>{item.label}</span>
-                    {badge ? (
-                      <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-bold ${isActive ? "bg-white/20 text-white" : "bg-orange-100 text-orange-600"}`}>
-                        {badge}
-                      </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
+                      return (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          className={`group block rounded-[18px] border px-3 py-3 no-underline transition ${
+                            isActive
+                              ? "border-white/10 bg-white/[0.08] shadow-[0_14px_34px_rgba(3,7,18,0.28)]"
+                              : "border-transparent hover:border-white/8 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`flex h-10 w-10 items-center justify-center rounded-[14px] border ${
+                                isActive
+                                  ? "border-white/12 bg-[linear-gradient(135deg,rgba(95,129,255,0.28),rgba(47,93,255,0.12))] text-white"
+                                  : "border-white/6 bg-white/[0.03] text-white/52 group-hover:text-white/82"
+                              }`}
+                            >
+                              {navIcon(item.href)}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className={`text-[14px] font-semibold ${isActive ? "text-white" : "text-white/72"}`}>
+                                {item.label}
+                              </div>
+                              <div className="mt-0.5 text-[12px] leading-5 text-white/34">{item.description}</div>
+                            </div>
+                            {badge ? (
+                              <span className="rounded-full border border-orange-300/18 bg-orange-400/12 px-2 py-1 font-mono text-[10px] text-orange-200">
+                                {badge}
+                              </span>
+                            ) : null}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </nav>
 
-          <div className="mt-auto border-t border-slate-200 px-4 py-5">
+          <div className="mt-auto border-t border-white/10 px-4 py-5">
             <button
               type="button"
-              className="mb-5 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+              className="mb-4 flex w-full items-center gap-3 rounded-[18px] border border-transparent px-3 py-3 text-left text-[14px] font-medium text-white/60 transition hover:border-white/8 hover:bg-white/[0.04] hover:text-white"
             >
-              <Settings className="h-5 w-5 text-slate-500" aria-hidden="true" />
+              <Settings className="h-[18px] w-[18px]" aria-hidden="true" />
               <span>Settings</span>
             </button>
 
             <button
               type="button"
-              className="flex w-full items-center gap-3 rounded-xl text-left"
+              className="flex w-full items-center gap-3 rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-3 text-left transition hover:bg-white/[0.07]"
               onClick={() => {
                 if (!bypassAuth) {
                   void signOut({ redirectUrl: "/onboarding" });
                 }
               }}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-[#2453d4]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-[14px] font-bold text-white shadow-[0_12px_28px_rgba(49,95,255,0.28)]">
                 {operatorInitials}
               </div>
-              <div>
-                <div className="text-[15px] font-semibold text-slate-900">{operatorName}</div>
-                <div className="text-sm text-slate-500">{operatorCompany}</div>
+              <div className="min-w-0">
+                <div className="truncate text-[14px] font-semibold text-white">{operatorName}</div>
+                <div className="mt-0.5 truncate text-[12px] text-white/44">{operatorCompany}</div>
               </div>
             </button>
           </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-20 items-center justify-end border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-4">
+          <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-white/10 bg-[rgba(7,11,20,0.78)] px-4 backdrop-blur-[18px] sm:px-6 lg:px-8">
+            <div className="hidden items-center gap-3 md:flex">
+              <span className="gc-hero-status">Agent watching queue and follow-through</span>
+              <span className="gc-micro-pill">{queueCount > 0 ? `${queueCount} items waiting` : "Queue under control"}</span>
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <Link
+                to="/queue"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 text-[12px] font-semibold text-white/82 no-underline transition hover:border-white/20 hover:bg-white/[0.08]"
+              >
+                <ClipboardList className="h-4 w-4" aria-hidden="true" />
+                <span>Open Queue</span>
+              </Link>
               <Link
                 to="/quote"
-                className="inline-flex h-10 items-center gap-2.5 rounded-xl border border-slate-900 bg-white px-4 text-[14px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_16px_34px_rgba(49,95,255,0.28)] transition hover:brightness-105"
               >
-                <FileText className="h-5 w-5" aria-hidden="true" />
-                <span>Quick Quote</span>
+                <FileText className="h-4 w-4" aria-hidden="true" />
+                <span>New Quote</span>
               </Link>
               <button
                 type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-transparent bg-white text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/72 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
                 aria-label="Notifications"
               >
-                <Bell className="h-5 w-5" aria-hidden="true" />
+                <Bell className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </header>
 
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#f4f7fb]">{children}</main>
+          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
         </div>
       </div>
 
@@ -186,4 +235,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

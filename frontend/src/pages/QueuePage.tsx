@@ -472,72 +472,78 @@ export function QueuePage() {
   };
 
   return (
-    <div className="pw">
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Queue</h1>
-          <p className="mt-3 text-[18px] text-slate-500">
-            Turn calls, updates, and draft work into reviewed next steps before they slip.
-          </p>
-          <p className="mt-2 text-sm font-medium text-slate-400">
-            {pendingCount} items waiting · {isOnline ? "Live runtime" : "Offline cache"}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {pendingCount > 1 ? (
-            <button
-              type="button"
-              className="inline-flex h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              onClick={() => approveAllMutation.mutate()}
-              disabled={approveAllMutation.isPending}
+    <div className="pw gc-page">
+      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
+        <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-[52rem]">
+            <div className="gc-overline">Review runtime</div>
+            <h1 className="gc-page-title mt-3">Queue</h1>
+            <p className="gc-page-copy mt-4 max-w-[44rem]">
+              Turn calls, updates, change drafts, and unresolved work into reviewed next steps before they die between field and office.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <span className="gc-micro-pill">{pendingCount} items waiting</span>
+              <span className="gc-micro-pill">{isOnline ? "Live runtime connected" : "Offline cache active"}</span>
+            </div>
+          </div>
+          <div className="gc-hero-actions">
+            {pendingCount > 1 ? (
+              <button
+                type="button"
+                className="inline-flex h-11 items-center rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => approveAllMutation.mutate()}
+                disabled={approveAllMutation.isPending}
+              >
+                {approveAllMutation.isPending ? "Approving..." : "Approve all"}
+              </button>
+            ) : null}
+            <Link
+              to="/quote"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-5 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
             >
-              {approveAllMutation.isPending ? "Approving..." : "Approve all"}
-            </button>
-          ) : null}
-          <Link
-            to="/quote"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#2453d4] px-5 text-[15px] font-semibold text-white no-underline shadow-[0_8px_18px_rgba(37,83,212,0.18)] transition hover:bg-[#1f46b3]"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            <span>New Quote</span>
-          </Link>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              <span>New Quote</span>
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-5 md:grid-cols-4">
+      <div className="mt-5 grid gap-5 md:grid-cols-4">
         {[
           {
             label: "Needs review",
             value: pendingCount,
             detail: pendingCount > 0 ? "Action needed" : "Queue clear",
-            accent: "text-orange-500",
+            tone: pendingCount > 0 ? "warn" : "ok",
+            hintClass: pendingCount > 0 ? "warn" : "ok",
           },
           {
             label: "Unlinked calls",
             value: transcriptInbox.length,
             detail: transcriptInbox.length > 0 ? "Needs routing" : "No unlinked calls",
-            accent: "text-slate-500",
+            tone: transcriptInbox.length > 0 ? "warn" : "neutral",
+            hintClass: transcriptInbox.length > 0 ? "warn" : "",
           },
           {
             label: "Tracked next steps",
             value: queueGroups.reduce((sum, group) => sum + group.drafts.length, 0),
             detail: queueGroups.length > 0 ? "Grouped by active job" : "No job drafts",
-            accent: "text-slate-500",
+            tone: "neutral",
+            hintClass: "",
           },
           {
             label: "Jobs in motion",
             value: jobs.filter((job) => job.status !== "complete").length,
             detail: jobs.length > 0 ? "Live contractor workload" : "No jobs found",
-            accent: "text-slate-500",
+            tone: "neutral",
+            hintClass: "",
           },
-        ].map((card) => (
-          <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-            <div className="text-[15px] font-medium text-slate-500">{card.label}</div>
-            <div className="mt-5 flex items-end gap-3">
-              <div className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">{card.value}</div>
-              <div className={`mb-2 text-[15px] font-medium ${card.accent}`}>{card.detail}</div>
-            </div>
-          </div>
+        ].map((card, index) => (
+          <article key={card.label} className={`gc-kpi-card gc-fade-up gc-delay-${Math.min(index + 1, 4)} ${card.tone}`}>
+            <div className="gc-kpi-label">{card.label}</div>
+            <div className="gc-kpi-value">{card.value}</div>
+            <div className={`gc-kpi-hint ${card.hintClass}`}>{card.detail}</div>
+          </article>
         ))}
       </div>
 
@@ -549,22 +555,20 @@ export function QueuePage() {
               key={group.job_id ?? "all"}
               type="button"
               onClick={() => setSelectedJobId(group.job_id)}
-              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-semibold transition ${
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[12px] font-semibold transition ${
                 isActive
-                  ? "border-[#2453d4] bg-[#2453d4] text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                  ? "border-[#315fff]/18 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] text-white shadow-[0_16px_30px_rgba(49,95,255,0.24)]"
+                  : "border-[var(--gc-line)] bg-white/72 text-[var(--gc-ink-soft)] hover:border-[var(--gc-line-strong)] hover:bg-white"
               }`}
             >
               <span>{group.job_name}</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-[rgba(49,95,255,0.08)] text-[#214be0]"}`}>
                 {group.count}
               </span>
             </button>
           );
         })}
-      </div>
-
-      {errorMessage ? (
+      </div>{errorMessage ? (
         <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[15px] text-orange-700">
           {errorMessage}
         </div>
@@ -1096,3 +1100,4 @@ export function QueuePage() {
     </div>
   );
 }
+

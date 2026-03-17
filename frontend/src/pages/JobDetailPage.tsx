@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { Activity, ArrowLeft, Clock3, FileText, History, MessageSquareMore, Phone, Sparkles } from "lucide-react";
@@ -394,35 +394,43 @@ export function JobDetailPage() {
   const followupChip = followupTag(followupState?.status);
 
   if (detailQuery.isLoading) {
-    return <div className="pw"><div className="rounded-3xl border border-slate-200 bg-white px-8 py-10 text-[15px] text-slate-500 shadow-sm">Loading job details...</div></div>;
+    return <div className="pw gc-page"><div className="rounded-[30px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,248,255,0.82))] px-8 py-10 text-[15px] text-[var(--gc-ink-soft)] shadow-[var(--gc-shadow)]">Loading job details...</div></div>;
   }
 
   if (detailQuery.isError || !job) {
-    return <div className="pw"><div className="rounded-3xl border border-slate-200 bg-white px-8 py-10 text-[15px] text-slate-500 shadow-sm">Job detail unavailable. Check backend connectivity and auth.</div></div>;
+    return <div className="pw gc-page"><div className="rounded-[30px] border border-[var(--gc-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,248,255,0.82))] px-8 py-10 text-[15px] text-[var(--gc-ink-soft)] shadow-[var(--gc-shadow)]">Job detail unavailable. Check backend connectivity and auth.</div></div>;
   }
 
   return (
-    <div className="pw">
-      <div className="mb-8 flex flex-col gap-4">
-        <Link
-          to="/jobs"
-          className="inline-flex h-10 w-fit items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-[14px] font-semibold text-slate-700 no-underline transition hover:bg-slate-50"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          <span>Back to Jobs</span>
-        </Link>
+    <div className="pw gc-page">
+      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
+        <div className="relative z-10 flex flex-col gap-6">
+          <Link
+            to="/jobs"
+            className="inline-flex h-10 w-fit items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white no-underline transition hover:bg-white/[0.1]"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            <span>Back to Jobs</span>
+          </Link>
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-[48px] font-bold tracking-[-0.05em] text-slate-950">{job.name}</h1>
-            <p className="mt-3 text-[18px] text-slate-500">{job.address || `${job.type} job record`}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-            <div className="text-sm font-medium uppercase tracking-[0.08em] text-slate-400">Job ID</div>
-            <div className="mt-2 text-[18px] font-semibold text-slate-950">{job.id}</div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-[52rem]">
+              <div className="gc-overline">Job command view</div>
+              <h1 className="gc-page-title mt-3">{job.name}</h1>
+              <p className="gc-page-copy mt-4">{job.address || `${job.type} job record`}</p>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <span className="gc-micro-pill">{job.status}</span>
+                <span className="gc-micro-pill">{unresolvedItems.length} unresolved items</span>
+                {pendingDrafts.length > 0 ? <span className="gc-micro-pill">{pendingDrafts.length} drafts waiting</span> : null}
+              </div>
+            </div>
+            <div className="rounded-[24px] border border-white/12 bg-white/[0.06] px-5 py-4 shadow-[0_18px_36px_rgba(5,9,19,0.2)]">
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/45">Job ID</div>
+              <div className="mt-2 text-[18px] font-semibold text-white">{job.id}</div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {errorMessage ? (
         <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-[15px] text-orange-700">
@@ -435,9 +443,9 @@ export function JobDetailPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <section className="space-y-6">
-          <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+          <article className="gc-stack-card p-7">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <Sparkles className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
               <span>Job overview</span>
@@ -449,19 +457,19 @@ export function JobDetailPage() {
                 ["Contract value", formatCurrency(job.contract_value)],
                 ["Completion target", job.est_completion || "Not set"],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <div key={label} className="rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-4 py-4">
                   <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">{label}</div>
                   <div className="mt-2 text-[17px] font-semibold text-slate-950">{value}</div>
                 </div>
               ))}
             </div>
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+            <div className="mt-6 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
               <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Notes</div>
               <div className="mt-3 text-[15px] leading-7 text-slate-600">{job.notes || "No site notes recorded yet."}</div>
             </div>
           </article>
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+          <article className="gc-stack-card p-7">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
                 <History className="h-5 w-5 text-orange-500" aria-hidden="true" />
@@ -474,7 +482,7 @@ export function JobDetailPage() {
 
             <div className="mt-6 space-y-4">
               {unresolvedItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">
+                <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[rgba(255,255,255,0.48)] px-5 py-6 text-[15px] text-slate-500">
                   No unresolved change or approval items are tracked on this job.
                 </div>
               ) : (
@@ -606,7 +614,7 @@ export function JobDetailPage() {
             </div>
           </article>
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+          <article className="gc-stack-card p-7">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
                 <MessageSquareMore className="h-5 w-5 text-emerald-600" aria-hidden="true" />
@@ -615,7 +623,7 @@ export function JobDetailPage() {
               <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${followupChip.className}`}>{followupChip.label}</span>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+            <div className="mt-5 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
               <div className="text-[18px] font-semibold text-slate-950">{followupHeadline(followupState?.status)}</div>
               <div className="mt-2 text-[15px] leading-7 text-slate-500">{followupReason(followupState?.stop_reason ?? null)}</div>
 
@@ -636,19 +644,19 @@ export function JobDetailPage() {
             </div>
           </article>
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+          <article className="gc-stack-card p-7">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <FileText className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
               <span>Work waiting on review</span>
             </div>
             <div className="mt-6 space-y-4">
               {pendingDrafts.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No review items are waiting on this job.</div>
+                <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[rgba(255,255,255,0.48)] px-5 py-6 text-[15px] text-slate-500">No review items are waiting on this job.</div>
               ) : (
                 pendingDrafts.map((draft) => {
                   const editValue = draftEdits[draft.id] ?? draft.content;
                   return (
-                    <div key={draft.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+                    <div key={draft.id} className="rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="text-[17px] font-semibold text-slate-950">{draft.title || draft.type}</div>
                         <span className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600">{draft.type}</span>
@@ -659,7 +667,7 @@ export function JobDetailPage() {
                       </label>
                       <textarea
                         id={`job-draft-${draft.id}`}
-                        className="mt-3 min-h-[132px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[15px] leading-7 text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                        className="mt-3 min-h-[132px] w-full rounded-[22px] border border-[var(--gc-line)] bg-white/82 px-4 py-3 text-[15px] leading-7 text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
                         value={editValue}
                         onChange={(event) => setDraftEdits((current) => ({ ...current, [draft.id]: event.target.value }))}
                       />
@@ -698,20 +706,20 @@ export function JobDetailPage() {
         </section>
 
         <section className="space-y-6">
-          <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+          <article className="gc-stack-card p-7">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <Phone className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
               <span>Calls &amp; communication</span>
             </div>
             <div className="mt-6 space-y-4">
               {callHistory.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No calls or transcripts are linked to this job yet.</div>
+                <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[rgba(255,255,255,0.48)] px-5 py-6 text-[15px] text-slate-500">No calls or transcripts are linked to this job yet.</div>
               ) : (
                 callHistory.map((entry) => {
                   const isOpen = !!expandedTranscriptIds[entry.id];
                   const duration = formatDuration(entry.duration_seconds);
                   return (
-                    <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+                    <div key={entry.id} className="rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="text-[18px] font-semibold text-slate-950">{transcriptSummary(entry)}</div>
                         <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${transcriptUrgencyTone(entry.urgency)}`}>{entry.urgency || "normal"}</span>
@@ -779,7 +787,7 @@ export function JobDetailPage() {
                       </div>
 
                       {isOpen ? (
-                        <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+                        <div className="mt-5 rounded-[24px] border border-[var(--gc-line)] bg-white/82 p-5">
                           <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Raw transcript</div>
                           <pre className="mt-3 whitespace-pre-wrap font-mono text-[12px] leading-6 text-slate-600">{transcriptRawText(entry)}</pre>
                         </div>
@@ -791,17 +799,17 @@ export function JobDetailPage() {
             </div>
           </article>
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+          <article className="gc-stack-card p-7">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <Activity className="h-5 w-5 text-emerald-600" aria-hidden="true" />
               <span>What changed</span>
             </div>
             <div className="mt-6 space-y-4">
               {auditTimeline.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-[15px] text-slate-500">No job activity recorded yet.</div>
+                <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[rgba(255,255,255,0.48)] px-5 py-6 text-[15px] text-slate-500">No job activity recorded yet.</div>
               ) : (
                 auditTimeline.map((event) => (
-                  <div key={event.id} className="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+                  <div key={event.id} className="flex gap-4 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
                     <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${timelineTone(event.event_type)}`}>
                       {event.event_type.includes("quote") ? <FileText className="h-5 w-5" aria-hidden="true" /> : event.event_type.includes("follow") ? <Sparkles className="h-5 w-5" aria-hidden="true" /> : event.event_type.includes("transcript") ? <Phone className="h-5 w-5" aria-hidden="true" /> : <History className="h-5 w-5" aria-hidden="true" />}
                     </div>
@@ -825,3 +833,4 @@ export function JobDetailPage() {
     </div>
   );
 }
+

@@ -1,6 +1,14 @@
 ﻿import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, MessageSquareWarning } from "lucide-react";
+import {  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  MessageSquareWarning,
+  Orbit,
+  RadioTower,
+  ShieldAlert,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 
@@ -49,11 +57,11 @@ function formatToday(): string {
 }
 
 function openItemStageClass(stage: string | null | undefined): string {
-  if (stage === "approved") return "bg-blue-50 text-[#2453d4]";
-  if (stage === "sent") return "bg-amber-50 text-amber-700";
-  if (stage === "customer-approved") return "bg-emerald-50 text-emerald-700";
-  if (stage === "drafted") return "bg-slate-100 text-slate-600";
-  return "bg-slate-100 text-slate-600";
+  if (stage === "approved") return "gc-chip info";
+  if (stage === "sent") return "gc-chip warn";
+  if (stage === "customer-approved") return "gc-chip success";
+  if (stage === "drafted") return "gc-chip soft";
+  return "gc-chip soft";
 }
 
 function actionFromQueue(group: QueueJobGroup): AttentionItem {
@@ -89,9 +97,7 @@ function actionFromJob(job: Job): AttentionItem {
   const financialItem = job.open_items.find((item) => item.financial_exposure);
   const changeItem = job.open_items.find((item) => item.change_related);
   const prioritizedItem = financialItem || changeItem || job.open_items[0];
-  const note =
-    prioritizedItem?.description ||
-    "Review the latest operational issue on this job.";
+  const note = prioritizedItem?.description || "Review the latest operational issue on this job.";
   if (financialItem) {
     return {
       id: `job-${job.id}`,
@@ -153,6 +159,10 @@ export function BriefingPage() {
   );
   const followupsToday = analytics?.followup.active ?? followupJobs.length;
   const winRate = analytics?.quotes.conversion_rate_pct ?? analytics?.quotes.approval_rate_pct ?? 0;
+  const moneyAtRiskCount = jobs.reduce(
+    (sum, job) => sum + (job.operational_summary?.financial_exposure_count ?? 0),
+    0
+  );
 
   const attentionItems = useMemo(() => {
     const items: AttentionItem[] = [];
@@ -166,11 +176,11 @@ export function BriefingPage() {
     }
 
     for (const job of jobs.filter((entry) => entry.health !== "on-track").slice(0, 3)) {
-      if (items.length >= 3) break;
+      if (items.length >= 4) break;
       items.push(actionFromJob(job));
     }
 
-    return items.slice(0, 3);
+    return items.slice(0, 4);
   }, [jobs, queueGroups, transcriptInbox]);
 
   const insightText = useMemo(() => {
@@ -194,73 +204,103 @@ export function BriefingPage() {
   const recentUpdates = useMemo(() => {
     return [...jobs]
       .sort((left, right) => new Date(right.last_updated).getTime() - new Date(left.last_updated).getTime())
-      .slice(0, 3);
+      .slice(0, 4);
   }, [jobs]);
 
   return (
-    <div className="pw">
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">Morning Briefing</h1>
-          <p className="mt-3 text-[18px] text-slate-500">Here&apos;s what needs follow-through today, John.</p>
-          <p className="mt-2 text-sm font-medium text-slate-400">{formatToday()} · {isOnline ? "Live data connected" : "Offline cache active"}</p>
-        </div>
-        <Link
-          to="/quote"
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-[#2453d4] px-6 text-[15px] font-semibold text-white no-underline shadow-[0_8px_20px_rgba(37,83,212,0.2)] transition hover:bg-[#1f46b3]"
-        >
-          Create Quote
-        </Link>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-4 md:grid-cols-2">
-        {[
-          { label: "Queue Items", value: queueCount, detail: queueCount > 0 ? "Needs review" : "Queue clear", tone: "text-orange-500" },
-          { label: "Quotes in Motion", value: activeQuotes, detail: "Awaiting review or customer response", tone: "text-slate-500" },
-          { label: "Follow-ups Today", value: followupsToday, detail: followupsToday > 0 ? "Scheduled" : "No reminders", tone: "text-slate-500" },
-          { label: "Quote Conversion (30d)", value: `${winRate}%`, detail: winRate > 0 ? `? ${Math.max(1, Math.round(winRate / 32))}%` : "No trend yet", tone: "text-emerald-600" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-            <div className="text-[15px] font-medium text-slate-500">{stat.label}</div>
-            <div className="mt-5 flex items-end gap-3">
-              <div className="text-[52px] font-bold tracking-[-0.05em] text-slate-950">{stat.value}</div>
-              <div className={`mb-2 text-[15px] font-medium ${stat.tone}`}>{stat.detail}</div>
+    <div className="pw gc-page">
+      <section className="gc-page-header gc-fade-up rounded-[34px] px-6 py-7 sm:px-8 sm:py-8">
+        <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-[52rem]">
+            <div className="gc-overline">Morning command surface</div>
+            <h1 className="gc-page-title mt-3">Morning Briefing</h1>
+            <p className="gc-page-copy mt-4 max-w-[44rem]">
+              See what changed, what is stuck, and where money or follow-through needs a decision before it slips.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <span className="gc-hero-status">{isOnline ? "Live queue and job signals connected" : "Offline cache active"}</span>
+              <span className="gc-micro-pill">{formatToday()}</span>
+              {moneyAtRiskCount > 0 ? <span className="gc-micro-pill">{moneyAtRiskCount} money-at-risk items</span> : null}
             </div>
           </div>
-        ))}
-      </div>
+          <div className="gc-hero-actions">
+            <Link
+              to="/queue"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-[12px] font-semibold text-white no-underline transition hover:bg-white/[0.1]"
+            >
+              <Orbit className="h-4 w-4" aria-hidden="true" />
+              <span>Open queue</span>
+            </Link>
+            <Link
+              to="/quote"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#5f81ff]/20 bg-[linear-gradient(135deg,#5f81ff,#2f5dff)] px-4 text-[12px] font-semibold text-white no-underline shadow-[0_18px_36px_rgba(49,95,255,0.28)] transition hover:brightness-105"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <span>Create quote</span>
+            </Link>
+          </div>
+        </div>
+      </section>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
-        <div className="space-y-6">
-          <section className="rounded-3xl border border-orange-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-orange-100 bg-orange-50/50 px-7 py-6">
-              <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
-                <AlertTriangle className="h-6 w-6 text-orange-500" aria-hidden="true" />
-                <span>Needs Attention</span>
+      <section className="gc-kpi-grid gc-four mt-5">
+        <article className={`gc-kpi-card gc-fade-up gc-delay-1 ${queueCount > 0 ? "warn" : "ok"}`}>
+          <div className="gc-kpi-label">Queue pressure</div>
+          <div className="gc-kpi-value">{queueCount}</div>
+          <div className={`gc-kpi-hint ${queueCount > 0 ? "warn" : "ok"}`}>{queueCount > 0 ? "Review work is stacking up" : "All clear"}</div>
+        </article>
+        <article className="gc-kpi-card neutral gc-fade-up gc-delay-2">
+          <div className="gc-kpi-label">Quotes in motion</div>
+          <div className="gc-kpi-value">{activeQuotes}</div>
+          <div className="gc-kpi-hint">Awaiting review, send, or customer response</div>
+        </article>
+        <article className={`gc-kpi-card gc-fade-up gc-delay-3 ${followupsToday > 0 ? "warn" : "ok"}`}>
+          <div className="gc-kpi-label">Follow-through due</div>
+          <div className="gc-kpi-value">{followupsToday}</div>
+          <div className={`gc-kpi-hint ${followupsToday > 0 ? "warn" : "ok"}`}>{followupsToday > 0 ? "Active reminders running" : "No reminders queued"}</div>
+        </article>
+        <article className="gc-kpi-card neutral gc-fade-up gc-delay-4">
+          <div className="gc-kpi-label">Quote conversion</div>
+          <div className="gc-kpi-value">{winRate}%</div>
+          <div className="gc-kpi-hint">30-day approval and conversion signal</div>
+        </article>
+      </section>
+
+      <section className="gc-stack-grid mt-5">
+        <div className="space-y-5">
+          <article className="gc-stack-card gc-fade-up gc-delay-2">
+            <div className="gc-stack-header">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(255,140,47,0.12)] text-[#bc610b]">
+                  <ShieldAlert className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <div className="gc-stack-title">Needs action now</div>
+                  <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">The agent is surfacing unresolved work worth deciding today.</div>
+                </div>
               </div>
-              <span className="rounded-xl border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-900">{attentionItems.length} items</span>
+              <Link to="/queue" className="gc-stack-link">
+                View queue ?
+              </Link>
             </div>
             <div>
               {attentionItems.length === 0 ? (
-                <div className="px-7 py-8 text-sm text-slate-500">No urgent queue or job issues right now.</div>
+                <div className="px-6 py-8 text-[14px] leading-7 text-[var(--gc-ink-soft)]">
+                  Nothing urgent is demanding review right now. New field updates, missed follow-through, and unresolved changes will land here automatically.
+                </div>
               ) : (
                 attentionItems.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4 border-b border-slate-200 px-7 py-6 last:border-b-0">
-                    <span className={`mt-2 h-3 w-3 rounded-full ${item.tone === "orange" ? "bg-orange-500" : "bg-blue-600"}`} />
+                  <div key={item.id} className="gc-list-row">
+                    <span className={`gc-signal-dot ${item.tone === "orange" ? "warn" : "info"}`} />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-[18px] font-semibold text-slate-950">{item.title}</div>
-                        {item.stageLabel ? (
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
-                            {item.stageLabel}
-                          </span>
-                        ) : null}
+                        <div className="gc-row-title">{item.title}</div>
+                        {item.stageLabel ? <span className="gc-chip soft">{item.stageLabel}</span> : null}
                       </div>
-                      <div className="mt-2 text-[15px] leading-7 text-slate-500">{item.detail}</div>
+                      <div className="gc-row-copy">{item.detail}</div>
                     </div>
                     <Link
                       to={item.href}
-                      className="inline-flex h-10 shrink-0 items-center rounded-xl bg-slate-100 px-4 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-200"
+                      className="inline-flex h-10 shrink-0 items-center rounded-xl border border-[var(--gc-line-strong)] bg-white px-4 text-[12px] font-semibold text-[var(--gc-ink)] no-underline transition hover:border-[rgba(49,95,255,0.22)] hover:bg-[rgba(49,95,255,0.04)]"
                     >
                       {item.ctaLabel}
                     </Link>
@@ -268,40 +308,54 @@ export function BriefingPage() {
                 ))
               )}
             </div>
-            <div className="border-t border-slate-200 px-7 py-5 text-center">
-              <Link to="/queue" className="inline-flex items-center gap-2 text-[15px] font-medium text-slate-500 no-underline hover:text-slate-900">
-                View all queue items
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
-          </section>
+          </article>
 
-          <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="px-7 py-6">
-              <h2 className="text-[18px] font-semibold text-slate-950">Recent Job Activity</h2>
+          <article className="gc-stack-card gc-fade-up gc-delay-3">
+            <div className="gc-stack-header">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                  <RadioTower className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <div className="gc-stack-title">Recent operational changes</div>
+                  <div className="mt-1 text-[13px] text-[var(--gc-ink-soft)]">Signals from jobs, calls, and work moving through the office.</div>
+                </div>
+              </div>
             </div>
             <div>
               {recentUpdates.length === 0 ? (
-                <div className="px-7 pb-7 text-sm text-slate-500">No recent job activity yet.</div>
+                <div className="px-6 py-8 text-[14px] leading-7 text-[var(--gc-ink-soft)]">No recent job activity yet.</div>
               ) : (
                 recentUpdates.map((job) => (
-                  <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-start gap-4 border-t border-slate-200 px-7 py-6 text-inherit no-underline first:border-t-0 hover:bg-slate-50">
-                    <div className={`mt-1 flex h-12 w-12 items-center justify-center rounded-2xl ${job.health === "blocked" ? "bg-orange-100 text-orange-600" : job.health === "at-risk" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500"}`}>
-                      {job.health === "blocked" ? <MessageSquareWarning className="h-6 w-6" aria-hidden="true" /> : <CheckCircle2 className="h-6 w-6" aria-hidden="true" />}
+                  <Link key={job.id} to={`/jobs/${job.id}`} className="gc-list-row text-inherit no-underline">
+                    <div
+                      className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                        job.health === "blocked"
+                          ? "bg-[rgba(255,140,47,0.14)] text-[#bc610b]"
+                          : job.health === "at-risk"
+                            ? "bg-[rgba(49,95,255,0.1)] text-[#214be0]"
+                            : "bg-[rgba(29,155,102,0.12)] text-[#147a4f]"
+                      }`}
+                    >
+                      {job.health === "blocked" ? (
+                        <MessageSquareWarning className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+                      )}
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                        <div className="gc-row-title">{job.name}</div>
                         {job.open_items[0]?.action_stage_label ? (
-                          <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${openItemStageClass(job.open_items[0].action_stage)}`}>
+                          <span className={openItemStageClass(job.open_items[0].action_stage)}>
                             {job.open_items[0].action_stage_label}
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-1 text-[15px] leading-7 text-slate-500">
+                      <div className="gc-row-copy">
                         {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Latest status is ${job.status}.`}
                       </div>
-                      <div className="mt-3 flex items-center gap-2 text-[15px] text-slate-500">
+                      <div className="mt-3 inline-flex items-center gap-2 text-[12px] text-[var(--gc-ink-muted)]">
                         <Clock3 className="h-4 w-4" aria-hidden="true" />
                         <span>{formatRelativeDate(job.last_updated)}</span>
                       </div>
@@ -310,55 +364,71 @@ export function BriefingPage() {
                 ))
               )}
             </div>
-          </section>
+          </article>
         </div>
 
-        <div className="space-y-6">
-          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-            <h2 className="text-[18px] font-semibold text-slate-950">Today&apos;s Follow-ups</h2>
-            <p className="mt-3 text-[15px] text-slate-500">Automated sequences running</p>
-            <div className="mt-8 space-y-6">
-              {(followupJobs.length > 0 ? followupJobs : jobs.filter((job) => job.open_items.length > 0)).slice(0, 2).map((job, index) => (
-                <div key={job.id} className={`${index > 0 ? "border-t border-slate-200 pt-5" : ""}`}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
+        <div className="space-y-5">
+          <aside className="gc-side-panel gc-fade-up gc-delay-3">
+            <div className="gc-side-body">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="gc-stack-title">Follow-through running today</div>
+                  <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">What is already moving and what still needs a nudge.</div>
+                </div>
+                <span className="gc-chip soft">{followupJobs.length} live</span>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {(followupJobs.length > 0 ? followupJobs : jobs.filter((job) => job.open_items.length > 0))
+                  .slice(0, 3)
+                  .map((job, index) => (
+                    <div key={job.id} className={`${index > 0 ? "border-t border-[var(--gc-line)] pt-4" : ""}`}>
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-[18px] font-semibold text-slate-950">{job.name}</div>
+                        <div className="text-[16px] font-semibold text-[var(--gc-ink)]">{job.name}</div>
                         {job.open_items[0]?.action_stage_label ? (
-                          <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${openItemStageClass(job.open_items[0].action_stage)}`}>
+                          <span className={openItemStageClass(job.open_items[0].action_stage)}>
                             {job.open_items[0].action_stage_label}
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-1 text-[15px] text-slate-500">
+                      <div className="mt-2 text-[14px] leading-7 text-[var(--gc-ink-soft)]">
                         {job.open_items[0]?.action_stage_summary || job.open_items[0]?.description || `Last update ${formatRelativeDate(job.last_updated)}`}
                       </div>
+                      <div className="mt-3 inline-flex rounded-xl bg-[rgba(49,95,255,0.08)] px-3 py-2 text-[12px] font-medium text-[#214be0]">
+                        {(job.operational_summary?.followthrough_count ?? 0) > 0 ||
+                        job.open_items.some((item) => item.type === "follow-up" || item.type === "followup")
+                          ? "Reminder is active"
+                          : "Review timing before this stalls"}
+                      </div>
                     </div>
-                    <button type="button" className="text-[15px] font-semibold text-slate-900">Skip</button>
-                  </div>
-                  <div className="mt-4 inline-flex items-center rounded-xl bg-blue-50 px-3 py-1 text-sm font-medium text-[#2453d4]">
-                    {(job.operational_summary?.followthrough_count ?? 0) > 0 ||
-                    job.open_items.some((item) => item.type === "follow-up" || item.type === "followup")
-                      ? "Follow-up scheduled today"
-                      : "Review follow-up timing"}
-                  </div>
-                </div>
-              ))}
+                  ))}
+              </div>
             </div>
-          </section>
+          </aside>
 
-          <section className="rounded-3xl border border-blue-100 bg-blue-50/60 p-7 shadow-sm">
-            <h2 className="text-[18px] font-semibold text-[#2453d4]">Operational Insight</h2>
-            <p className="mt-5 text-[15px] leading-7 text-slate-700">{insightText}</p>
-            <Link
-              to="/analytics"
-              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl border border-slate-900 bg-white px-5 text-[15px] font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
-            >
-              Review analytics
-            </Link>
-          </section>
+          <aside className="gc-side-panel gc-fade-up gc-delay-4">
+            <div className="gc-side-body">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(49,95,255,0.1)] text-[#214be0]">
+                  <Sparkles className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <div className="gc-stack-title">Agent readout</div>
+                  <div className="mt-1 text-[13px] leading-6 text-[var(--gc-ink-soft)]">One operating recommendation from the current runtime.</div>
+                </div>
+              </div>
+              <p className="mt-5 text-[15px] leading-8 text-[var(--gc-ink-soft)]">{insightText}</p>
+              <Link
+                to="/analytics"
+                className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--gc-line-strong)] bg-white px-4 text-[12px] font-semibold text-[var(--gc-ink)] no-underline transition hover:border-[rgba(49,95,255,0.22)] hover:bg-[rgba(49,95,255,0.04)]"
+              >
+                Review analytics
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </aside>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
