@@ -1,0 +1,67 @@
+:root {
+  --bg: #0D0C0A;
+  --surface: #131210;
+  --surface2: #191714;
+  --surface3: #1F1D19;
+  --rule: #252320;
+  --rule2: #2E2B27;
+  --muted: #4A4640;
+  --dim: #6E6860;
+  --body: #A89F94;
+  --bright: #E8E0D4;
+  --sienna: #B8532E;
+  --sienna-lt: #D4673F;
+  --sienna-bg: rgba(184,83,46,0.08);
+  --sienna-bd: rgba(184,83,46,0.2);
+  --moss: #4A7C59;
+  --moss-lt: #5A9469;
+  --moss-bg: rgba(74,124,89,0.08);
+  --moss-bd: rgba(74,124,89,0.22);
+  --ochre-lt: #B8902A;
+  --sans: 'DM Sans', sans-serif;
+  --serif: 'Playfair Display', serif;
+  --mono: 'Azeret Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--body);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
