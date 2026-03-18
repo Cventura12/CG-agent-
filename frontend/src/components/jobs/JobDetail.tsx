@@ -1,0 +1,171 @@
+﻿import { useEffect, useMemo, useState } from "react";
+
+import type { Job, JobActivity } from "../../types";
+import { formatCurrency, formatMonoTime } from "../../lib/formatters";
+import { JobStatusBadge } from "./JobStatusBadge";
+import { QuoteStatusBadge } from "../quotes/QuoteStatusBadge";
+import { InputSourceIcon } from "../ui/InputSourceIcon";
+
+const tabs = ["activity", "quotes", "followups", "notes"] as const;
+
+type JobTab = (typeof tabs)[number];
+
+const activityIconTone: Record<JobActivity["type"], { color: string; source?: "CALL" | "EMAIL" }> = {
+  call: { color: "bg-[var(--green-b)] text-[var(--green)]", source: "CALL" },
+  quote_sent: { color: "bg-[var(--blue-b)] text-[var(--blue)]" },
+  quote_accepted: { color: "bg-[var(--green-b)] text-[var(--green)]" },
+  note: { color: "bg-[var(--bg-4)] text-[var(--t2)]" },
+  change_order: { color: "bg-[var(--acl)] text-[var(--accent-2)]" },
+  follow_up: { color: "bg-[var(--amber-b)] text-[var(--amber)]" },
+};
+
+export interface JobDetailProps {
+  job: Job;
+  onSaveNotes: (notes: string) => void;
+}
+
+export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
+  const [activeTab, setActiveTab] = useState<JobTab>("activity");
+  const [notesDraft, setNotesDraft] = useState(job.notes ?? "");
+
+  useEffect(() => {
+    setNotesDraft(job.notes ?? "");
+  }, [job.id, job.notes]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (notesDraft !== (job.notes ?? "")) {
+        onSaveNotes(notesDraft);
+      }
+    }, 800);
+
+    return () => window.clearTimeout(handle);
+  }, [job.notes, notesDraft, onSaveNotes]);
+
+  const stats = useMemo(
+    () => [
+      { label: "Open queue items", value: job.openQueueItems.toString() },
+      { label: "Quotes sent", value: job.quotes.filter((quote) => quote.status !== "draft").length.toString() },
+      { label: "Total quoted", value: formatCurrency(job.totalQuoted) },
+      { label: "Total approved", value: formatCurrency(job.totalApproved) },
+    ],
+    [job]
+  );
+
+  return (
+    <div className="scrollbar-none h-full overflow-y-auto px-6 py-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[18px] font-medium tracking-[-0.4px] text-[var(--t1)]">{job.name}</h2>
+            <JobStatusBadge status={job.status} />
+          </div>
+          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} · {job.customerContact}</div>
+          {job.address ? <div className="mt-2 font-mono text-[12px] text-[var(--t3)]">{job.address}</div> : null}
+          {job.tags.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {job.tags.map((tag) => (
+                <span key={tag} className="rounded-[4px] bg-[var(--bg-4)] px-2 py-0.5 font-mono text-[10px] text-[var(--t3)]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <button type="button" className="rounded-md border border-[var(--line-3)] px-3 py-[5px] text-[12px] text-[var(--t2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--t1)]">
+          Edit
+        </button>
+      </div>
+
+      <div className="mt-5 flex items-stretch overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
+        {stats.map((stat, index) => (
+          <div key={stat.label} className={`flex-1 px-4 py-4 ${index < stats.length - 1 ? "border-r border-[var(--line)]" : ""}`}>
+            <div className="font-mono text-[10px] uppercase tracking-[0.5px] text-[var(--t3)]">{stat.label}</div>
+            <div className="mt-2 font-mono text-[16px] text-[var(--t1)]">{stat.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 border-b border-[var(--line)]">
+        <div className="flex gap-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`relative px-4 py-2.5 text-[12px] transition ${activeTab === tab ? "text-[var(--t1)]" : "text-[var(--t3)] hover:text-[var(--t2)]"}`}
+            >
+              {tab === "followups" ? "Follow-ups" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {activeTab === tab ? <span className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--accent)]" /> : null}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {activeTab === "activity" ? (
+        <div className="pt-3">
+          {job.activityLog.map((entry) => {
+            const tone = activityIconTone[entry.type];
+            return (
+              <div key={entry.id} className="flex gap-3 border-b border-[var(--line)] py-3 last:border-b-0">
+                <div className={`flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-lg ${tone.color}`}>
+                  {tone.source ? <InputSourceIcon source={tone.source} size={18} /> : <span className="font-mono text-[10px] uppercase">{entry.type.slice(0, 2)}</span>}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] text-[var(--t1)]">{entry.description}</div>
+                  <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{formatMonoTime(entry.timestamp)}</div>
+                </div>
+                {typeof entry.value === "number" ? <div className="font-mono text-[11px] text-[var(--green)]">{formatCurrency(entry.value)}</div> : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {activeTab === "quotes" ? (
+        <div className="space-y-3 pt-4">
+          {job.quotes.map((quote) => (
+            <div key={quote.id} className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[13px] font-medium text-[var(--t1)]">{quote.customerName}</div>
+                  <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{quote.lineItems.length} line items</div>
+                </div>
+                <QuoteStatusBadge status={quote.status} />
+              </div>
+              <div className="mt-3 font-mono text-[12px] text-[var(--green)]">{formatCurrency(quote.totalValue)}</div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {activeTab === "followups" ? (
+        <div className="space-y-3 pt-4">
+          {job.followUps.map((followUp) => (
+            <div key={followUp.id} className="flex items-start gap-3 rounded-lg border border-[var(--line)] bg-[var(--bg-2)] px-4 py-3">
+              <span className={`mt-[6px] h-[8px] w-[8px] rounded-full ${followUp.status === "overdue" ? "bg-[var(--red)]" : followUp.status === "scheduled" ? "bg-[var(--amber)]" : followUp.status === "responded" ? "bg-[var(--green)]" : "bg-[var(--t3)]"}`} />
+              <div className="min-w-0 flex-1">
+                <div className={`text-[13px] ${followUp.status === "responded" ? "text-[var(--t3)] line-through" : "text-[var(--t1)]"}`}>{followUp.description}</div>
+                <div className={`mt-1 font-mono text-[10px] ${followUp.status === "overdue" ? "text-[var(--red)]" : "text-[var(--t3)]"}`}>
+                  {formatMonoTime(followUp.scheduledFor)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {activeTab === "notes" ? (
+        <div className="pt-4">
+          <textarea
+            value={notesDraft}
+            onChange={(event) => setNotesDraft(event.target.value)}
+            className="min-h-[160px] w-full resize-none rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] p-3 text-[13px] text-[var(--t1)] outline-none transition focus:border-[var(--line-4)]"
+          />
+          <div className="mt-2 text-[11px] text-[var(--t3)]">Auto-saves after you stop typing.</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+

@@ -17,5 +17,24 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src"]
+  "include": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/styles/**/*",
+    "src/types/index.ts",
+    "src/lib/**/*",
+    "src/store/**/*",
+    "src/components/shell/**/*",
+    "src/components/today/AgentFeedEmpty.tsx",
+    "src/components/today/AgentLog.tsx",
+    "src/components/today/FeedAside.tsx",
+    "src/components/today/StatRow.tsx",
+    "src/components/today/TodayView.tsx",
+    "src/components/today/TodayViewDemo.tsx",
+    "src/components/queue/**/*",
+    "src/components/quotes/**/*",
+    "src/components/jobs/**/*",
+    "src/components/analytics/**/*",
+    "src/components/ui/**/*"
+  ]
 }

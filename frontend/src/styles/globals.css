@@ -1,0 +1,107 @@
+@import "@fontsource/dm-sans/300.css";
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #0A0A0B;
+    --bg-2: #111114;
+    --bg-3: #18181C;
+    --bg-4: #1F1F25;
+    --bg-5: #26262E;
+    --line: rgba(255,255,255,0.06);
+    --line-2: rgba(255,255,255,0.10);
+    --line-3: rgba(255,255,255,0.17);
+    --line-4: rgba(255,255,255,0.24);
+    --t1: #F0EFE8;
+    --t2: #9896A0;
+    --t3: #56545E;
+    --t4: #2E2D34;
+    --accent: #E8622A;
+    --accent-2: #FF7A42;
+    --acl: rgba(232,98,42,0.14);
+    --acl-2: rgba(232,98,42,0.06);
+    --green: #2ECC71;
+    --green-b: rgba(46,204,113,0.10);
+    --amber: #F0A500;
+    --amber-b: rgba(240,165,0,0.10);
+    --blue: #4A9EFF;
+    --blue-b: rgba(74,158,255,0.10);
+    --red: #E05252;
+    --red-b: rgba(224,82,82,0.10);
+    --purple: #9B7EF8;
+    --purple-b: rgba(155,126,248,0.10);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    height: 100%;
+    background: var(--bg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+    font-family: "DM Sans", sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(255,122,66,0.08), transparent 22rem),
+      radial-gradient(circle at 100% 0%, rgba(74,158,255,0.08), transparent 18rem),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    color: var(--t1);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .tooltip-panel {
+    @apply absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--line-3)] bg-[var(--bg-5)] px-2 py-1 font-mono text-[10px] text-[var(--t1)] opacity-0 transition-opacity pointer-events-none;
+  }
+
+  .group\/tooltip:hover .tooltip-panel {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+@keyframes scan { from{transform:translateX(-100%)} to{transform:translateX(400%)} }
+@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@keyframes spin-slow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+.anim-pulse { animation: pulse 2s ease infinite; }
+.anim-scan { animation: scan 2.5s ease infinite; }
+.anim-blink { animation: blink 1s step-end infinite; }
+.anim-spin { animation: spin-slow 3s linear infinite; }

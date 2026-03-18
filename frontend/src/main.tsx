@@ -1,41 +1,26 @@
-import { Component, StrictMode, Suspense, lazy } from "react";
+import { Component, StrictMode } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
 
-import "./styles.css";
+import App from "./App";
+import "./styles/globals.css";
 
-const App = lazy(() => import("./App"));
-
-function BootScreen({
-  title,
-  detail,
-}: {
-  title: string;
-  detail: string;
-}) {
+function BootScreen({ title, detail }: { title: string; detail: string }) {
   return (
-    <main className="min-h-screen bg-bg px-3 py-6 text-text sm:px-4">
-      <div className="mx-auto max-w-md rounded-lg border border-border bg-surface p-5">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-orange">GC Agent</p>
-        <h1 className="mt-2 text-lg font-semibold text-text">{title}</h1>
-        <p className="mt-2 text-sm text-muted">{detail}</p>
+    <main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 py-8 text-[var(--t1)]">
+      <div className="w-full max-w-md rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--accent)]">GC Agent</p>
+        <h1 className="mt-2 text-lg font-medium text-[var(--t1)]">{title}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--t2)]">{detail}</p>
       </div>
     </main>
   );
 }
 
-class AppErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean; message: string }
-> {
+class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; message: string }> {
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = {
-      hasError: false,
-      message: "",
-    };
+    this.state = { hasError: false, message: "" };
   }
 
   static getDerivedStateFromError(error: unknown) {
@@ -45,55 +30,25 @@ class AppErrorBoundary extends Component<
     };
   }
 
-  override componentDidCatch(error: unknown) {
-    console.error("GC Agent frontend crashed", error);
-  }
-
   override render() {
     if (this.state.hasError) {
-      return (
-        <BootScreen
-          title="Frontend error"
-          detail={`GC Agent hit a browser error: ${this.state.message}`}
-        />
-      );
+      return <BootScreen title="Frontend error" detail={`GC Agent hit a browser error: ${this.state.message}`} />;
     }
 
     return this.props.children;
   }
 }
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
 const rootElement = document.getElementById("root");
+
 if (!rootElement) {
   throw new Error("Root element not found");
 }
 
 createRoot(rootElement).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppErrorBoundary>
-          <Suspense
-            fallback={
-              <BootScreen
-                title="Loading app"
-                detail="GC Agent is loading the frontend bundle."
-              />
-            }
-          >
-            <App />
-          </Suspense>
-        </AppErrorBoundary>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </StrictMode>
 );

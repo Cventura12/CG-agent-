@@ -1,55 +1,38 @@
-import { motion } from "framer-motion";
-import { Clock3, Link2, PhoneCall, Upload } from "lucide-react";
+﻿import { motion } from "framer-motion";
+import { AlertTriangle, ArrowRight, Clock3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-import type { InputSource, TodayViewProps } from "../../types/today";
+import { fadeUp } from "../../lib/animations";
+import { formatLongDate, formatTimeAgo } from "../../lib/formatters";
+import { useAppStore } from "../../store/appStore";
+import type { AgentStatus, Job, QueueItem, User } from "../../types";
 import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
+import { InputSourceIcon } from "../ui/InputSourceIcon";
 import { AgentFeedEmpty } from "./AgentFeedEmpty";
-import { fadeUp } from "./animations";
 import { FeedAside } from "./FeedAside";
-import { IconRail } from "./IconRail";
-import { Sidebar } from "./Sidebar";
 import { StatRow } from "./StatRow";
-import { Topbar } from "./Topbar";
 
-function parseCurrentTime(currentTime?: Date): Date {
-  if (currentTime instanceof Date && !Number.isNaN(currentTime.getTime())) {
-    return currentTime;
-  }
-  return new Date();
+export interface TodayViewProps {
+  user?: User;
+  agentStatus?: AgentStatus;
+  queueItems?: QueueItem[];
+  openQuotes?: number;
+  followUpsDue?: number;
+  activeJobs?: number;
+  recentJobs?: Job[];
+  setupStepsCompleted?: 0 | 1 | 2 | 3;
+  currentTime?: Date;
 }
 
-function formatRelative(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "now";
-  }
-
-  const deltaMs = Date.now() - parsed.getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (deltaMs < minute) return "now";
-  if (deltaMs < hour) return `${Math.max(1, Math.floor(deltaMs / minute))}m`;
-  if (deltaMs < day) return `${Math.max(1, Math.floor(deltaMs / hour))}h`;
-  return `${Math.max(1, Math.floor(deltaMs / day))}d`;
+function deriveSetupSteps(queueItems: QueueItem[], openQuotes: number, followUpsDue: number, recentJobs: Job[]): 0 | 1 | 2 | 3 {
+  if (openQuotes > 0 || followUpsDue > 0) return 3;
+  if (queueItems.some((item) => item.status !== "pending")) return 2;
+  if (queueItems.length > 0 || recentJobs.length > 0) return 1;
+  return 0;
 }
 
-function sourceTone(source: InputSource) {
-  if (source === "CALL") return "accent" as const;
-  if (source === "SMS") return "warn" as const;
-  if (source === "EMAIL") return "neutral" as const;
-  return "blue" as const;
-}
-
-function sourceIcon(source: InputSource) {
-  if (source === "CALL") return <PhoneCall className="h-[12px] w-[12px]" strokeWidth={2} />;
-  if (source === "UPLOAD") return <Upload className="h-[12px] w-[12px]" strokeWidth={2} />;
-  return <Link2 className="h-[12px] w-[12px]" strokeWidth={2} />;
-}
-
-export function TodayView({
+function TodayViewContent({
   user,
   agentStatus,
   queueItems,
@@ -59,118 +42,151 @@ export function TodayView({
   recentJobs,
   setupStepsCompleted,
   currentTime,
-}: TodayViewProps) {
+}: Required<TodayViewProps>) {
   const navigate = useNavigate();
-  const now = parseCurrentTime(currentTime);
+  const pendingItems = queueItems.filter((item) => item.status === "pending");
+  const urgentItems = pendingItems.filter((item) => item.urgent);
+  const firstName = user.name.split(" ")[0] ?? user.name;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--t1)]">
-      <IconRail initials={user.initials} />
-      <Sidebar agentStatus={agentStatus} queueItems={queueItems} recentJobs={recentJobs} />
-
+    <div className="flex h-full min-w-0 overflow-hidden bg-[var(--bg)]">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar
-          currentTime={now}
-          onImportTranscript={() => navigate("/queue")}
-          onNewQuote={() => navigate("/quote")}
-        />
+        <StatRow queueItems={queueItems} openQuotes={openQuotes} followUpsDue={followUpsDue} activeJobs={activeJobs} />
 
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <StatRow
-              queueItems={queueItems}
-              openQuotes={openQuotes}
-              followUpsDue={followUpsDue}
-              activeJobs={activeJobs}
-            />
-
-            <div className="today-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-5 py-5">
-              <motion.section
-                initial="hidden"
-                animate="visible"
-                variants={fadeUp}
-                custom={4}
-                className="min-h-full overflow-hidden rounded-[12px] border border-[var(--line-2)] bg-[var(--bg-2)]"
-              >
-                <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
-                  <div>
-                    <div className="text-[14px] font-medium text-[var(--t1)]">Needs review</div>
-                    <div className="mt-[3px] text-[11px] text-[var(--t3)]">
-                      The agent is surfacing live calls, threads, and unresolved work.
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/queue")}
-                    className="text-[11px] font-medium text-[var(--accent-2)] transition hover:text-[var(--t1)]"
-                  >
-                    Open queue ?
-                  </button>
-                </div>
-
-                <div className="border-b border-[var(--line)] px-5 py-[10px]">
-                  <div className="relative h-[2px] overflow-hidden rounded-sm bg-[var(--bg-4)]">
-                    <div className="animate-scan absolute inset-y-0 w-[30%] bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent" />
-                  </div>
-                </div>
-
-                <div className="p-5">
-                  {queueItems.length === 0 ? (
-                    <AgentFeedEmpty
-                      onPhoneClick={() => navigate("/onboarding")}
-                      onUploadClick={() => navigate("/quote")}
-                      onSmsClick={() => navigate("/onboarding")}
-                    />
-                  ) : (
-                    <div className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-3)]">
-                      {queueItems.map((item, index) => (
-                        <motion.div
-                          key={item.id}
-                          custom={index}
-                          initial="hidden"
-                          animate="visible"
-                          variants={fadeUp}
-                          className={`flex items-start gap-[14px] px-4 py-[14px] ${
-                            index < queueItems.length - 1 ? "border-b border-[var(--line)]" : ""
-                          }`}
-                        >
-                          <span
-                            className={`mt-[6px] h-[8px] w-[8px] shrink-0 rounded-full ${
-                              item.urgent ? "bg-[var(--accent)]" : "bg-[var(--blue)]"
-                            }`}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[13px] leading-[1.55] text-[var(--t1)]">{item.description}</div>
-                            {item.jobName ? (
-                              <div className="mt-[6px] font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--t3)]">
-                                {item.jobName}
-                              </div>
-                            ) : null}
-                          </div>
-                          <div className="flex shrink-0 items-center gap-[10px]">
-                            <Badge tone={sourceTone(item.source)} className="gap-[5px] normal-case tracking-normal">
-                              {sourceIcon(item.source)}
-                              {item.source}
-                            </Badge>
-                            <div className="inline-flex items-center gap-[5px] font-mono text-[10px] text-[var(--t3)]">
-                              <Clock3 className="h-[11px] w-[11px]" strokeWidth={2} />
-                              {formatRelative(item.createdAt)}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.section>
+        {urgentItems.length > 0 ? (
+          <div className="border-b border-[var(--line)] px-5 py-3">
+            <div className="flex items-center justify-between rounded-md border border-[var(--amber-b)] border-l-2 border-l-[var(--amber)] bg-[var(--amber-b)] px-3 py-2">
+              <div className="flex items-center gap-2 text-[12px] text-[var(--t1)]">
+                <AlertTriangle className="h-[14px] w-[14px] text-[var(--amber)]" strokeWidth={2} />
+                <span>{urgentItems.length} items need immediate review</span>
+              </div>
+              <button type="button" onClick={() => navigate("/queue")} className="text-[11px] font-medium text-[var(--accent-2)] transition hover:text-[var(--t1)]">
+                Go to queue ?
+              </button>
             </div>
           </div>
+        ) : null}
 
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={5} className="shrink-0">
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_260px] overflow-hidden">
+          <div className="scrollbar-none min-h-0 overflow-y-auto p-5">
+            <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4} className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
+              <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
+                <div>
+                  <div className="text-[13px] font-medium text-[var(--t1)]">Agent feed</div>
+                  <div className="mt-1 text-[12px] text-[var(--t2)]">
+                    {agentStatus.active ? `Watching live for ${firstName} · ${formatLongDate(currentTime)}` : "Offline mode"}
+                  </div>
+                </div>
+                <Button variant="ghost" onClick={() => navigate("/queue")}>Open queue</Button>
+              </div>
+              <div className="border-b border-[var(--line)] px-5 py-2">
+                <div className="relative h-[2px] overflow-hidden rounded-sm bg-[var(--bg-4)]">
+                  <div className="anim-scan absolute inset-y-0 w-[30%] bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent" />
+                </div>
+              </div>
+              <div className="p-5">
+                {pendingItems.length === 0 ? (
+                  <AgentFeedEmpty
+                    onPhoneClick={() => navigate("/queue")}
+                    onUploadClick={() => navigate("/quotes")}
+                    onSmsClick={() => navigate("/queue")}
+                  />
+                ) : (
+                  <div className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-3)]">
+                    {pendingItems.map((item, index) => (
+                      <motion.button
+                        key={item.id}
+                        type="button"
+                        custom={index}
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeUp}
+                        onClick={() => navigate(`/queue/${item.id}`)}
+                        className={`flex w-full items-start gap-3 px-4 py-[14px] text-left transition hover:bg-[var(--bg-4)] ${index < pendingItems.length - 1 ? "border-b border-[var(--line)]" : ""}`}
+                      >
+                        <InputSourceIcon source={item.source} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="text-[13px] font-medium text-[var(--t1)]">{item.title}</div>
+                            {item.urgent ? <Badge label="Urgent" color="amber" /> : null}
+                          </div>
+                          <div className="mt-1 text-[12px] leading-relaxed text-[var(--t2)]">{item.description}</div>
+                          <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">{item.jobName ?? "Unassigned"} · {formatTimeAgo(item.createdAt)}</div>
+                        </div>
+                        <ArrowRight className="mt-[4px] h-[14px] w-[14px] text-[var(--t3)]" strokeWidth={2} />
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.section>
+
+            {recentJobs.length > 0 ? (
+              <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={5} className="mt-4 overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
+                <div className="border-b border-[var(--line)] px-5 py-4">
+                  <div className="text-[13px] font-medium text-[var(--t1)]">Recent job movement</div>
+                </div>
+                <div className="divide-y divide-[var(--line)]">
+                  {recentJobs.map((job) => (
+                    <button key={job.id} type="button" onClick={() => navigate(`/jobs/${job.id}`)} className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left transition hover:bg-[var(--bg-3)]">
+                      <div>
+                        <div className="text-[13px] text-[var(--t1)]">{job.name}</div>
+                        <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{job.status.replace("_", " ")} · {formatTimeAgo(job.lastActivityAt ?? job.createdAt)}</div>
+                      </div>
+                      <div className="inline-flex items-center gap-1 font-mono text-[10px] text-[var(--t3)]">
+                        <Clock3 className="h-[11px] w-[11px]" strokeWidth={2} />
+                        live
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.section>
+            ) : null}
+          </div>
+
+          <div className="border-l border-[var(--line)] bg-[var(--bg)]">
             <FeedAside setupStepsCompleted={setupStepsCompleted} agentStatus={agentStatus} />
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default function TodayView(props: TodayViewProps) {
+  const storeUser = useAppStore((state) => state.user);
+  const storeAgentStatus = useAppStore((state) => state.agentStatus);
+  const storeQueueItems = useAppStore((state) => state.queueItems);
+  const storeQuotes = useAppStore((state) => state.quotes);
+  const storeFollowUps = useAppStore((state) => state.followUps);
+  const storeJobs = useAppStore((state) => state.jobs);
+
+  const user = props.user ?? storeUser ?? { id: "user", name: "GC Agent", initials: "GC", role: "Operator", companyName: "GC Agent" };
+  const agentStatus = props.agentStatus ?? storeAgentStatus;
+  const queueItems = props.queueItems ?? storeQueueItems;
+  const openQuotes = props.openQuotes ?? storeQuotes.filter((quote) => ["draft", "sent", "viewed"].includes(quote.status)).length;
+  const followUpsDue = props.followUpsDue ?? storeFollowUps.filter((followUp) => followUp.status === "scheduled" || followUp.status === "overdue").length;
+  const activeJobs = props.activeJobs ?? storeJobs.filter((job) => job.status === "active" || job.status === "in_progress").length;
+  const recentJobs = props.recentJobs ?? [...storeJobs].sort((left, right) => new Date(right.lastActivityAt ?? right.createdAt).getTime() - new Date(left.lastActivityAt ?? left.createdAt).getTime()).slice(0, 4);
+  const setupStepsCompleted = props.setupStepsCompleted ?? deriveSetupSteps(queueItems, openQuotes, followUpsDue, recentJobs);
+  const currentTime = props.currentTime ?? new Date();
+
+  return (
+    <TodayViewContent
+      user={user}
+      agentStatus={agentStatus}
+      queueItems={queueItems}
+      openQuotes={openQuotes}
+      followUpsDue={followUpsDue}
+      activeJobs={activeJobs}
+      recentJobs={recentJobs}
+      setupStepsCompleted={setupStepsCompleted}
+      currentTime={currentTime}
+    />
+  );
+}
+
+export function TodayViewDemo() {
+  return <TodayView />;
+}
+

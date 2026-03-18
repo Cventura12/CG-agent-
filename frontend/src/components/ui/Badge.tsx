@@ -1,33 +1,27 @@
 import clsx from "clsx";
-import type { HTMLAttributes, ReactNode } from "react";
 
-type BadgeTone = "neutral" | "accent" | "success" | "warn" | "blue";
+type BadgeColor = "green" | "amber" | "blue" | "red" | "purple" | "accent" | "muted";
 
-const toneClasses: Record<BadgeTone, string> = {
-  neutral: "border border-[var(--line-2)] bg-[var(--bg-4)] text-[var(--t2)]",
-  accent: "border border-[var(--acl)] bg-[var(--acl-2)] text-[var(--accent-2)]",
-  success: "border border-[var(--green)] bg-[var(--green-b)] text-[var(--green)]",
-  warn: "border border-[var(--amber)] bg-[var(--amber-b)] text-[var(--amber)]",
-  blue: "border border-[var(--blue)] bg-[var(--blue-b)] text-[var(--blue)]",
+const toneClasses: Record<BadgeColor, string> = {
+  green: "bg-[var(--green-b)] text-[var(--green)]",
+  amber: "bg-[var(--amber-b)] text-[var(--amber)]",
+  blue: "bg-[var(--blue-b)] text-[var(--blue)]",
+  red: "bg-[var(--red-b)] text-[var(--red)]",
+  purple: "bg-[var(--purple-b)] text-[var(--purple)]",
+  accent: "bg-[var(--acl)] text-[var(--accent-2)]",
+  muted: "bg-[var(--bg-4)] text-[var(--t2)]",
 };
 
-export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  tone?: BadgeTone;
-  children: ReactNode;
+export interface BadgeProps {
+  label: string;
+  color: BadgeColor;
+  className?: string;
 }
 
-export function Badge({ tone = "neutral", className, children, ...props }: BadgeProps) {
+export function Badge({ label, color, className }: BadgeProps) {
   return (
-    <span
-      className={clsx(
-        "inline-flex items-center rounded-[6px] px-[7px] py-[3px] text-[9px] font-medium uppercase tracking-[0.08em]",
-        "font-mono",
-        toneClasses[tone],
-        className
-      )}
-      {...props}
-    >
-      {children}
+    <span className={clsx("inline-flex items-center rounded-[4px] px-1.5 py-0.5 font-mono text-[9px] font-medium", toneClasses[color], className)}>
+      {label}
     </span>
   );
 }
