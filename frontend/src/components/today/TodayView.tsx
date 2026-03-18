@@ -1,5 +1,5 @@
 ﻿import { motion } from "framer-motion";
-import { AlertTriangle, ArrowRight, Clock3 } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { fadeUp } from "../../lib/animations";
@@ -39,7 +39,6 @@ function TodayViewContent({
   openQuotes,
   followUpsDue,
   activeJobs,
-  recentJobs,
   setupStepsCompleted,
   currentTime,
 }: Required<TodayViewProps>) {
@@ -121,27 +120,6 @@ function TodayViewContent({
               </div>
             </motion.section>
 
-            {recentJobs.length > 0 ? (
-              <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={5} className="mt-4 overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
-                <div className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
-                  <div className="text-[13px] font-medium text-[var(--t1)]">Recent job movement</div>
-                </div>
-                <div className="divide-y divide-[var(--line)]">
-                  {recentJobs.map((job) => (
-                    <button key={job.id} type="button" onClick={() => navigate(`/jobs/${job.id}`)} className="flex w-full flex-col gap-2 px-4 py-3 text-left transition hover:bg-[var(--bg-3)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                      <div className="min-w-0">
-                        <div className="text-[13px] text-[var(--t1)]">{job.name}</div>
-                        <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{job.status.replace("_", " ")} · {formatTimeAgo(job.lastActivityAt ?? job.createdAt)}</div>
-                      </div>
-                      <div className="inline-flex items-center gap-1 font-mono text-[10px] text-[var(--t3)]">
-                        <Clock3 className="h-[11px] w-[11px]" strokeWidth={2} />
-                        live
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </motion.section>
-            ) : null}
           </div>
 
           <div className="border-t border-[var(--line)] bg-[var(--bg)] xl:border-l xl:border-t-0">
