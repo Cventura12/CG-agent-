@@ -4,7 +4,6 @@ import { FileText, Menu, Upload, X } from "lucide-react";
 
 import { useAppStore } from "../../store/appStore";
 import { Button } from "../ui/Button";
-import { IconRail } from "./IconRail";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -42,7 +41,6 @@ function routeMeta(pathname: string): { title: string; subtitle?: string } {
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
-  const user = useAppStore((state) => state.user);
   const setActiveView = useAppStore((state) => state.setActiveView);
   const approveAllQueueItems = useAppStore((state) => state.approveAllQueueItems);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -111,9 +109,6 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
-      <div className="hidden lg:flex">
-        <IconRail initials={user?.initials ?? "GC"} />
-      </div>
       <Sidebar className="hidden lg:flex" />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar
