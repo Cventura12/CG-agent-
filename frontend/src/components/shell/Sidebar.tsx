@@ -1,4 +1,5 @@
-import { BarChart2, FileText, History, LayoutGrid, ListTodo, BriefcaseBusiness } from "lucide-react";
+ï»¿import clsx from "clsx";
+import { BarChart2, BriefcaseBusiness, FileText, History, LayoutGrid, ListTodo } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 import { formatTimeAgo } from "../../lib/formatters";
@@ -30,7 +31,12 @@ function jobDot(status: string): string {
   return "bg-[var(--t3)]";
 }
 
-export function Sidebar() {
+export interface SidebarProps {
+  className?: string;
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
   const location = useLocation();
   const user = useAppStore((state) => state.user);
   const agentStatus = useAppStore((state) => state.agentStatus);
@@ -43,15 +49,15 @@ export function Sidebar() {
   const urgentCount = queueItems.filter((item) => item.status === "pending" && item.urgent).length;
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-[var(--line)] bg-[var(--bg-2)]">
+    <aside className={clsx("flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-[var(--line)] bg-[var(--bg-2)]", className)}>
       <div className="border-b border-[var(--line)] px-4 py-3.5">
         <SectionLabel>Agent</SectionLabel>
         <div className="mt-2 rounded-lg border border-[var(--acl)] bg-[var(--acl-2)] px-2.5 py-2">
           <div className="flex items-start gap-2">
             <span className={`mt-[4px] h-[6px] w-[6px] rounded-full ${agentStatus.active ? "bg-[var(--accent)] anim-pulse" : "bg-[var(--t3)]"}`} />
             <div className="min-w-0">
-              <div className="text-[11px] font-medium text-[var(--t1)]">GC Agent · {agentStatus.active ? "Active" : "Offline"}</div>
-              <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">Monitoring · {agentStatus.openItems} open items</div>
+              <div className="text-[11px] font-medium text-[var(--t1)]">GC Agent Â· {agentStatus.active ? "Active" : "Offline"}</div>
+              <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">Monitoring Â· {agentStatus.openItems} open items</div>
             </div>
           </div>
         </div>
@@ -67,6 +73,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 to={item.href}
+                onClick={onNavigate}
                 className={`flex items-center gap-2 rounded-[7px] px-2 py-[7px] text-[12.5px] transition no-underline ${
                   active ? "bg-[var(--bg-4)] font-medium text-[var(--t1)]" : "text-[var(--t2)] hover:bg-[var(--bg-3)] hover:text-[var(--t1)]"
                 }`}
@@ -91,6 +98,7 @@ export function Sidebar() {
                 <Link
                   key={item.label}
                   to={item.href}
+                  onClick={onNavigate}
                   className={`flex items-center gap-2 rounded-[7px] px-2 py-[7px] text-[12.5px] transition no-underline ${
                     active ? "bg-[var(--bg-4)] font-medium text-[var(--t1)]" : "text-[var(--t2)] hover:bg-[var(--bg-3)] hover:text-[var(--t1)]"
                   }`}
@@ -111,13 +119,14 @@ export function Sidebar() {
                 <Link
                   key={job.id}
                   to={`/jobs/${job.id}`}
+                  onClick={onNavigate}
                   className="flex items-start gap-2 border-b border-[var(--line)] px-2 py-2 text-inherit no-underline transition hover:bg-[var(--bg-3)]"
                 >
                   <span className={`mt-[5px] h-[6px] w-[6px] shrink-0 rounded-full ${jobDot(job.status)}`} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[11.5px] text-[var(--t1)]">{job.name}</div>
                     <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">
-                      {job.status.replace("_", " ")} · {formatTimeAgo(job.lastActivityAt ?? job.createdAt)}
+                      {job.status.replace("_", " ")} Â· {formatTimeAgo(job.lastActivityAt ?? job.createdAt)}
                     </div>
                   </div>
                 </Link>

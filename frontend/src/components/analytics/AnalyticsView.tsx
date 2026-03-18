@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 
 import { formatCompactCurrency, formatCurrency, formatHoursMinutes, formatMonoTime } from "../../lib/formatters";
 import { useAppStore } from "../../store/appStore";
@@ -64,8 +64,8 @@ function AnalyticsViewContent({ periods, queueItems, jobs }: { periods: Analytic
   const recentActivity = useMemo(() => mergeActivity(jobs).slice(0, 10), [jobs]);
 
   return (
-    <div className="scrollbar-none h-full overflow-y-auto px-5 py-5">
-      <div className="mb-4 flex gap-2">
+    <div className="scrollbar-none h-full overflow-y-auto px-3 py-4 sm:px-5 sm:py-5">
+      <div className="mb-4 flex flex-wrap gap-2">
         {periodOrder.map((label) => (
           <button
             key={label}
@@ -82,7 +82,7 @@ function AnalyticsViewContent({ periods, queueItems, jobs }: { periods: Analytic
         ))}
       </div>
 
-      <div className="grid gap-[10px] md:grid-cols-3">
+      <div className="grid gap-[10px] sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard label="Total quoted" value={formatCompactCurrency(activePeriod.totalValueQuoted)} />
         <MetricCard label="Total won" value={formatCompactCurrency(activePeriod.totalValueWon)} tone="green" />
         <MetricCard label="Conversion rate" value={`${activePeriod.conversionRate}%`} tone={toneForConversion(activePeriod.conversionRate)} />
@@ -131,3 +131,4 @@ export function AnalyticsViewDemo() {
   const state = useAppStore.getState();
   return <AnalyticsViewContent periods={state.analytics} queueItems={state.queueItems} jobs={state.jobs} />;
 }
+

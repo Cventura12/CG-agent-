@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 import { Clock3 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -49,10 +49,10 @@ function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; use
   }, [selectedItem?.id, setSelectedQueueItem, useStore]);
 
   return (
-    <div className="flex h-full overflow-hidden bg-[var(--bg)]">
+    <div className="relative flex h-full overflow-hidden bg-[var(--bg)]">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="border-b border-[var(--line)] px-5 py-2.5">
-          <div className="flex gap-2">
+        <div className="border-b border-[var(--line)] px-3 py-2.5 sm:px-5">
+          <div className="scrollbar-none flex gap-2 overflow-x-auto">
             {filters.map((entry) => (
               <button
                 key={entry.value}
@@ -92,7 +92,12 @@ function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; use
       </div>
 
       {selectedItem ? (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.22, ease: "easeOut" }}>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="absolute inset-0 z-20 lg:static lg:inset-auto"
+        >
           <QueueItemDetail
             item={selectedItem}
             onClose={() => navigate("/queue")}
@@ -120,3 +125,4 @@ export function QueueViewDemo() {
   const items = useAppStore.getState().queueItems;
   return <QueueViewContent items={items} />;
 }
+

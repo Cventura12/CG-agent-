@@ -1,4 +1,4 @@
-import { Check, UserPlus } from "lucide-react";
+﻿import { Check, UserPlus } from "lucide-react";
 
 import type { AgentStatus } from "../../types";
 import { Button } from "../ui/Button";
@@ -18,7 +18,7 @@ export interface FeedAsideProps {
 
 export function FeedAside({ setupStepsCompleted, agentStatus }: FeedAsideProps) {
   return (
-    <aside className="scrollbar-none w-[260px] shrink-0 overflow-y-auto p-[14px]">
+    <aside className="scrollbar-none w-full shrink-0 overflow-y-auto p-[14px] xl:w-[260px]">
       <div className="flex flex-col gap-[14px]">
         {setupStepsCompleted < 3 ? (
           <section className="rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)] p-[14px]">
@@ -57,3 +57,4 @@ export function FeedAside({ setupStepsCompleted, agentStatus }: FeedAsideProps) 
     </aside>
   );
 }
+

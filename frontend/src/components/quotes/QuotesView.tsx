@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 import { FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -41,10 +41,10 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
   }, [selectedQuote?.id, setSelectedQuote, useStore]);
 
   return (
-    <div className="flex h-full overflow-hidden bg-[var(--bg)]">
+    <div className="relative flex h-full overflow-hidden bg-[var(--bg)]">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="border-b border-[var(--line)] px-5 py-2.5">
-          <div className="flex gap-3">
+        <div className="border-b border-[var(--line)] px-3 py-2.5 sm:px-5">
+          <div className="scrollbar-none flex gap-3 overflow-x-auto">
             {filters.map((filterEntry) => (
               <button
                 key={filterEntry.value}
@@ -76,7 +76,12 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
       </div>
 
       {selectedQuote ? (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.22, ease: "easeOut" }}>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="absolute inset-0 z-20 lg:static lg:inset-auto"
+        >
           <QuoteDetail quote={selectedQuote} onClose={() => navigate("/quotes")} onStatusChange={(status) => updateQuoteStatus(selectedQuote.id, status)} />
         </motion.div>
       ) : null}
@@ -92,3 +97,4 @@ export default function QuotesView() {
 export function QuotesViewDemo() {
   return <QuotesViewContent quotes={useAppStore.getState().quotes} />;
 }
+

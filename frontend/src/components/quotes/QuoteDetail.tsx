@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+﻿import { X } from "lucide-react";
 
 import type { Quote } from "../../types";
 import { formatCurrency, formatTimestamp } from "../../lib/formatters";
@@ -22,12 +22,12 @@ export interface QuoteDetailProps {
 
 export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps) {
   return (
-    <div className="flex h-full w-[380px] shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)]">
-      <div className="border-b border-[var(--line)] px-5 py-4">
+    <div className="flex h-full w-full shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:w-[420px] lg:w-[380px]">
+      <div className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[14px] font-medium text-[var(--t1)]">{quote.jobName}</div>
-            <div className="mt-1 text-[12px] text-[var(--t2)]">{quote.customerName} � {quote.customerContact}</div>
+            <div className="mt-1 text-[12px] text-[var(--t2)]">{quote.customerName} · {quote.customerContact}</div>
             <div className="mt-2 flex items-center gap-2">
               <QuoteStatusBadge status={quote.status} />
               <span className="font-mono text-[10px] text-[var(--t3)]">Created {formatTimestamp(quote.createdAt)}</span>
@@ -39,7 +39,7 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
         </div>
       </div>
 
-      <div className="scrollbar-none flex-1 overflow-y-auto px-5 py-5">
+      <div className="scrollbar-none flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
         <section className="border-b border-[var(--line)] pb-5">
           <div className="flex items-start justify-between gap-2">
             {steps.map((step, index) => {
@@ -60,7 +60,8 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
         </section>
 
         <section className="py-5">
-          <table className="w-full border-collapse text-[12px]">
+          <div className="overflow-x-auto">
+          <table className="min-w-[520px] w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b border-[var(--line)] text-left font-mono text-[10px] uppercase tracking-wider text-[var(--t3)]">
                 <th className="py-3 pr-3 font-medium">Description</th>
@@ -84,6 +85,7 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
               </tr>
             </tbody>
           </table>
+          </div>
         </section>
       </div>
 
@@ -109,3 +111,4 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
     </div>
   );
 }
+

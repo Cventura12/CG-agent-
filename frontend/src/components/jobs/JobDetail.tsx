@@ -1,10 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Job, JobActivity } from "../../types";
 import { formatCurrency, formatMonoTime } from "../../lib/formatters";
-import { JobStatusBadge } from "./JobStatusBadge";
 import { QuoteStatusBadge } from "../quotes/QuoteStatusBadge";
 import { InputSourceIcon } from "../ui/InputSourceIcon";
+import { JobStatusBadge } from "./JobStatusBadge";
 
 const tabs = ["activity", "quotes", "followups", "notes"] as const;
 
@@ -22,9 +23,10 @@ const activityIconTone: Record<JobActivity["type"], { color: string; source?: "C
 export interface JobDetailProps {
   job: Job;
   onSaveNotes: (notes: string) => void;
+  onClose?: () => void;
 }
 
-export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
+export function JobDetail({ job, onSaveNotes, onClose }: JobDetailProps) {
   const [activeTab, setActiveTab] = useState<JobTab>("activity");
   const [notesDraft, setNotesDraft] = useState(job.notes ?? "");
 
@@ -53,9 +55,9 @@ export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
   );
 
   return (
-    <div className="scrollbar-none h-full overflow-y-auto px-6 py-5">
+    <div className="scrollbar-none h-full overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[18px] font-medium tracking-[-0.4px] text-[var(--t1)]">{job.name}</h2>
             <JobStatusBadge status={job.status} />
@@ -72,14 +74,28 @@ export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
             </div>
           ) : null}
         </div>
-        <button type="button" className="rounded-md border border-[var(--line-3)] px-3 py-[5px] text-[12px] text-[var(--t2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--t1)]">
-          Edit
-        </button>
+        <div className="flex items-center gap-2">
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-[32px] w-[32px] items-center justify-center rounded-md border border-[var(--line-3)] text-[var(--t2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--t1)] lg:hidden"
+            >
+              <X className="h-[16px] w-[16px]" strokeWidth={2} />
+            </button>
+          ) : null}
+          <button type="button" className="rounded-md border border-[var(--line-3)] px-3 py-[5px] text-[12px] text-[var(--t2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--t1)]">
+            Edit
+          </button>
+        </div>
       </div>
 
-      <div className="mt-5 flex items-stretch overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
+      <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)] md:flex md:items-stretch">
         {stats.map((stat, index) => (
-          <div key={stat.label} className={`flex-1 px-4 py-4 ${index < stats.length - 1 ? "border-r border-[var(--line)]" : ""}`}>
+          <div
+            key={stat.label}
+            className={`px-4 py-4 ${index % 2 === 0 ? "border-r border-[var(--line)]" : ""} ${index < 2 ? "border-b border-[var(--line)] md:border-b-0" : ""} ${index < stats.length - 1 ? "md:flex-1 md:border-r md:border-[var(--line)]" : "md:flex-1"} ${index === stats.length - 1 ? "md:border-r-0" : ""}`}
+          >
             <div className="font-mono text-[10px] uppercase tracking-[0.5px] text-[var(--t3)]">{stat.label}</div>
             <div className="mt-2 font-mono text-[16px] text-[var(--t1)]">{stat.value}</div>
           </div>
@@ -87,13 +103,13 @@ export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
       </div>
 
       <div className="mt-5 border-b border-[var(--line)]">
-        <div className="flex gap-0">
+        <div className="scrollbar-none flex gap-0 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`relative px-4 py-2.5 text-[12px] transition ${activeTab === tab ? "text-[var(--t1)]" : "text-[var(--t3)] hover:text-[var(--t2)]"}`}
+              className={`relative shrink-0 px-4 py-2.5 text-[12px] transition ${activeTab === tab ? "text-[var(--t1)]" : "text-[var(--t3)] hover:text-[var(--t2)]"}`}
             >
               {tab === "followups" ? "Follow-ups" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               {activeTab === tab ? <span className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--accent)]" /> : null}
@@ -115,7 +131,7 @@ export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
                   <div className="text-[13px] text-[var(--t1)]">{entry.description}</div>
                   <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{formatMonoTime(entry.timestamp)}</div>
                 </div>
-                {typeof entry.value === "number" ? <div className="font-mono text-[11px] text-[var(--green)]">{formatCurrency(entry.value)}</div> : null}
+                {typeof entry.value === "number" ? <div className="shrink-0 font-mono text-[11px] text-[var(--green)]">{formatCurrency(entry.value)}</div> : null}
               </div>
             );
           })}
@@ -127,8 +143,8 @@ export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
           {job.quotes.map((quote) => (
             <div key={quote.id} className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[13px] font-medium text-[var(--t1)]">{quote.customerName}</div>
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-medium text-[var(--t1)]">{quote.customerName}</div>
                   <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{quote.lineItems.length} line items</div>
                 </div>
                 <QuoteStatusBadge status={quote.status} />
@@ -168,4 +184,3 @@ export function JobDetail({ job, onSaveNotes }: JobDetailProps) {
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+﻿import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { FileText, Upload } from "lucide-react";
+import { FileText, Menu, Upload, X } from "lucide-react";
 
 import { useAppStore } from "../../store/appStore";
 import { Button } from "../ui/Button";
@@ -45,16 +45,18 @@ export function AppShell() {
   const user = useAppStore((state) => state.user);
   const setActiveView = useAppStore((state) => state.setActiveView);
   const approveAllQueueItems = useAppStore((state) => state.approveAllQueueItems);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { title, subtitle } = routeMeta(location.pathname);
 
   useEffect(() => {
     setActiveView(location.pathname);
+    setMobileNavOpen(false);
   }, [location.pathname, setActiveView]);
 
   const actions = (() => {
     if (location.pathname.startsWith("/queue")) {
       return (
-        <Button variant="ghost" onClick={() => approveAllQueueItems()}>
+        <Button variant="ghost" onClick={() => approveAllQueueItems()} className="whitespace-nowrap">
           Mark all reviewed
         </Button>
       );
@@ -62,12 +64,23 @@ export function AppShell() {
 
     if (location.pathname.startsWith("/quotes")) {
       return (
-        <Button variant="accent" leftIcon={<FileText className="h-[14px] w-[14px]" strokeWidth={2} />} onClick={() => navigate("/quotes")}>New quote</Button>
+        <Button
+          variant="accent"
+          leftIcon={<FileText className="h-[14px] w-[14px]" strokeWidth={2} />}
+          onClick={() => navigate("/quotes")}
+          className="whitespace-nowrap"
+        >
+          New quote
+        </Button>
       );
     }
 
     if (location.pathname.startsWith("/jobs")) {
-      return <Button variant="accent" onClick={() => navigate("/jobs")}>New job</Button>;
+      return (
+        <Button variant="accent" onClick={() => navigate("/jobs")} className="whitespace-nowrap">
+          New job
+        </Button>
+      );
     }
 
     if (location.pathname.startsWith("/analytics")) {
@@ -76,22 +89,75 @@ export function AppShell() {
 
     return (
       <>
-        <Button variant="ghost" leftIcon={<Upload className="h-[14px] w-[14px]" strokeWidth={2} />} onClick={() => navigate("/queue")}>Import transcript</Button>
-        <Button variant="accent" leftIcon={<FileText className="h-[14px] w-[14px]" strokeWidth={2} />} onClick={() => navigate("/quotes")}>New quote</Button>
+        <Button
+          variant="ghost"
+          leftIcon={<Upload className="h-[14px] w-[14px]" strokeWidth={2} />}
+          onClick={() => navigate("/queue")}
+          className="whitespace-nowrap"
+        >
+          Import transcript
+        </Button>
+        <Button
+          variant="accent"
+          leftIcon={<FileText className="h-[14px] w-[14px]" strokeWidth={2} />}
+          onClick={() => navigate("/quotes")}
+          className="whitespace-nowrap"
+        >
+          New quote
+        </Button>
       </>
     );
   })();
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
-      <IconRail initials={user?.initials ?? "GC"} />
-      <Sidebar />
+      <div className="hidden lg:flex">
+        <IconRail initials={user?.initials ?? "GC"} />
+      </div>
+      <Sidebar className="hidden lg:flex" />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar title={title} subtitle={subtitle} actions={actions} />
+        <Topbar
+          title={title}
+          subtitle={subtitle}
+          actions={actions}
+          leading={
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-md border border-[var(--line-2)] text-[var(--t2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--t1)]"
+              aria-label="Open navigation"
+            >
+              <Menu className="h-[16px] w-[16px]" strokeWidth={2} />
+            </button>
+          }
+        />
         <div className="min-h-0 flex-1 overflow-hidden">
           <Outlet />
         </div>
       </div>
+
+      {mobileNavOpen ? (
+        <div className="fixed inset-0 z-40 flex lg:hidden">
+          <button type="button" className="flex-1 bg-black/55" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />
+          <div className="flex w-[min(88vw,320px)] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg-2)]">
+            <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+              <div>
+                <div className="text-[13px] font-medium text-[var(--t1)]">GC Agent</div>
+                <div className="mt-[2px] text-[11px] text-[var(--t3)]">Workspace</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                className="flex h-[32px] w-[32px] items-center justify-center rounded-md border border-[var(--line-2)] text-[var(--t2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--t1)]"
+                aria-label="Close navigation"
+              >
+                <X className="h-[16px] w-[16px]" strokeWidth={2} />
+              </button>
+            </div>
+            <Sidebar className="h-full w-full border-r-0 border-l-0" onNavigate={() => setMobileNavOpen(false)} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

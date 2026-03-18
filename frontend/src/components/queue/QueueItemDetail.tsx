@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+﻿import { X } from "lucide-react";
 
 import type { QueueItem } from "../../types";
 import { formatTimestamp } from "../../lib/formatters";
@@ -17,13 +17,13 @@ export interface QueueItemDetailProps {
 
 export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onToggleAction }: QueueItemDetailProps) {
   return (
-    <div className="flex h-full w-[340px] shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)]">
+    <div className="flex h-full w-full shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:w-[380px] lg:w-[340px]">
       <div className="border-b border-[var(--line)] px-4 py-4">
         <div className="flex items-start gap-3">
           <InputSourceIcon source={item.source} />
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-medium text-[var(--t1)]">{item.title}</div>
-            <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{item.source} � {formatTimestamp(item.createdAt)}</div>
+            <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{item.source} · {formatTimestamp(item.createdAt)}</div>
           </div>
           <button
             type="button"
@@ -68,3 +68,4 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
     </div>
   );
 }
+

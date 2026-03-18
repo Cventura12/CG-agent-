@@ -54,37 +54,37 @@ function TodayViewContent({
         <StatRow queueItems={queueItems} openQuotes={openQuotes} followUpsDue={followUpsDue} activeJobs={activeJobs} />
 
         {urgentItems.length > 0 ? (
-          <div className="border-b border-[var(--line)] px-5 py-3">
-            <div className="flex items-center justify-between rounded-md border border-[var(--amber-b)] border-l-2 border-l-[var(--amber)] bg-[var(--amber-b)] px-3 py-2">
+          <div className="border-b border-[var(--line)] px-3 py-3 sm:px-5">
+            <div className="flex flex-col gap-2 rounded-md border border-[var(--amber-b)] border-l-2 border-l-[var(--amber)] bg-[var(--amber-b)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-[12px] text-[var(--t1)]">
                 <AlertTriangle className="h-[14px] w-[14px] text-[var(--amber)]" strokeWidth={2} />
                 <span>{urgentItems.length} items need immediate review</span>
               </div>
-              <button type="button" onClick={() => navigate("/queue")} className="text-[11px] font-medium text-[var(--accent-2)] transition hover:text-[var(--t1)]">
-                Go to queue ?
+              <button type="button" onClick={() => navigate("/queue")} className="text-left text-[11px] font-medium text-[var(--accent-2)] transition hover:text-[var(--t1)]">
+                Go to queue →
               </button>
             </div>
           </div>
         ) : null}
 
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_260px] overflow-hidden">
-          <div className="scrollbar-none min-h-0 overflow-y-auto p-5">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="scrollbar-none min-h-0 overflow-y-auto p-3 sm:p-5">
             <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4} className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
-              <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
+              <div className="flex flex-col gap-3 border-b border-[var(--line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
                   <div className="text-[13px] font-medium text-[var(--t1)]">Agent feed</div>
                   <div className="mt-1 text-[12px] text-[var(--t2)]">
                     {agentStatus.active ? `Watching live for ${firstName} · ${formatLongDate(currentTime)}` : "Offline mode"}
                   </div>
                 </div>
-                <Button variant="ghost" onClick={() => navigate("/queue")}>Open queue</Button>
+                <Button variant="ghost" onClick={() => navigate("/queue")} className="w-full justify-center sm:w-auto">Open queue</Button>
               </div>
-              <div className="border-b border-[var(--line)] px-5 py-2">
+              <div className="border-b border-[var(--line)] px-4 py-2 sm:px-5">
                 <div className="relative h-[2px] overflow-hidden rounded-sm bg-[var(--bg-4)]">
                   <div className="anim-scan absolute inset-y-0 w-[30%] bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent" />
                 </div>
               </div>
-              <div className="p-5">
+              <div className="p-4 sm:p-5">
                 {pendingItems.length === 0 ? (
                   <AgentFeedEmpty
                     onPhoneClick={() => navigate("/queue")}
@@ -106,7 +106,7 @@ function TodayViewContent({
                       >
                         <InputSourceIcon source={item.source} />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <div className="text-[13px] font-medium text-[var(--t1)]">{item.title}</div>
                             {item.urgent ? <Badge label="Urgent" color="amber" /> : null}
                           </div>
@@ -123,13 +123,13 @@ function TodayViewContent({
 
             {recentJobs.length > 0 ? (
               <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={5} className="mt-4 overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
-                <div className="border-b border-[var(--line)] px-5 py-4">
+                <div className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
                   <div className="text-[13px] font-medium text-[var(--t1)]">Recent job movement</div>
                 </div>
                 <div className="divide-y divide-[var(--line)]">
                   {recentJobs.map((job) => (
-                    <button key={job.id} type="button" onClick={() => navigate(`/jobs/${job.id}`)} className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left transition hover:bg-[var(--bg-3)]">
-                      <div>
+                    <button key={job.id} type="button" onClick={() => navigate(`/jobs/${job.id}`)} className="flex w-full flex-col gap-2 px-4 py-3 text-left transition hover:bg-[var(--bg-3)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                      <div className="min-w-0">
                         <div className="text-[13px] text-[var(--t1)]">{job.name}</div>
                         <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{job.status.replace("_", " ")} · {formatTimeAgo(job.lastActivityAt ?? job.createdAt)}</div>
                       </div>
@@ -144,7 +144,7 @@ function TodayViewContent({
             ) : null}
           </div>
 
-          <div className="border-l border-[var(--line)] bg-[var(--bg)]">
+          <div className="border-t border-[var(--line)] bg-[var(--bg)] xl:border-l xl:border-t-0">
             <FeedAside setupStepsCompleted={setupStepsCompleted} agentStatus={agentStatus} />
           </div>
         </div>
@@ -189,4 +189,5 @@ export default function TodayView(props: TodayViewProps) {
 export function TodayViewDemo() {
   return <TodayView />;
 }
+
 
