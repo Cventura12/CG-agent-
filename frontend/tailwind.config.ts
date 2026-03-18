@@ -17,7 +17,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["Syne Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "monospace"],
         display: ["Oswald", "ui-sans-serif", "system-ui", "sans-serif"],
       }
     }

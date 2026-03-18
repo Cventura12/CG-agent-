@@ -45,15 +45,15 @@ function AppStatusScreen({
   );
 }
 
-function ProtectedRoute({ children }: { children: ReactNode }) {
+function ProtectedRoute({ children, shell = true }: { children: ReactNode; shell?: boolean }) {
   if (bypassAuth) {
-    return <ProtectedAppFrame>{children}</ProtectedAppFrame>;
+    return <ProtectedAppFrame shell={shell}>{children}</ProtectedAppFrame>;
   }
 
   return (
     <>
       <SignedIn>
-        <ProtectedAppFrame>{children}</ProtectedAppFrame>
+        <ProtectedAppFrame shell={shell}>{children}</ProtectedAppFrame>
       </SignedIn>
       <SignedOut>
         <Navigate to="/onboarding" replace />
@@ -62,9 +62,13 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   );
 }
 
-function ProtectedAppFrame({ children }: { children: ReactNode }) {
+function ProtectedAppFrame({ children, shell = true }: { children: ReactNode; shell?: boolean }) {
   const { userId } = useAuth();
   useQueueNotificationStub(userId ?? null);
+
+  if (!shell) {
+    return <>{children}</>;
+  }
 
   return <AppShell>{children}</AppShell>;
 }
@@ -80,49 +84,33 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          bypassAuth ? (
-            <Navigate to="/quote" replace />
-          ) : (
-            <ProtectedRoute>
-              <BriefingPage />
-            </ProtectedRoute>
-          )
+          <ProtectedRoute shell={false}>
+            <BriefingPage />
+          </ProtectedRoute>
         }
       />
       <Route
         path="/queue"
         element={
-          bypassAuth ? (
-            <Navigate to="/quote" replace />
-          ) : (
-            <ProtectedRoute>
-              <QueuePage />
-            </ProtectedRoute>
-          )
+          <ProtectedRoute>
+            <QueuePage />
+          </ProtectedRoute>
         }
       />
       <Route
         path="/jobs"
         element={
-          bypassAuth ? (
-            <Navigate to="/quote" replace />
-          ) : (
-            <ProtectedRoute>
-              <JobsPage />
-            </ProtectedRoute>
-          )
+          <ProtectedRoute>
+            <JobsPage />
+          </ProtectedRoute>
         }
       />
       <Route
         path="/jobs/:jobId"
         element={
-          bypassAuth ? (
-            <Navigate to="/quote" replace />
-          ) : (
-            <ProtectedRoute>
-              <JobDetailPage />
-            </ProtectedRoute>
-          )
+          <ProtectedRoute>
+            <JobDetailPage />
+          </ProtectedRoute>
         }
       />
       <Route
@@ -136,28 +124,20 @@ function AppRoutes() {
       <Route
         path="/analytics"
         element={
-          bypassAuth ? (
-            <Navigate to="/quote" replace />
-          ) : (
-            <ProtectedRoute>
-              <AnalyticsPage />
-            </ProtectedRoute>
-          )
+          <ProtectedRoute>
+            <AnalyticsPage />
+          </ProtectedRoute>
         }
       />
       <Route
         path="/insights"
         element={
-          bypassAuth ? (
-            <Navigate to="/quote" replace />
-          ) : (
-            <ProtectedRoute>
-              <InsightsPage />
-            </ProtectedRoute>
-          )
+          <ProtectedRoute>
+            <InsightsPage />
+          </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to={bypassAuth ? "/quote" : "/"} replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
