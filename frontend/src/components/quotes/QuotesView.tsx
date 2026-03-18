@@ -1,13 +1,14 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { fadeUp } from "../../lib/animations";
 import { useAppStore } from "../../store/appStore";
-import type { Quote } from "../../types";
+import type { Quote, QuoteDraftInput } from "../../types";
 import { EmptyState } from "../ui/EmptyState";
 import { QuoteCard } from "./QuoteCard";
+import { QuoteComposer } from "./QuoteComposer";
 import { QuoteDetail } from "./QuoteDetail";
 
 type QuoteFilter = "all" | Quote["status"];
@@ -26,19 +27,36 @@ function matchesFilter(quote: Quote, filter: QuoteFilter): boolean {
 
 function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useStore?: boolean }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const updateQuoteStatus = useAppStore((state) => state.updateQuoteStatus);
   const setSelectedQuote = useAppStore((state) => state.setSelectedQuote);
+  const createQuoteDraft = useAppStore((state) => state.createQuoteDraft);
+  const activeJob = useAppStore((state) => state.jobs.find((job) => job.id === state.activeJobId) ?? null);
   const [filter, setFilter] = useState<QuoteFilter>("all");
 
   const filteredQuotes = useMemo(() => quotes.filter((quote) => matchesFilter(quote, filter)), [filter, quotes]);
   const selectedQuote = filteredQuotes.find((quote) => quote.id === id) ?? quotes.find((quote) => quote.id === id) ?? null;
+  const isComposerOpen = useMemo(() => new URLSearchParams(location.search).get("compose") === "1", [location.search]);
 
   useEffect(() => {
     if (useStore) {
       setSelectedQuote(selectedQuote?.id ?? null);
     }
   }, [selectedQuote?.id, setSelectedQuote, useStore]);
+
+  const closeComposer = () => {
+    navigate(location.pathname);
+  };
+
+  const handleCreateDraft = (input: QuoteDraftInput) => {
+    const nextQuoteId = createQuoteDraft(input);
+    if (nextQuoteId) {
+      navigate(`/quotes/${nextQuoteId}`);
+      return;
+    }
+    closeComposer();
+  };
 
   return (
     <div className="relative flex h-full overflow-hidden bg-[var(--bg)]">
@@ -64,7 +82,12 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
 
         <div className="scrollbar-none flex-1 overflow-y-auto">
           {filteredQuotes.length === 0 ? (
-            <EmptyState icon={FileText} title="No quotes in this lane" description="The agent will keep new drafts and sends here once work starts moving." />
+            <EmptyState
+              icon={FileText}
+              title="No quotes in this lane"
+              description="The agent will keep new drafts and sends here once work starts moving."
+              action={{ label: "Start new quote", onClick: () => navigate("/quotes?compose=1") }}
+            />
           ) : (
             filteredQuotes.map((quote, index) => (
               <motion.div key={quote.id} custom={index} initial="hidden" animate="visible" variants={fadeUp}>
@@ -75,7 +98,9 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
         </div>
       </div>
 
-      {selectedQuote ? (
+      {isComposerOpen ? <QuoteComposer initialJob={activeJob} onClose={closeComposer} onCreateDraft={handleCreateDraft} /> : null}
+
+      {selectedQuote && !isComposerOpen ? (
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -97,4 +122,3 @@ export default function QuotesView() {
 export function QuotesViewDemo() {
   return <QuotesViewContent quotes={useAppStore.getState().quotes} />;
 }
-

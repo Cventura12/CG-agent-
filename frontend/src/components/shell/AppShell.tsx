@@ -65,7 +65,7 @@ export function AppShell() {
         <Button
           variant="accent"
           leftIcon={<FileText className="h-[14px] w-[14px]" strokeWidth={2} />}
-          onClick={() => navigate("/quotes")}
+          onClick={() => navigate({ pathname: location.pathname, search: "?compose=1" })}
           className="whitespace-nowrap"
         >
           New quote
@@ -98,7 +98,7 @@ export function AppShell() {
         <Button
           variant="accent"
           leftIcon={<FileText className="h-[14px] w-[14px]" strokeWidth={2} />}
-          onClick={() => navigate("/quotes")}
+          onClick={() => navigate("/quotes?compose=1")}
           className="whitespace-nowrap"
         >
           New quote

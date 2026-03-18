@@ -3,6 +3,7 @@ export type QueueStatus = "pending" | "approved" | "dismissed" | "snoozed";
 export type QuoteStatus = "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired";
 export type JobStatus = "active" | "quoted" | "in_progress" | "completed" | "stalled";
 export type FollowUpStatus = "scheduled" | "sent" | "responded" | "overdue";
+export type QuoteIntakeSource = "manual" | "voice" | "photo" | "pdf";
 
 export interface User {
   id: string;
@@ -60,6 +61,15 @@ export interface QuoteLineItem {
   total: number;
 }
 
+export interface QuoteDraftInput {
+  jobName: string;
+  customerName: string;
+  customerContact: string;
+  notes: string;
+  intakeSource: QuoteIntakeSource;
+  attachmentName?: string;
+}
+
 export interface Quote {
   id: string;
   jobId: string;
@@ -76,6 +86,8 @@ export interface Quote {
   createdAt: string;
   sourceQueueItemId?: string;
   notes?: string;
+  intakeSource?: QuoteIntakeSource;
+  attachmentName?: string;
 }
 
 export interface FollowUp {

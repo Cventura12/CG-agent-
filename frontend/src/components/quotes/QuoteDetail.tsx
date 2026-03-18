@@ -2,6 +2,7 @@
 
 import type { Quote } from "../../types";
 import { formatCurrency, formatTimestamp } from "../../lib/formatters";
+import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 
@@ -21,6 +22,17 @@ export interface QuoteDetailProps {
 }
 
 export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps) {
+  const intakeLabel =
+    quote.intakeSource === "voice"
+      ? "VOICE MEMO"
+      : quote.intakeSource === "pdf"
+        ? "PDF"
+        : quote.intakeSource === "photo"
+          ? "FILE / PHOTO"
+          : quote.intakeSource === "manual"
+            ? "MANUAL"
+            : null;
+
   return (
     <div className="flex h-full w-full shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:w-[420px] lg:w-[380px]">
       <div className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
@@ -30,6 +42,7 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
             <div className="mt-1 text-[12px] text-[var(--t2)]">{quote.customerName} · {quote.customerContact}</div>
             <div className="mt-2 flex items-center gap-2">
               <QuoteStatusBadge status={quote.status} />
+              {intakeLabel ? <Badge label={intakeLabel} color="blue" /> : null}
               <span className="font-mono text-[10px] text-[var(--t3)]">Created {formatTimestamp(quote.createdAt)}</span>
             </div>
           </div>
@@ -60,6 +73,12 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
         </section>
 
         <section className="py-5">
+          {quote.notes ? (
+            <div className="mb-5 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] p-3">
+              <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--t3)]">Draft notes</div>
+              <div className="whitespace-pre-line text-[12px] leading-relaxed text-[var(--t2)]">{quote.notes}</div>
+            </div>
+          ) : null}
           <div className="overflow-x-auto">
           <table className="min-w-[520px] w-full border-collapse text-[12px]">
             <thead>

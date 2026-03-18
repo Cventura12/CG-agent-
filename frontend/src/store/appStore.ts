@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { mockAppState } from "../lib/mockData";
-import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, QueueItem, Quote, User } from "../types";
+import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteLineItem, User } from "../types";
 
 interface AppStore {
   user: User | null;
@@ -29,6 +29,98 @@ interface AppStore {
   setSelectedQuote: (id: string | null) => void;
   updateJobNotes: (id: string, notes: string) => void;
   updateQuoteStatus: (id: string, status: Quote["status"]) => void;
+  createQuoteDraft: (input: QuoteDraftInput) => string | null;
+}
+
+function normalizeLookupKey(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function slugify(value: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "quote";
+}
+
+function buildStoreId(prefix: string, seed: string): string {
+  return `${prefix}-${slugify(seed)}-${Date.now().toString(36).slice(-6)}`;
+}
+
+function estimateLineValue(fragment: string, index: number): number {
+  const normalized = fragment.toLowerCase();
+  const matches: Array<{ keywords: string[]; value: number }> = [
+    { keywords: ["roof", "reroof", "shingle", "flashing", "chimney"], value: 840 },
+    { keywords: ["window", "door", "frame"], value: 680 },
+    { keywords: ["electrical", "lighting", "panel", "fixture"], value: 540 },
+    { keywords: ["cabinet", "counter", "tile", "kitchen"], value: 760 },
+    { keywords: ["drywall", "paint", "patch"], value: 320 },
+    { keywords: ["drain", "plumbing", "water"], value: 610 },
+    { keywords: ["framing", "buildout", "tenant", "finish"], value: 950 },
+    { keywords: ["concrete", "footing", "slab"], value: 1120 },
+  ];
+
+  const matched = matches.find((entry) => entry.keywords.some((keyword) => normalized.includes(keyword)));
+  if (matched) {
+    return matched.value + index * 90;
+  }
+
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  const estimated = 220 + wordCount * 38 + index * 70;
+  return Math.max(220, Math.min(1800, Math.round(estimated / 10) * 10));
+}
+
+function buildDraftLineItems(notes: string, attachmentName?: string): QuoteLineItem[] {
+  const fragments = notes
+    .split(/\r?\n|[.;]+/)
+    .map((fragment) => fragment.trim())
+    .filter((fragment) => fragment.length > 0)
+    .slice(0, 3);
+
+  const baseItems = (fragments.length > 0 ? fragments : ["Initial field scope review"]).map((fragment, index) => {
+    const description = fragment.charAt(0).toUpperCase() + fragment.slice(1);
+    const unitPrice = estimateLineValue(fragment, index);
+    return {
+      id: buildStoreId("line", `${description}-${index}`),
+      description,
+      quantity: 1,
+      unitPrice,
+      total: unitPrice,
+    } satisfies QuoteLineItem;
+  });
+
+  if (attachmentName && baseItems.length < 4) {
+    const unitPrice = 180;
+    baseItems.push({
+      id: buildStoreId("line", attachmentName),
+      description: `Attached scope reference · ${attachmentName}`,
+      quantity: 1,
+      unitPrice,
+      total: unitPrice,
+    });
+  }
+
+  return baseItems;
+}
+
+function appendAgentLog(agentStatus: AgentStatus, message: string, timestamp: string): AgentStatus {
+  return {
+    ...agentStatus,
+    lastActivityAt: timestamp,
+    currentTask: message,
+    log: [
+      {
+        id: buildStoreId("log", message),
+        message,
+        timestamp,
+        type: "action" as const,
+      },
+      ...agentStatus.log,
+    ].slice(0, 10),
+  };
 }
 
 function syncJobQuotes(jobs: Job[], quotes: Quote[], queueItems: QueueItem[]): Job[] {
@@ -157,4 +249,106 @@ export const useAppStore = create<AppStore>((set) => ({
         jobs: syncJobQuotes(state.jobs, quotes, state.queueItems),
       };
     }),
+  createQuoteDraft: (input) => {
+    const trimmedNotes = input.notes.trim();
+    if (!trimmedNotes) {
+      return null;
+    }
+
+    let nextQuoteId: string | null = null;
+
+    set((state) => {
+      const timestamp = new Date().toISOString();
+      const jobName = input.jobName.trim() || "New quote draft";
+      const customerName = input.customerName.trim() || "Customer pending";
+      const customerContact = input.customerContact.trim() || "Contact pending";
+      const attachmentName = input.attachmentName?.trim() || undefined;
+      const lineItems = buildDraftLineItems(trimmedNotes, attachmentName);
+      const totalValue = lineItems.reduce((sum, item) => sum + item.total, 0);
+      const existingJob = state.jobs.find((job) => normalizeLookupKey(job.name) === normalizeLookupKey(jobName));
+      const jobId = existingJob?.id ?? buildStoreId("job", jobName);
+      const quoteId = buildStoreId("quote", `${jobName}-${customerName}`);
+      nextQuoteId = quoteId;
+
+      const quote: Quote = {
+        id: quoteId,
+        jobId,
+        jobName,
+        customerName: existingJob?.customerName ?? customerName,
+        customerContact: existingJob?.customerContact ?? customerContact,
+        status: "draft",
+        lineItems,
+        totalValue,
+        createdAt: timestamp,
+        notes: attachmentName ? `${trimmedNotes}\n\nAttachment: ${attachmentName}` : trimmedNotes,
+        intakeSource: input.intakeSource,
+        attachmentName,
+      };
+
+      const activityDescriptionBySource: Record<QuoteDraftInput["intakeSource"], string> = {
+        manual: "Manual intake turned into a quote draft.",
+        voice: "Voice memo turned into a quote draft.",
+        photo: "Photo or file intake turned into a quote draft.",
+        pdf: "PDF scope turned into a quote draft.",
+      };
+
+      const activityEntry: JobActivity = {
+        id: buildStoreId("activity", `${jobName}-${input.intakeSource}`),
+        type: "note",
+        description: activityDescriptionBySource[input.intakeSource],
+        timestamp,
+        value: totalValue,
+      };
+
+      const baseJobs = existingJob
+        ? state.jobs.map((job) =>
+            job.id === existingJob.id
+              ? {
+                  ...job,
+                  lastActivityAt: timestamp,
+                  activityLog: [activityEntry, ...job.activityLog],
+                }
+              : job
+          )
+        : [
+            {
+              id: jobId,
+              name: jobName,
+              customerName,
+              customerContact,
+              status: "quoted" as const,
+              totalQuoted: 0,
+              totalApproved: 0,
+              openQueueItems: 0,
+              quotes: [],
+              followUps: [],
+              activityLog: [activityEntry],
+              createdAt: timestamp,
+              lastActivityAt: timestamp,
+              tags: [input.intakeSource === "voice" ? "voice memo" : "new draft"],
+              notes: trimmedNotes,
+            },
+            ...state.jobs,
+          ];
+
+      const quotes = [quote, ...state.quotes];
+      const jobs = syncJobQuotes(baseJobs, quotes, state.queueItems);
+      const sourceLabel: Record<QuoteDraftInput["intakeSource"], string> = {
+        manual: "manual intake",
+        voice: "voice memo",
+        photo: "file/photo intake",
+        pdf: "PDF intake",
+      };
+
+      return {
+        quotes,
+        jobs,
+        activeJobId: jobId,
+        selectedQuoteId: quoteId,
+        agentStatus: appendAgentLog(state.agentStatus, `Drafted ${jobName} from ${sourceLabel[input.intakeSource]}`, timestamp),
+      };
+    });
+
+    return nextQuoteId;
+  },
 }));

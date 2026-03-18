@@ -1,5 +1,6 @@
 import type { Quote } from "../../types";
 import { formatCurrency, formatTimeAgo } from "../../lib/formatters";
+import { Badge } from "../ui/Badge";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";
 
 export interface QuoteCardProps {
@@ -9,6 +10,15 @@ export interface QuoteCardProps {
 }
 
 export function QuoteCard({ quote, selected, onClick }: QuoteCardProps) {
+  const intakeLabel =
+    quote.intakeSource === "voice"
+      ? "VOICE"
+      : quote.intakeSource === "pdf"
+        ? "PDF"
+        : quote.intakeSource === "photo"
+          ? "FILE"
+          : null;
+
   return (
     <button
       type="button"
@@ -21,7 +31,10 @@ export function QuoteCard({ quote, selected, onClick }: QuoteCardProps) {
       <div className="min-w-0 flex-1">
         <div className="text-[13px] font-medium text-[var(--t1)]">{quote.jobName}</div>
         <div className="mt-1 text-[12px] text-[var(--t2)]">{quote.customerName}</div>
-        <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{quote.lineItems.length} line items</div>
+        <div className="mt-1 flex items-center gap-2">
+          <div className="font-mono text-[10px] text-[var(--t3)]">{quote.lineItems.length} line items</div>
+          {intakeLabel ? <Badge label={intakeLabel} color="blue" /> : null}
+        </div>
       </div>
       <div className="text-right">
         <div className="font-mono text-[14px] text-[var(--t1)]">{formatCurrency(quote.totalValue)}</div>
