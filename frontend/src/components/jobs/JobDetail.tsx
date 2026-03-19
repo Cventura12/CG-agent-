@@ -3,11 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { Job, JobActivity } from "../../types";
 import { formatCurrency, formatMonoTime } from "../../lib/formatters";
+import { useAppStore } from "../../store/appStore";
 import { QuoteStatusBadge } from "../quotes/QuoteStatusBadge";
 import { InputSourceIcon } from "../ui/InputSourceIcon";
+import { VoiceSessionList } from "../voice/VoiceSessionList";
 import { JobStatusBadge } from "./JobStatusBadge";
 
-const tabs = ["activity", "quotes", "followups", "notes"] as const;
+const tabs = ["activity", "quotes", "followups", "calls", "notes"] as const;
 
 type JobTab = (typeof tabs)[number];
 
@@ -29,6 +31,14 @@ export interface JobDetailProps {
 export function JobDetail({ job, onSaveNotes, onClose }: JobDetailProps) {
   const [activeTab, setActiveTab] = useState<JobTab>("activity");
   const [notesDraft, setNotesDraft] = useState(job.notes ?? "");
+  const voiceSessions = useAppStore((state) =>
+    state.voiceSessions.filter(
+      (session) =>
+        session.jobId === job.id ||
+        (session.jobName?.trim().toLowerCase() ?? "") === job.name.trim().toLowerCase()
+    )
+  );
+  const requestVoiceTransfer = useAppStore((state) => state.requestVoiceTransfer);
 
   useEffect(() => {
     setNotesDraft(job.notes ?? "");
@@ -111,7 +121,7 @@ export function JobDetail({ job, onSaveNotes, onClose }: JobDetailProps) {
               onClick={() => setActiveTab(tab)}
               className={`relative shrink-0 px-4 py-2.5 text-[12px] transition ${activeTab === tab ? "text-[var(--t1)]" : "text-[var(--t3)] hover:text-[var(--t2)]"}`}
             >
-              {tab === "followups" ? "Follow-ups" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "followups" ? "Follow-ups" : tab === "calls" ? "Calls" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               {activeTab === tab ? <span className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--accent)]" /> : null}
             </button>
           ))}
@@ -168,6 +178,19 @@ export function JobDetail({ job, onSaveNotes, onClose }: JobDetailProps) {
               </div>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {activeTab === "calls" ? (
+        <div className="pt-4">
+          <VoiceSessionList
+            sessions={voiceSessions}
+            title="Job call history"
+            detail="Streaming call captures, transfer state, and replayable recordings tied to this job."
+            emptyDescription="When the agent captures live calls for this job, they’ll show up here with transfer and recording state."
+            onRequestTransfer={requestVoiceTransfer}
+            compact
+          />
         </div>
       ) : null}
 

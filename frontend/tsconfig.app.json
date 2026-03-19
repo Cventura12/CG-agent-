@@ -18,8 +18,12 @@
     "noUnusedParameters": true
   },
   "include": [
+    "src/vite-env.d.ts",
     "src/main.tsx",
     "src/App.tsx",
+    "src/api/client.ts",
+    "src/api/voice.ts",
+    "src/hooks/useVoiceSessions.ts",
     "src/styles/**/*",
     "src/types/index.ts",
     "src/lib/**/*",
@@ -35,6 +39,7 @@
     "src/components/quotes/**/*",
     "src/components/jobs/**/*",
     "src/components/analytics/**/*",
+    "src/components/voice/**/*",
     "src/components/ui/**/*"
   ]
 }

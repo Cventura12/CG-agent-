@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -110,6 +110,37 @@ TranscriptClassification = Literal[
 ]
 
 TranscriptUrgency = Literal["low", "normal", "high"]
+VoiceConversationGoal = Literal["quote_request", "job_update", "issue_report", "follow_up", "general"]
+VoiceSessionStatus = Literal[
+    "active",
+    "awaiting_caller",
+    "streaming",
+    "ready_for_review",
+    "escalated",
+    "completed",
+    "failed",
+]
+VoiceSpeaker = Literal["caller", "agent", "system"]
+VoiceRuntimeMode = Literal["gather", "stream"]
+VoiceTransferState = Literal["none", "requested", "dialing", "transferred", "saved_for_review", "failed"]
+VoiceStreamState = Literal["idle", "connecting", "streaming", "paused", "closed", "failed"]
+VoiceSlotName = Literal[
+    "job_reference",
+    "scope_summary",
+    "timeline",
+    "urgency",
+    "caller_name",
+    "callback_number",
+    "value_signal",
+    "follow_up_target",
+    "trade",
+    "material_or_scope_item",
+    "quantity_or_measurement",
+    "site_access",
+    "customer_decision",
+    "schedule_constraint",
+    "insurance_context",
+]
 
 
 class CallTranscriptRecord(BaseModel):
@@ -250,6 +281,76 @@ class TranscriptIngestResult(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class VoiceTurn(BaseModel):
+    """One conversational turn captured during a live voice session."""
+
+    speaker: VoiceSpeaker
+    text: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    confidence: float | None = None
+
+
+class VoiceMissingSlot(BaseModel):
+    """One required fact the agent still needs before handing off for review."""
+
+    name: VoiceSlotName
+    reason: str
+    prompt: str
+
+
+class VoiceSessionPlan(BaseModel):
+    """Planner output for the next conversational step in a live call."""
+
+    goal: VoiceConversationGoal = "general"
+    status: VoiceSessionStatus = "active"
+    summary: str = ""
+    extracted_fields: dict[str, str] = Field(default_factory=dict)
+    missing_slots: list[VoiceMissingSlot] = Field(default_factory=list)
+    next_prompt: str = ""
+    ready_for_review: bool = False
+    escalate_to_human: bool = False
+    handoff_intent: Literal["transcript", "update", "estimate"] = "transcript"
+    detected_trade: str = ""
+
+
+class VoiceSession(BaseModel):
+    """In-memory representation of one live conversational voice call."""
+
+    id: str
+    call_id: str = ""
+    gc_id: str = ""
+    provider: str = ""
+    from_number: str = ""
+    to_number: str = ""
+    caller_name: str = ""
+    runtime_mode: VoiceRuntimeMode = "gather"
+    status: VoiceSessionStatus = "active"
+    goal: VoiceConversationGoal = "general"
+    stream_state: VoiceStreamState = "idle"
+    stream_sid: str = ""
+    turns: list[VoiceTurn] = Field(default_factory=list)
+    extracted_fields: dict[str, str] = Field(default_factory=dict)
+    missing_slots: list[VoiceMissingSlot] = Field(default_factory=list)
+    asked_slots: list[VoiceSlotName] = Field(default_factory=list)
+    summary: str = ""
+    last_prompt: str = ""
+    last_caller_transcript: str = ""
+    silence_count: int = 0
+    transcript_id: str = ""
+    handoff_trace_id: str = ""
+    handoff_result: dict[str, Any] = Field(default_factory=dict)
+    escalation_reason: str = ""
+    transfer_state: VoiceTransferState = "none"
+    transfer_target: str = ""
+    recording_url: str = ""
+    recording_storage_ref: str = ""
+    recording_content_type: str = "audio/wav"
+    recording_duration_seconds: float | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class AgentState(BaseModel):
     """Single LangGraph state object shared across all execution nodes."""
 
@@ -302,11 +403,22 @@ __all__ = [
     "ParsedIntent",
     "TranscriptClassification",
     "TranscriptUrgency",
+    "VoiceConversationGoal",
+    "VoiceSessionStatus",
+    "VoiceSpeaker",
+    "VoiceRuntimeMode",
+    "VoiceTransferState",
+    "VoiceStreamState",
+    "VoiceSlotName",
     "CallTranscriptRecord",
     "CallTranscriptAnalysis",
     "DraftTranscriptContext",
     "TranscriptInboxItem",
     "TranscriptQuotePrefill",
     "TranscriptIngestResult",
+    "VoiceTurn",
+    "VoiceMissingSlot",
+    "VoiceSessionPlan",
+    "VoiceSession",
     "AgentState",
 ]

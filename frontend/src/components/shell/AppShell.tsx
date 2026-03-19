@@ -2,6 +2,7 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { FileText, Menu, Upload, X } from "lucide-react";
 
+import { useVoiceSessions } from "../../hooks/useVoiceSessions";
 import { useAppStore } from "../../store/appStore";
 import { Button } from "../ui/Button";
 import { Sidebar } from "./Sidebar";
@@ -45,6 +46,8 @@ export function AppShell() {
   const approveAllQueueItems = useAppStore((state) => state.approveAllQueueItems);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { title, subtitle } = routeMeta(location.pathname);
+
+  useVoiceSessions();
 
   useEffect(() => {
     setActiveView(location.pathname);

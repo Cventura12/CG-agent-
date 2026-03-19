@@ -1,7 +1,8 @@
 import { create } from "zustand";
 
+import { fetchVoiceSessions, transferVoiceSession } from "../api/voice";
 import { mockAppState } from "../lib/mockData";
-import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteLineItem, User } from "../types";
+import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteLineItem, User, VoiceCallSession } from "../types";
 
 interface AppStore {
   user: User | null;
@@ -11,6 +12,7 @@ interface AppStore {
   quotes: Quote[];
   followUps: FollowUp[];
   analytics: AnalyticsPeriod[];
+  voiceSessions: VoiceCallSession[];
   activeJobId: string | null;
   activeView: string;
   selectedQueueItemId: string | null;
@@ -27,9 +29,12 @@ interface AppStore {
   setActiveView: (view: string) => void;
   setSelectedQueueItem: (id: string | null) => void;
   setSelectedQuote: (id: string | null) => void;
+  setVoiceSessions: (sessions: VoiceCallSession[]) => void;
+  refreshVoiceSessions: () => Promise<void>;
   updateJobNotes: (id: string, notes: string) => void;
   updateQuoteStatus: (id: string, status: Quote["status"]) => void;
   createQuoteDraft: (input: QuoteDraftInput) => string | null;
+  requestVoiceTransfer: (id: string) => Promise<void>;
 }
 
 function normalizeLookupKey(value: string): string {
@@ -96,7 +101,7 @@ function buildDraftLineItems(notes: string, attachmentName?: string): QuoteLineI
     const unitPrice = 180;
     baseItems.push({
       id: buildStoreId("line", attachmentName),
-      description: `Attached scope reference · ${attachmentName}`,
+      description: `Attached scope reference - ${attachmentName}`,
       quantity: 1,
       unitPrice,
       total: unitPrice,
@@ -161,10 +166,31 @@ function syncAgentStatus(agentStatus: AgentStatus, queueItems: QueueItem[], proc
   };
 }
 
+function mergeVoiceSessionList(current: VoiceCallSession[], incoming: VoiceCallSession): VoiceCallSession[] {
+  const existingIndex = current.findIndex((session) => session.id === incoming.id);
+  if (existingIndex === -1) {
+    return [incoming, ...current].sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+  }
+
+  const next = [...current];
+  next[existingIndex] = incoming;
+  next.sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+  return next;
+}
+
 export const useAppStore = create<AppStore>((set) => ({
   ...mockAppState,
   setUser: (user) => set({ user }),
   setAgentStatus: (agentStatus) => set({ agentStatus }),
+  setVoiceSessions: (voiceSessions) => set({ voiceSessions }),
+  refreshVoiceSessions: async () => {
+    try {
+      const voiceSessions = await fetchVoiceSessions();
+      set({ voiceSessions });
+    } catch {
+      // Keep the current local sessions visible when the live backend is unavailable.
+    }
+  },
   approveAllQueueItems: () =>
     set((state) => {
       const processed = state.queueItems.filter((item) => item.status === "pending").length;
@@ -237,6 +263,66 @@ export const useAppStore = create<AppStore>((set) => ({
   setActiveView: (activeView) => set({ activeView }),
   setSelectedQueueItem: (selectedQueueItemId) => set({ selectedQueueItemId }),
   setSelectedQuote: (selectedQuoteId) => set({ selectedQuoteId }),
+  requestVoiceTransfer: async (id) => {
+    const timestamp = new Date().toISOString();
+    let selectedLabel = "";
+
+    set((state) => {
+      const voiceSessions = state.voiceSessions.map((session) => {
+        if (session.id !== id) {
+          return session;
+        }
+        selectedLabel = session.jobName ?? session.callerName;
+        const optimisticTransferState: VoiceCallSession["transferState"] =
+          session.transferState === "requested" ? "dialing" : "requested";
+        return {
+          ...session,
+          transferState: optimisticTransferState,
+          updatedAt: timestamp,
+        };
+      });
+
+      return {
+        voiceSessions,
+        agentStatus: selectedLabel
+          ? appendAgentLog(state.agentStatus, `Voice handoff updated - ${selectedLabel}`, timestamp)
+          : state.agentStatus,
+      };
+    });
+
+    try {
+      const session = await transferVoiceSession(id);
+      set((state) => ({
+        voiceSessions: mergeVoiceSessionList(state.voiceSessions, session),
+        agentStatus: appendAgentLog(
+          state.agentStatus,
+          `Voice handoff updated - ${session.jobName ?? session.callerName}`,
+          session.updatedAt
+        ),
+      }));
+    } catch {
+      set((state) => {
+        const existing = state.voiceSessions.find((session) => session.id === id);
+        const fallbackState: VoiceCallSession["transferState"] =
+          existing?.transferState === "dialing"
+            ? "requested"
+            : existing?.transferState === "requested"
+              ? "saved_for_review"
+              : existing?.transferState ?? "saved_for_review";
+        return {
+          voiceSessions: state.voiceSessions.map((session) =>
+            session.id === id
+              ? {
+                  ...session,
+                  transferState: fallbackState,
+                  updatedAt: new Date().toISOString(),
+                }
+              : session
+          ),
+        };
+      });
+    }
+  },
   updateJobNotes: (id, notes) =>
     set((state) => ({
       jobs: state.jobs.map((job) => (job.id === id ? { ...job, notes } : job)),

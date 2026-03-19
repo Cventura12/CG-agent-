@@ -17,6 +17,7 @@ from gc_agent.state import (
     OpenItem,
     ParsedIntent,
     TranscriptInboxItem,
+    VoiceSession,
 )
 
 
@@ -29,6 +30,14 @@ CALL_TRANSCRIPT_SELECT_COLUMNS = (
     "started_at,duration_seconds,recording_url,transcript_text,summary,classification,"
     "confidence,extracted_json,risk_flags,recommended_actions,trace_id,metadata,"
     "created_at,updated_at"
+)
+
+VOICE_CALL_SESSION_SELECT_COLUMNS = (
+    "id,gc_id,call_id,provider,from_number,to_number,caller_name,runtime_mode,status,goal,"
+    "stream_state,stream_sid,turns,extracted_fields,missing_slots,asked_slots,summary,last_prompt,"
+    "last_caller_transcript,silence_count,transcript_id,handoff_trace_id,handoff_result,"
+    "escalation_reason,transfer_state,transfer_target,recording_url,recording_storage_ref,"
+    "recording_content_type,recording_duration_seconds,metadata,created_at,updated_at"
 )
 
 
@@ -255,6 +264,46 @@ def _build_call_transcript_record(row: dict[str, Any]) -> CallTranscriptRecord:
         "updated_at": str(row.get("updated_at", "")).strip() or None,
     }
     return CallTranscriptRecord.model_validate(payload)
+
+
+def _build_voice_session_record(row: dict[str, Any]) -> VoiceSession:
+    """Convert a voice_call_sessions row into a validated voice session model."""
+    payload = {
+        "id": str(row.get("id", "")).strip(),
+        "gc_id": str(row.get("gc_id", "")).strip(),
+        "call_id": str(row.get("call_id", "")).strip(),
+        "provider": str(row.get("provider", "")).strip(),
+        "from_number": str(row.get("from_number", "")).strip(),
+        "to_number": str(row.get("to_number", "")).strip(),
+        "caller_name": str(row.get("caller_name", "")).strip(),
+        "runtime_mode": str(row.get("runtime_mode", "")).strip() or "gather",
+        "status": str(row.get("status", "")).strip() or "active",
+        "goal": str(row.get("goal", "")).strip() or "general",
+        "stream_state": str(row.get("stream_state", "")).strip() or "idle",
+        "stream_sid": str(row.get("stream_sid", "")).strip(),
+        "turns": row.get("turns") if isinstance(row.get("turns"), list) else [],
+        "extracted_fields": row.get("extracted_fields") if isinstance(row.get("extracted_fields"), dict) else {},
+        "missing_slots": row.get("missing_slots") if isinstance(row.get("missing_slots"), list) else [],
+        "asked_slots": row.get("asked_slots") if isinstance(row.get("asked_slots"), list) else [],
+        "summary": str(row.get("summary", "")).strip(),
+        "last_prompt": str(row.get("last_prompt", "")).strip(),
+        "last_caller_transcript": str(row.get("last_caller_transcript", "")).strip(),
+        "silence_count": _to_int(row.get("silence_count"), 0),
+        "transcript_id": str(row.get("transcript_id", "")).strip(),
+        "handoff_trace_id": str(row.get("handoff_trace_id", "")).strip(),
+        "handoff_result": row.get("handoff_result") if isinstance(row.get("handoff_result"), dict) else {},
+        "escalation_reason": str(row.get("escalation_reason", "")).strip(),
+        "transfer_state": str(row.get("transfer_state", "")).strip() or "none",
+        "transfer_target": str(row.get("transfer_target", "")).strip(),
+        "recording_url": str(row.get("recording_url", "")).strip(),
+        "recording_storage_ref": str(row.get("recording_storage_ref", "")).strip(),
+        "recording_content_type": str(row.get("recording_content_type", "")).strip() or "audio/wav",
+        "recording_duration_seconds": _optional_float(row.get("recording_duration_seconds")),
+        "metadata": row.get("metadata") if isinstance(row.get("metadata"), dict) else {},
+        "created_at": row.get("created_at") or _utcnow_iso(),
+        "updated_at": row.get("updated_at") or _utcnow_iso(),
+    }
+    return VoiceSession.model_validate(payload)
 
 
 def _extract_transcript_id_from_draft_content(content: str) -> str:
@@ -1886,6 +1935,7 @@ async def update_call_transcript(
     transcript_id: str,
     gc_id: str,
     *,
+    transcript_text: str | None | object = _UNSET,
     job_id: str | None | object = _UNSET,
     quote_id: str | None | object = _UNSET,
     call_id: str | None | object = _UNSET,
@@ -1915,6 +1965,10 @@ async def update_call_transcript(
 
     payload: dict[str, Any] = {"updated_at": _utcnow_iso()}
 
+    if transcript_text is not _UNSET:
+        payload["transcript_text"] = (
+            (str(transcript_text).strip() or None) if isinstance(transcript_text, str) else transcript_text
+        )
     if job_id is not _UNSET:
         payload["job_id"] = (str(job_id).strip() or None) if isinstance(job_id, str) else job_id
     if quote_id is not _UNSET:
@@ -2193,6 +2247,130 @@ async def set_call_transcript_review_state(
 
     await update_call_transcript(transcript_id, gc_id, metadata=metadata)
     return await get_call_transcript_by_id(transcript_id, gc_id)
+
+
+async def upsert_voice_call_session(session: VoiceSession) -> None:
+    """Persist one live voice-session snapshot for recovery and audit."""
+    client = get_client()
+    session_id = session.id.strip()
+    gc_value = session.gc_id.strip()
+    if not session_id:
+        raise DatabaseError("upsert_voice_call_session failed: session id is required")
+    if not gc_value:
+        raise DatabaseError("upsert_voice_call_session failed: gc_id is required")
+
+    payload = {
+        "id": session_id,
+        "gc_id": gc_value,
+        "call_id": session.call_id.strip() or None,
+        "provider": session.provider.strip() or None,
+        "from_number": session.from_number.strip() or None,
+        "to_number": session.to_number.strip() or None,
+        "caller_name": session.caller_name.strip() or None,
+        "runtime_mode": session.runtime_mode,
+        "status": session.status,
+        "goal": session.goal,
+        "stream_state": session.stream_state,
+        "stream_sid": session.stream_sid.strip() or None,
+        "turns": [turn.model_dump(mode="json") for turn in session.turns],
+        "extracted_fields": dict(session.extracted_fields),
+        "missing_slots": [slot.model_dump(mode="json") for slot in session.missing_slots],
+        "asked_slots": list(session.asked_slots),
+        "summary": session.summary.strip() or None,
+        "last_prompt": session.last_prompt.strip() or None,
+        "last_caller_transcript": session.last_caller_transcript.strip() or None,
+        "silence_count": max(int(session.silence_count or 0), 0),
+        "transcript_id": session.transcript_id.strip() or None,
+        "handoff_trace_id": session.handoff_trace_id.strip() or None,
+        "handoff_result": dict(session.handoff_result),
+        "escalation_reason": session.escalation_reason.strip() or None,
+        "transfer_state": session.transfer_state,
+        "transfer_target": session.transfer_target.strip() or None,
+        "recording_url": session.recording_url.strip() or None,
+        "recording_storage_ref": session.recording_storage_ref.strip() or None,
+        "recording_content_type": session.recording_content_type.strip() or None,
+        "recording_duration_seconds": _optional_float(session.recording_duration_seconds),
+        "metadata": dict(session.metadata),
+        "created_at": session.created_at.isoformat(),
+        "updated_at": session.updated_at.isoformat(),
+    }
+
+    def _query() -> None:
+        client.table("voice_call_sessions").upsert(payload, on_conflict="id").execute()
+
+    await _run_db("upsert_voice_call_session", _query)
+
+
+async def get_voice_call_session(session_id: str) -> Optional[VoiceSession]:
+    """Fetch one persisted live voice-session snapshot by session id."""
+    client = get_client()
+    session_value = session_id.strip()
+    if not session_value:
+        return None
+
+    def _query() -> list[dict[str, Any]]:
+        response = (
+            client.table("voice_call_sessions")
+            .select(VOICE_CALL_SESSION_SELECT_COLUMNS)
+            .eq("id", session_value)
+            .limit(1)
+            .execute()
+        )
+        return list(response.data or [])
+
+    rows = await _run_db("get_voice_call_session", _query)
+    if not rows:
+        return None
+    return _build_voice_session_record(rows[0])
+
+
+async def get_voice_call_session_for_gc(session_id: str, gc_id: str) -> Optional[dict[str, Any]]:
+    """Fetch one voice session scoped to the owning GC for authenticated UI access."""
+    client = get_client()
+    session_value = session_id.strip()
+    gc_value = gc_id.strip()
+    if not session_value or not gc_value:
+        return None
+
+    def _query() -> list[dict[str, Any]]:
+        response = (
+            client.table("voice_call_sessions")
+            .select(VOICE_CALL_SESSION_SELECT_COLUMNS)
+            .eq("id", session_value)
+            .eq("gc_id", gc_value)
+            .limit(1)
+            .execute()
+        )
+        return list(response.data or [])
+
+    rows = await _run_db("get_voice_call_session_for_gc", _query)
+    if not rows:
+        return None
+    return _build_voice_session_record(rows[0]).model_dump(mode="json")
+
+
+async def list_voice_call_sessions(gc_id: str, limit: int = 25) -> list[dict[str, Any]]:
+    """Return recent live voice sessions for one GC in newest-first order."""
+    client = get_client()
+    gc_value = gc_id.strip()
+    if not gc_value:
+        return []
+
+    max_rows = max(int(limit or 25), 1)
+
+    def _query() -> list[dict[str, Any]]:
+        response = (
+            client.table("voice_call_sessions")
+            .select(VOICE_CALL_SESSION_SELECT_COLUMNS)
+            .eq("gc_id", gc_value)
+            .order("updated_at", desc=True)
+            .limit(max_rows)
+            .execute()
+        )
+        return list(response.data or [])
+
+    rows = await _run_db("list_voice_call_sessions", _query)
+    return [_build_voice_session_record(row).model_dump(mode="json") for row in rows]
 
 
 def _normalize_phone_destination(value: str) -> str:
@@ -3472,6 +3650,10 @@ __all__ = [
     "find_recent_call_transcript_match",
     "list_unlinked_transcript_inbox",
     "set_call_transcript_review_state",
+    "upsert_voice_call_session",
+    "get_voice_call_session",
+    "get_voice_call_session_for_gc",
+    "list_voice_call_sessions",
     "upsert_quote_draft",
     "get_quote_draft_record",
     "get_quote_delivery_attempts",

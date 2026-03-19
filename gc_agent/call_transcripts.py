@@ -176,7 +176,10 @@ async def _resolve_context(
     if not linked_job_id and not linked_quote_id:
         normalized_phone = _normalize_phone(payload.from_number.strip())
         if normalized_phone:
-            recent_match = await queries.find_recent_quote_delivery_match(gc_id, normalized_phone)
+            try:
+                recent_match = await queries.find_recent_quote_delivery_match(gc_id, normalized_phone)
+            except DatabaseError:
+                recent_match = None
             if recent_match is not None:
                 linked_quote_id = str(recent_match.get("quote_id", "")).strip()
                 linked_job_id = str(recent_match.get("job_id", "")).strip()
@@ -186,7 +189,10 @@ async def _resolve_context(
     if not linked_job_id and not linked_quote_id:
         normalized_phone = _normalize_phone(payload.from_number.strip())
         if normalized_phone:
-            recent_transcript = await queries.find_recent_call_transcript_match(gc_id, normalized_phone)
+            try:
+                recent_transcript = await queries.find_recent_call_transcript_match(gc_id, normalized_phone)
+            except DatabaseError:
+                recent_transcript = None
             if recent_transcript is not None:
                 linked_quote_id = str(recent_transcript.get("quote_id", "")).strip()
                 linked_job_id = str(recent_transcript.get("job_id", "")).strip()

@@ -6,10 +6,12 @@ httpx
 supabase>=2.4
 twilio
 deepgram-sdk>=3
+websockets>=12
 landingai-ade
 clerk-backend-api
 python-jose[cryptography]
 python-dotenv
+python-multipart
 pydantic>=2
 pydantic-settings
 rich

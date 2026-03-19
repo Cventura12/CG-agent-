@@ -4,6 +4,10 @@ export type QuoteStatus = "draft" | "sent" | "viewed" | "accepted" | "rejected" 
 export type JobStatus = "active" | "quoted" | "in_progress" | "completed" | "stalled";
 export type FollowUpStatus = "scheduled" | "sent" | "responded" | "overdue";
 export type QuoteIntakeSource = "manual" | "voice" | "photo" | "pdf";
+export type VoiceCallStatus = "active" | "awaiting_caller" | "streaming" | "ready_for_review" | "escalated" | "completed" | "failed";
+export type VoiceTransferState = "none" | "requested" | "dialing" | "transferred" | "saved_for_review" | "failed";
+export type VoiceRuntimeMode = "gather" | "stream";
+export type VoiceStreamState = "idle" | "connecting" | "streaming" | "paused" | "closed" | "failed";
 
 export interface User {
   id: string;
@@ -136,4 +140,36 @@ export interface AnalyticsPeriod {
   avgResponseTimeHours: number;
   topInputSource: InputSource;
   conversionRate: number;
+}
+
+export interface VoiceMissingSlot {
+  name: string;
+  reason: string;
+  prompt: string;
+}
+
+export interface VoiceCallSession {
+  id: string;
+  callId: string;
+  jobId?: string;
+  jobName?: string;
+  callerName: string;
+  callerPhone: string;
+  status: VoiceCallStatus;
+  goal: "quote_request" | "job_update" | "issue_report" | "follow_up" | "general";
+  runtimeMode: VoiceRuntimeMode;
+  streamState: VoiceStreamState;
+  summary: string;
+  lastPrompt?: string;
+  lastCallerTranscript?: string;
+  transferState: VoiceTransferState;
+  transferTarget?: string;
+  escalationReason?: string;
+  recordingUrl?: string;
+  recordingDurationSeconds?: number;
+  transcriptId?: string;
+  createdAt: string;
+  updatedAt: string;
+  extractedFields: Record<string, string>;
+  missingSlots: VoiceMissingSlot[];
 }

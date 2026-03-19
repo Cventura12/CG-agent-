@@ -7,6 +7,7 @@
   Quote,
   QueueItem,
   User,
+  VoiceCallSession,
 } from "../types";
 
 function minutesAgo(value: number): string {
@@ -32,6 +33,113 @@ const user: User = {
   role: "Owner / GC",
   companyName: "Ventura Construction",
 };
+
+const silentRecordingUrl =
+  "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+
+const voiceSessions: VoiceCallSession[] = [
+  {
+    id: "voice-hartley-live",
+    callId: "CA-hartley-live",
+    jobId: "job-hartley",
+    jobName: "Hartley reroof",
+    callerName: "Taylor Brooks",
+    callerPhone: "(423) 555-1123",
+    status: "ready_for_review",
+    goal: "issue_report",
+    runtimeMode: "stream",
+    streamState: "closed",
+    summary: "Roofing · Field issue at Hartley reroof: flashing swap needs approval before the crew closes.",
+    lastPrompt: "Do you have a square count, quantity, or rough measurement I should attach?",
+    lastCallerTranscript: "We need to swap the flashing and add $320 today before the crew closes the roof.",
+    transferState: "saved_for_review",
+    recordingUrl: silentRecordingUrl,
+    recordingDurationSeconds: 6.8,
+    transcriptId: "ct-live-hartley",
+    createdAt: minutesAgo(19),
+    updatedAt: minutesAgo(14),
+    extractedFields: {
+      trade: "roofing",
+      job_reference: "Hartley reroof",
+      scope_summary: "Swap the flashing and add $320 before close-out.",
+      material_or_scope_item: "flashing",
+      urgency: "high",
+      value_signal: "$320",
+      schedule_constraint: "today",
+    },
+    missingSlots: [
+      {
+        name: "quantity_or_measurement",
+        reason: "The call does not include any usable quantity or measurement yet.",
+        prompt: "Do you have a square count, quantity, or rough measurement I should attach?",
+      },
+    ],
+  },
+  {
+    id: "voice-ridgeview-transfer",
+    callId: "CA-ridgeview-transfer",
+    jobId: "job-ridgeview",
+    jobName: "Ridgeview addition",
+    callerName: "Devin Moss",
+    callerPhone: "(865) 555-2900",
+    status: "escalated",
+    goal: "follow_up",
+    runtimeMode: "stream",
+    streamState: "closed",
+    summary: "Follow-up request for Ridgeview addition with owner: window package decision is blocking schedule.",
+    lastCallerTranscript: "I need a person because we are trying to hold schedule on the premium window package.",
+    transferState: "transferred",
+    transferTarget: "(423) 555-1546",
+    escalationReason: "caller_requested_human_or_low_confidence",
+    recordingUrl: silentRecordingUrl,
+    recordingDurationSeconds: 9.4,
+    transcriptId: "ct-live-ridgeview",
+    createdAt: hoursAgo(5),
+    updatedAt: hoursAgo(5),
+    extractedFields: {
+      job_reference: "Ridgeview addition",
+      scope_summary: "Premium window package is blocking schedule.",
+      follow_up_target: "owner",
+      customer_decision: "owner wants",
+      schedule_constraint: "tomorrow",
+    },
+    missingSlots: [],
+  },
+  {
+    id: "voice-river-active",
+    callId: "CA-river-active",
+    jobId: "job-river",
+    jobName: "Rivergate tenant finish",
+    callerName: "Atlas Dental ops",
+    callerPhone: "(615) 555-0190",
+    status: "streaming",
+    goal: "quote_request",
+    runtimeMode: "stream",
+    streamState: "streaming",
+    summary: "Commercial ceiling-grid revision is still being gathered.",
+    lastPrompt: "Any access, tenant, or crew constraint I need to note with this?",
+    lastCallerTranscript: "We need the ceiling grid reset and six lights moved before next week.",
+    transferState: "requested",
+    transferTarget: "(423) 555-1546",
+    createdAt: minutesAgo(3),
+    updatedAt: minutesAgo(1),
+    extractedFields: {
+      trade: "interiors",
+      job_reference: "Rivergate tenant finish",
+      scope_summary: "Reset the ceiling grid and move six lights before next week.",
+      quantity_or_measurement: "6 fixtures",
+      schedule_constraint: "next week",
+      material_or_scope_item: "ceiling",
+    },
+    missingSlots: [
+      {
+        name: "site_access",
+        reason: "Any site access or crew constraint is still missing.",
+        prompt: "Any access, tenant, or crew constraint I need to note with this?",
+      },
+    ],
+  },
+];
 
 const quotes: Quote[] = [
   {
@@ -463,6 +571,7 @@ export const mockAppState = {
   quotes,
   followUps,
   analytics,
+  voiceSessions,
   activeJobId: jobs[0]?.id ?? null,
   activeView: "/today",
   selectedQueueItemId: queueItems[0]?.id ?? null,

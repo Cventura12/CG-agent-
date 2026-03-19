@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { fadeUp } from "../../lib/animations";
 import { formatLongDate, formatTimeAgo } from "../../lib/formatters";
 import { useAppStore } from "../../store/appStore";
-import type { AgentStatus, Job, QueueItem, User } from "../../types";
+import type { AgentStatus, Job, QueueItem, User, VoiceCallSession } from "../../types";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { InputSourceIcon } from "../ui/InputSourceIcon";
+import { VoiceSessionList } from "../voice/VoiceSessionList";
 import { AgentFeedEmpty } from "./AgentFeedEmpty";
 import { FeedAside } from "./FeedAside";
 import { StatRow } from "./StatRow";
@@ -21,6 +22,7 @@ export interface TodayViewProps {
   followUpsDue?: number;
   activeJobs?: number;
   recentJobs?: Job[];
+  voiceSessions?: VoiceCallSession[];
   setupStepsCompleted?: 0 | 1 | 2 | 3;
   currentTime?: Date;
 }
@@ -39,9 +41,11 @@ function TodayViewContent({
   openQuotes,
   followUpsDue,
   activeJobs,
+  voiceSessions,
+  requestVoiceTransfer,
   setupStepsCompleted,
   currentTime,
-}: Required<TodayViewProps>) {
+}: Required<TodayViewProps> & { requestVoiceTransfer: (id: string) => void }) {
   const navigate = useNavigate();
   const pendingItems = queueItems.filter((item) => item.status === "pending");
   const urgentItems = pendingItems.filter((item) => item.urgent);
@@ -119,7 +123,13 @@ function TodayViewContent({
                 )}
               </div>
             </motion.section>
-
+            <div className="mt-3 sm:mt-5">
+              <VoiceSessionList
+                sessions={voiceSessions}
+                detail="Streaming calls, office transfers, and saved recordings stay visible here even when downstream routing needs help."
+                onRequestTransfer={requestVoiceTransfer}
+              />
+            </div>
           </div>
 
           <div className="border-t border-[var(--line)] bg-[var(--bg)] xl:border-l xl:border-t-0">
@@ -138,6 +148,8 @@ export default function TodayView(props: TodayViewProps) {
   const storeQuotes = useAppStore((state) => state.quotes);
   const storeFollowUps = useAppStore((state) => state.followUps);
   const storeJobs = useAppStore((state) => state.jobs);
+  const voiceSessions = useAppStore((state) => state.voiceSessions);
+  const requestVoiceTransfer = useAppStore((state) => state.requestVoiceTransfer);
 
   const user = props.user ?? storeUser ?? { id: "user", name: "GC Agent", initials: "GC", role: "Operator", companyName: "GC Agent" };
   const agentStatus = props.agentStatus ?? storeAgentStatus;
@@ -146,6 +158,7 @@ export default function TodayView(props: TodayViewProps) {
   const followUpsDue = props.followUpsDue ?? storeFollowUps.filter((followUp) => followUp.status === "scheduled" || followUp.status === "overdue").length;
   const activeJobs = props.activeJobs ?? storeJobs.filter((job) => job.status === "active" || job.status === "in_progress").length;
   const recentJobs = props.recentJobs ?? [...storeJobs].sort((left, right) => new Date(right.lastActivityAt ?? right.createdAt).getTime() - new Date(left.lastActivityAt ?? left.createdAt).getTime()).slice(0, 4);
+  const todayVoiceSessions = props.voiceSessions ?? voiceSessions;
   const setupStepsCompleted = props.setupStepsCompleted ?? deriveSetupSteps(queueItems, openQuotes, followUpsDue, recentJobs);
   const currentTime = props.currentTime ?? new Date();
 
@@ -158,6 +171,8 @@ export default function TodayView(props: TodayViewProps) {
       followUpsDue={followUpsDue}
       activeJobs={activeJobs}
       recentJobs={recentJobs}
+      voiceSessions={todayVoiceSessions}
+      requestVoiceTransfer={requestVoiceTransfer}
       setupStepsCompleted={setupStepsCompleted}
       currentTime={currentTime}
     />

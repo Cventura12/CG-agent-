@@ -28,6 +28,7 @@ except ModuleNotFoundError:
 from gc_agent import graph
 from gc_agent.api.router import open_router as public_open_router
 from gc_agent.api.router import router as public_router
+from gc_agent.api.voice import router as public_voice_router
 from gc_agent.nodes.followup_trigger import process_due_followups
 from gc_agent.routers.analytics import router as analytics_router
 from gc_agent.routers.auth import router as auth_router
@@ -37,6 +38,7 @@ from gc_agent.routers.jobs import router as jobs_router
 from gc_agent.routers.pricing import router as pricing_router
 from gc_agent.routers.queue import router as queue_router
 from gc_agent.routers.transcripts import router as transcripts_router
+from gc_agent.routers.voice import router as voice_router
 from gc_agent.webhooks.twilio import (
     router as twilio_router,
     send_sms_message,
@@ -74,7 +76,9 @@ class Settings(BaseSettings):
 
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
+    twilio_sms_from: str = ""
     twilio_whatsapp_from: str = "whatsapp:+14155238886"
+    twilio_status_callback_url: str = ""
 
 
 settings = Settings()
@@ -86,7 +90,7 @@ def _log_startup_runtime_warnings() -> None:
     twilio_configured = bool(
         settings.twilio_account_sid.strip()
         and settings.twilio_auth_token.strip()
-        and settings.twilio_whatsapp_from.strip()
+        and (settings.twilio_whatsapp_from.strip() or settings.twilio_sms_from.strip())
     )
     smtp_configured = bool(
         os.getenv("SMTP_HOST", "").strip()
@@ -99,6 +103,8 @@ def _log_startup_runtime_warnings() -> None:
 
     if twilio_configured:
         LOGGER.info("Twilio messaging + webhook integration configured")
+        if not settings.twilio_status_callback_url.strip():
+            LOGGER.warning("TWILIO_STATUS_CALLBACK_URL is not configured; delivery status updates will not be tracked automatically")
     else:
         LOGGER.warning("Twilio config incomplete; SMS/WhatsApp delivery and provider callbacks may be unavailable")
 
@@ -631,8 +637,10 @@ app.include_router(queue_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")
 app.include_router(pricing_router, prefix="/api/v1")
 app.include_router(transcripts_router, prefix="/api/v1")
+app.include_router(voice_router, prefix="/api/v1")
 app.include_router(public_open_router, prefix="/public", tags=["public"])
 app.include_router(public_router, prefix="/public", tags=["public"])
+app.include_router(public_voice_router, prefix="/public", tags=["public"])
 
 
 @app.get("/health")
