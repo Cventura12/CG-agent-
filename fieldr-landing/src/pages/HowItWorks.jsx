@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+import { APP_FLOW_PATH, BOOK_DEMO_HREF } from '../components/siteLinks'
+
 const steps = [
   {
     number: 'STEP 01',
@@ -263,6 +266,25 @@ export default function HowItWorks() {
           font-weight: 500;
           line-height: 1;
           cursor: pointer;
+          text-decoration: none;
+        }
+
+        .fieldr-how__cta-actions {
+          margin-top: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .fieldr-how__cta-link {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--dim);
+          text-decoration: none;
         }
 
         .fieldr-how__cta-note {
@@ -367,9 +389,14 @@ export default function HowItWorks() {
         <section className="fieldr-how__cta">
           <div className="fieldr-how__inner">
             <h2 className="fieldr-how__cta-title">Ready to close the gap?</h2>
-            <button type="button" className="fieldr-how__cta-button">
-              Book a Demo
-            </button>
+            <div className="fieldr-how__cta-actions">
+              <a href={BOOK_DEMO_HREF} className="fieldr-how__cta-button">
+                Book a Demo
+              </a>
+              <Link to={APP_FLOW_PATH} className="fieldr-how__cta-link">
+                See the workspace
+              </Link>
+            </div>
             <div className="fieldr-how__cta-note">20 minutes · No commitment · Chattanooga, TN</div>
           </div>
         </section>
@@ -377,3 +404,4 @@ export default function HowItWorks() {
     </>
   )
 }
+

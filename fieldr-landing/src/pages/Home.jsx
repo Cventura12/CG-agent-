@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { APP_FLOW_PATH, BOOK_DEMO_HREF } from '../components/siteLinks'
 
 const problemCards = [
   {
@@ -181,6 +182,7 @@ export default function Home() {
           font-weight: 500;
           line-height: 1;
           cursor: pointer;
+          text-decoration: none;
         }
 
         .fieldr-home__secondary-cta {
@@ -420,11 +422,14 @@ export default function Home() {
               Fieldr is an AI agent that watches your inbound - calls, texts, voice notes, documents - extracts what matters, and surfaces it before it costs you. No setup. No workflow change. Just coverage.
             </p>
             <div className="fieldr-home__cta-row">
-              <button type="button" className="fieldr-home__primary-cta">
+              <a href={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
                 Book a Demo
-              </button>
+              </a>
               <Link to="/how-it-works" className="fieldr-home__secondary-cta">
                 See how it works
+              </Link>
+              <Link to={APP_FLOW_PATH} className="fieldr-home__secondary-cta" style={{ color: 'var(--sienna-lt)' }}>
+                See the workspace
               </Link>
             </div>
             <div className="fieldr-home__meta">Early access · Chattanooga, TN · Built for field contractors</div>
@@ -491,3 +496,4 @@ export default function Home() {
     </>
   )
 }
+

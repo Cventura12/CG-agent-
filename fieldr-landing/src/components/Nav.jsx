@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
+import { APP_FLOW_PATH, BOOK_DEMO_HREF } from './siteLinks'
 
 const navStyle = {
   position: 'fixed',
@@ -21,6 +22,20 @@ const innerStyle = {
   gap: '16px',
 }
 
+const leftStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '26px',
+  minWidth: 0,
+}
+
+const navLinksStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '16px',
+  flexWrap: 'wrap',
+}
+
 const wordmarkStyle = {
   fontFamily: 'var(--serif)',
   fontSize: '15px',
@@ -28,6 +43,36 @@ const wordmarkStyle = {
   letterSpacing: '0.01em',
   color: 'var(--bright)',
   textDecoration: 'none',
+}
+
+const navLinkBaseStyle = {
+  fontFamily: 'var(--mono)',
+  fontSize: '9px',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  textDecoration: 'none',
+  color: 'var(--muted)',
+  transition: 'color 160ms ease',
+}
+
+const navLinkActiveStyle = {
+  color: 'var(--bright)',
+}
+
+const rightStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  flexShrink: 0,
+}
+
+const appLinkStyle = {
+  fontFamily: 'var(--mono)',
+  fontSize: '9px',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  textDecoration: 'none',
+  color: 'var(--dim)',
 }
 
 const buttonStyle = {
@@ -45,19 +90,53 @@ const buttonStyle = {
   fontWeight: 500,
   lineHeight: 1,
   cursor: 'pointer',
+  textDecoration: 'none',
 }
 
 export function Nav() {
   return (
     <header style={navStyle}>
       <div style={innerStyle}>
-        <Link to="/" style={wordmarkStyle}>
-          Fieldr
-        </Link>
-        <button type="button" style={buttonStyle}>
-          Book a Demo
-        </button>
+        <div style={leftStyle}>
+          <NavLink to="/" style={wordmarkStyle}>
+            Fieldr
+          </NavLink>
+
+          <nav aria-label="Primary" style={navLinksStyle} className="fieldr-nav-hide-mobile">
+            <NavLink to="/" end style={({ isActive }) => (isActive ? { ...navLinkBaseStyle, ...navLinkActiveStyle } : navLinkBaseStyle)}>
+              Home
+            </NavLink>
+            <NavLink
+              to="/how-it-works"
+              style={({ isActive }) => (isActive ? { ...navLinkBaseStyle, ...navLinkActiveStyle } : navLinkBaseStyle)}
+            >
+              How It Works
+            </NavLink>
+            <NavLink
+              to="/product"
+              style={({ isActive }) => (isActive ? { ...navLinkBaseStyle, ...navLinkActiveStyle } : navLinkBaseStyle)}
+            >
+              Product
+            </NavLink>
+          </nav>
+        </div>
+
+        <div style={rightStyle}>
+          <NavLink to={APP_FLOW_PATH} style={appLinkStyle} className="fieldr-nav-hide-mobile">
+            Open workspace
+          </NavLink>
+          <a href={BOOK_DEMO_HREF} style={buttonStyle}>
+            Book a Demo
+          </a>
+        </div>
       </div>
+      <style>{`
+        @media (max-width: 760px) {
+          .fieldr-nav-hide-mobile {
+            display: none;
+          }
+        }
+      `}</style>
     </header>
   )
 }

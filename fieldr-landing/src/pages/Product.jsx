@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+import { BOOK_DEMO_HREF } from '../components/siteLinks'
+
 const featureRows = [
   {
     label: 'Queue',
@@ -110,6 +113,39 @@ export default function Product() {
           line-height: 1.7;
           font-weight: 300;
           color: var(--dim);
+        }
+
+        .fieldr-product__header-links {
+          margin-top: 24px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .fieldr-product__header-demo {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 0;
+          border-radius: 5px;
+          padding: 13px 28px;
+          background: var(--sienna);
+          color: var(--bright);
+          font-family: var(--sans);
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 1;
+          text-decoration: none;
+        }
+
+        .fieldr-product__header-link {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--dim);
+          text-decoration: none;
         }
 
         .fieldr-product__replica-wrap {
@@ -683,6 +719,7 @@ export default function Product() {
           font-weight: 500;
           line-height: 1;
           cursor: pointer;
+          text-decoration: none;
         }
 
         .fieldr-product__cta-note {
@@ -749,6 +786,14 @@ export default function Product() {
             <p className="fieldr-product__subhead">
               One workspace. Every field update captured, queued, quoted, and tracked. Built for the contractor who can&apos;t afford to miss anything.
             </p>
+            <div className="fieldr-product__header-links">
+              <a href={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
+                Book a Demo
+              </a>
+              <Link to="/how-it-works" className="fieldr-product__header-link">
+                Review the capture loop
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -756,9 +801,9 @@ export default function Product() {
           <div className="fieldr-product__frame">
             <div className="fieldr-product__windowbar">
               <div className="fieldr-product__dots" aria-hidden="true">
-                <span className="fieldr-product__dot" style={{ background: '#FF5F57' }} />
-                <span className="fieldr-product__dot" style={{ background: '#FEBC2E' }} />
-                <span className="fieldr-product__dot" style={{ background: '#28C840' }} />
+                <span className="fieldr-product__dot" style={{ background: 'rgb(255,95,87)' }} />
+                <span className="fieldr-product__dot" style={{ background: 'rgb(254,188,46)' }} />
+                <span className="fieldr-product__dot" style={{ background: 'rgb(40,200,64)' }} />
               </div>
               <div className="fieldr-product__urlbar">app.fieldr.io</div>
               <div />
@@ -922,7 +967,7 @@ export default function Product() {
         <section className="fieldr-product__cta">
           <div className="fieldr-product__inner">
             <h2 className="fieldr-product__cta-title">Ready to close the gap?</h2>
-            <button type="button" className="fieldr-product__cta-button">Book a Demo</button>
+            <a href={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</a>
             <div className="fieldr-product__cta-note">20 minutes · No commitment · Chattanooga, TN</div>
           </div>
         </section>
@@ -930,3 +975,4 @@ export default function Product() {
     </>
   )
 }
+
