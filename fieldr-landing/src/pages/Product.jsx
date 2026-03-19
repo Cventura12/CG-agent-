@@ -689,6 +689,86 @@ export default function Product() {
           color: var(--dim);
         }
 
+        .fieldr-product__voice {
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 0 40px 80px;
+        }
+
+        .fieldr-product__voice-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+          gap: 36px;
+          align-items: start;
+        }
+
+        .fieldr-product__voice-label {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--sienna-lt);
+        }
+
+        .fieldr-product__voice-headline {
+          margin: 14px 0 0;
+          font-family: var(--serif);
+          font-size: 36px;
+          line-height: 1.18;
+          font-style: italic;
+          color: var(--bright);
+        }
+
+        .fieldr-product__voice-body {
+          margin-top: 16px;
+          max-width: 420px;
+          font-size: 14px;
+          line-height: 1.75;
+          font-weight: 300;
+          color: var(--dim);
+        }
+
+        .fieldr-product__voice-panel {
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          background: var(--surface);
+          overflow: hidden;
+        }
+
+        .fieldr-product__voice-row {
+          display: grid;
+          grid-template-columns: 108px minmax(0, 1fr);
+          gap: 16px;
+          padding: 18px 20px;
+          border-top: 1px solid var(--rule);
+        }
+
+        .fieldr-product__voice-row:first-child {
+          border-top: 0;
+        }
+
+        .fieldr-product__voice-kicker {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--sienna-lt);
+        }
+
+        .fieldr-product__voice-title {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--bright);
+        }
+
+        .fieldr-product__voice-copy {
+          margin-top: 6px;
+          font-size: 12px;
+          line-height: 1.7;
+          font-weight: 300;
+          color: var(--dim);
+        }
+
         .fieldr-product__cta {
           padding: 80px 40px;
           border-top: 1px solid var(--rule);
@@ -752,7 +832,8 @@ export default function Product() {
         @media (max-width: 1080px) {
           .fieldr-product__dash,
           .fieldr-product__workspace,
-          .fieldr-product__feature-row {
+          .fieldr-product__feature-row,
+          .fieldr-product__voice-grid {
             grid-template-columns: 1fr;
           }
 
@@ -777,6 +858,7 @@ export default function Product() {
         @media (max-width: 780px) {
           .fieldr-product__replica-wrap,
           .fieldr-product__features,
+          .fieldr-product__voice,
           .fieldr-product__header,
           .fieldr-product__cta {
             padding-left: 20px;
@@ -805,6 +887,12 @@ export default function Product() {
             width: min(100%, 280px);
             justify-content: center;
             text-align: center;
+          }
+
+          .fieldr-product__voice-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 18px 16px;
           }
 
           .fieldr-product__dash {
@@ -1024,6 +1112,48 @@ export default function Product() {
               </div>
             </div>
           ))}
+        </section>
+
+        <section className="fieldr-product__voice">
+          <div className="fieldr-product__voice-grid">
+            <div>
+              <div className="fieldr-product__voice-label">Voice capability &middot; Safe claim</div>
+              <h2 className="fieldr-product__voice-headline">Voice becomes tracked work.</h2>
+              <p className="fieldr-product__voice-body">
+                Fieldr captures call transcripts and voice notes, extracts what changed, and routes those items into review before they become draft quotes, tracked changes, or job history. It is built for human-in-the-loop execution, not unsupervised outbound action.
+              </p>
+            </div>
+
+            <div className="fieldr-product__voice-panel">
+              <div className="fieldr-product__voice-row">
+                <div className="fieldr-product__voice-kicker">Capture</div>
+                <div>
+                  <div className="fieldr-product__voice-title">Inbound voice lands in the same system as everything else</div>
+                  <div className="fieldr-product__voice-copy">
+                    Calls, dictated notes, and transcript payloads do not live in a separate inbox. They enter the operational loop directly.
+                  </div>
+                </div>
+              </div>
+              <div className="fieldr-product__voice-row">
+                <div className="fieldr-product__voice-kicker">Extract</div>
+                <div>
+                  <div className="fieldr-product__voice-title">The agent pulls scope, risk, and follow-through signal out of transcript text</div>
+                  <div className="fieldr-product__voice-copy">
+                    Instead of a passive transcript archive, Fieldr produces reviewable changes, missing information, and next actions tied to the job.
+                  </div>
+                </div>
+              </div>
+              <div className="fieldr-product__voice-row">
+                <div className="fieldr-product__voice-kicker">Approve</div>
+                <div>
+                  <div className="fieldr-product__voice-title">Nothing is sent without contractor review</div>
+                  <div className="fieldr-product__voice-copy">
+                    The voice path is strongest where it should be strongest: capture and structured review. The contractor still approves what becomes customer-facing work.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="fieldr-product__cta">

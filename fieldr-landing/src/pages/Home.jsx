@@ -376,6 +376,72 @@ export default function Home() {
           color: var(--dim);
         }
 
+        .fieldr-home__voice-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+          gap: 48px;
+          align-items: start;
+        }
+
+        .fieldr-home__voice-headline {
+          margin: 14px 0 0;
+          font-family: var(--serif);
+          font-size: 36px;
+          line-height: 1.18;
+          font-style: italic;
+          color: var(--bright);
+        }
+
+        .fieldr-home__voice-body {
+          margin-top: 16px;
+          max-width: 440px;
+          font-size: 14px;
+          line-height: 1.75;
+          font-weight: 300;
+          color: var(--dim);
+        }
+
+        .fieldr-home__voice-panel {
+          border: 1px solid var(--rule);
+          border-radius: 6px;
+          background: var(--surface);
+          overflow: hidden;
+        }
+
+        .fieldr-home__voice-row {
+          display: grid;
+          grid-template-columns: 120px minmax(0, 1fr);
+          gap: 18px;
+          padding: 18px 20px;
+          border-top: 1px solid var(--rule);
+        }
+
+        .fieldr-home__voice-row:first-child {
+          border-top: 0;
+        }
+
+        .fieldr-home__voice-kicker {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--sienna-lt);
+        }
+
+        .fieldr-home__voice-title {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--bright);
+        }
+
+        .fieldr-home__voice-copy {
+          margin-top: 6px;
+          font-size: 12px;
+          line-height: 1.7;
+          font-weight: 300;
+          color: var(--dim);
+        }
+
         @keyframes fieldrPulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(1.1); }
@@ -383,7 +449,8 @@ export default function Home() {
 
         @media (max-width: 960px) {
           .fieldr-home__problem-grid,
-          .fieldr-home__log-grid {
+          .fieldr-home__log-grid,
+          .fieldr-home__voice-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -435,6 +502,12 @@ export default function Home() {
           .fieldr-home__log-entry {
             grid-template-columns: 72px 8px minmax(0, 1fr);
             gap: 12px;
+          }
+
+          .fieldr-home__voice-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 18px 16px;
           }
         }
       `}</style>
@@ -515,6 +588,51 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="fieldr-home__section">
+          <div className="fieldr-home__section-inner fieldr-home__voice-grid">
+            <div>
+              <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
+                <span className="fieldr-home__section-label">Voice capability &middot; Safe claim</span>
+                <div className="fieldr-home__section-rule" aria-hidden="true" />
+              </div>
+              <h2 className="fieldr-home__voice-headline">Voice in. Review out.</h2>
+              <p className="fieldr-home__voice-body">
+                Fieldr captures call transcripts and voice notes, extracts scope changes, follow-ups, and pricing signal, then routes them into your review queue before anything is sent. The agent does the intake work. The contractor stays in control.
+              </p>
+            </div>
+
+            <div className="fieldr-home__voice-panel">
+              <div className="fieldr-home__voice-row">
+                <div className="fieldr-home__voice-kicker">Capture</div>
+                <div>
+                  <div className="fieldr-home__voice-title">Calls and voice notes land automatically</div>
+                  <div className="fieldr-home__voice-copy">
+                    Phone transcripts, dictated notes, and field voice updates enter the same operational path. No separate crew workflow to train.
+                  </div>
+                </div>
+              </div>
+              <div className="fieldr-home__voice-row">
+                <div className="fieldr-home__voice-kicker">Extract</div>
+                <div>
+                  <div className="fieldr-home__voice-title">The agent pulls out what changed</div>
+                  <div className="fieldr-home__voice-copy">
+                    Scope deltas, missing information, follow-ups, and pricing cues are structured into reviewable items instead of disappearing into transcript text.
+                  </div>
+                </div>
+              </div>
+              <div className="fieldr-home__voice-row">
+                <div className="fieldr-home__voice-kicker">Review</div>
+                <div>
+                  <div className="fieldr-home__voice-title">Nothing goes out without approval</div>
+                  <div className="fieldr-home__voice-copy">
+                    Approved items can become draft quotes, tracked changes, and job history. Fieldr is built for human-in-the-loop execution, not unsupervised outbound send.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
