@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { SmartLink } from '../components/SmartLink'
 
 const featureRows = [
   {
@@ -10,7 +11,7 @@ const featureRows = [
   {
     label: 'Voice intake',
     title: 'Dictate from the field',
-    body: 'Leave a voice note between jobs. Fieldr transcribes, extracts scope, and generates a priced draft - before you get back to the office.',
+    body: 'Leave a voice note between jobs. Fieldr transcribes it, extracts scope and follow-through, and queues a priced draft for review before you get back to the office.',
   },
   {
     label: 'Memory',
@@ -933,12 +934,12 @@ export default function Product() {
               One workspace. Every field update captured, queued, quoted, and tracked. Built for the contractor who can&apos;t afford to miss anything.
             </p>
             <div className="fieldr-product__header-links">
-              <a href={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
+              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
                 Book a Demo
-              </a>
-              <a href={APP_FLOW_HREF} className="fieldr-product__header-link">
+              </SmartLink>
+              <SmartLink to={APP_FLOW_HREF} className="fieldr-product__header-link">
                 Launch Agent
-              </a>
+              </SmartLink>
               <Link to="/how-it-works" className="fieldr-product__header-link">
                 Review the capture loop
               </Link>
@@ -1120,7 +1121,7 @@ export default function Product() {
               <div className="fieldr-product__voice-label">Voice capability &middot; Safe claim</div>
               <h2 className="fieldr-product__voice-headline">Voice becomes tracked work.</h2>
               <p className="fieldr-product__voice-body">
-                Fieldr captures call transcripts and voice notes, extracts what changed, and routes those items into review before they become draft quotes, tracked changes, or job history. It is built for human-in-the-loop execution, not unsupervised outbound action.
+                Fieldr captures call transcripts and voice notes, extracts what changed, and routes those items into Today, Queue, draft quotes, tracked changes, or job history. It is built for human-in-the-loop execution, not unsupervised outbound action.
               </p>
             </div>
 
@@ -1160,8 +1161,8 @@ export default function Product() {
           <div className="fieldr-product__inner">
             <h2 className="fieldr-product__cta-title">Ready to close the gap?</h2>
             <div className="fieldr-product__cta-actions">
-              <a href={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</a>
-              <a href={APP_FLOW_HREF} className="fieldr-product__cta-link">Launch Agent</a>
+              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</SmartLink>
+              <SmartLink to={APP_FLOW_HREF} className="fieldr-product__cta-link">Launch Agent</SmartLink>
             </div>
             <div className="fieldr-product__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>

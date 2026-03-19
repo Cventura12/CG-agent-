@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { APP_FLOW_HREF, BOOK_DEMO_HREF } from './siteLinks'
+import { SmartLink } from './SmartLink'
 
 const navStyle = {
   position: 'fixed',
@@ -164,12 +165,12 @@ export function Nav() {
         </div>
 
         <div style={rightStyle}>
-          <a href={APP_FLOW_HREF} style={appLinkStyle} className="fieldr-nav-hide-mobile">
+          <SmartLink to={APP_FLOW_HREF} style={appLinkStyle} className="fieldr-nav-hide-mobile">
             Launch Agent
-          </a>
-          <a href={BOOK_DEMO_HREF} style={buttonStyle}>
+          </SmartLink>
+          <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle}>
             Book a Demo
-          </a>
+          </SmartLink>
           <button
             type="button"
             aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
@@ -194,9 +195,12 @@ export function Nav() {
             <NavLink to="/product" style={mobileLinkStyle} onClick={closeMobile}>
               Product
             </NavLink>
-            <a href={APP_FLOW_HREF} style={mobileLinkStyle} onClick={closeMobile}>
+            <SmartLink to={APP_FLOW_HREF} style={mobileLinkStyle} onClick={closeMobile}>
               Launch Agent
-            </a>
+            </SmartLink>
+            <SmartLink to={BOOK_DEMO_HREF} style={mobileLinkStyle} onClick={closeMobile}>
+              Book a Demo
+            </SmartLink>
           </nav>
         </div>
       ) : null}

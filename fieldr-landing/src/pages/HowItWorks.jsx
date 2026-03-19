@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { SmartLink } from '../components/SmartLink'
 
 const steps = [
   {
@@ -20,7 +21,7 @@ const steps = [
   {
     number: 'STEP 04',
     title: 'Execute + Learn',
-    body: 'Approved items become draft quotes, follow-up messages, or tracked changes. Every approval writes back to memory. The next job is faster.',
+    body: 'Approved items become draft quotes, tracked changes, follow-through, or job history. Every approval writes back to memory. The next job is faster.',
   },
 ]
 
@@ -403,12 +404,12 @@ export default function HowItWorks() {
           <div className="fieldr-how__inner">
             <h2 className="fieldr-how__cta-title">Ready to close the gap?</h2>
             <div className="fieldr-how__cta-actions">
-              <a href={BOOK_DEMO_HREF} className="fieldr-how__cta-button">
+              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-how__cta-button">
                 Book a Demo
-              </a>
-              <a href={APP_FLOW_HREF} className="fieldr-how__cta-link">
+              </SmartLink>
+              <SmartLink to={APP_FLOW_HREF} className="fieldr-how__cta-link">
                 Launch Agent
-              </a>
+              </SmartLink>
             </div>
             <div className="fieldr-how__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>

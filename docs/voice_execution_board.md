@@ -8,10 +8,32 @@ This is the shorter execution board version of the voice readiness backlog.
 
 Ship the current voice capture path as something trustworthy.
 
-- Validate end-to-end voice smoke flow in deployed environment
-- Make transcript and transcription failures visible to operators
-- Add idempotency protection for duplicate Twilio transcript and callback events
-- Confirm Twilio production routing and callback configuration
+Tickets:
+
+1. End-to-end voice smoke validation
+Files:
+- [twilio.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/twilio.py)
+- [ingest.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/nodes/ingest.py)
+- [call_transcripts.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/call_transcripts.py)
+- [transcript_normalization.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/transcript_normalization.py)
+
+2. Transcript and transcription failure visibility
+Files:
+- [call_transcripts.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/call_transcripts.py)
+- [queries.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/db/queries.py)
+- [QueuePage.tsx](/c:/Users/caleb/OneDrive/Desktop/hello/frontend/src/pages/QueuePage.tsx)
+- [JobDetailPage.tsx](/c:/Users/caleb/OneDrive/Desktop/hello/frontend/src/pages/JobDetailPage.tsx)
+
+3. Idempotency protection for duplicate transcript and callback events
+Files:
+- [twilio.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/twilio.py)
+- [transcript_normalization.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/transcript_normalization.py)
+- [queries.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/db/queries.py)
+
+4. Twilio production routing and callback verification
+Files:
+- [twilio.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/twilio.py)
+- [twilio_setup.md](/c:/Users/caleb/OneDrive/Desktop/hello/docs/twilio_setup.md)
 
 Definition of done:
 
@@ -23,10 +45,32 @@ Definition of done:
 
 Make voice-derived work easier to trust and easier to operate.
 
-- Add transcript quality scoring and low-confidence handling
-- Add stronger audit trail for what Fieldr heard, extracted, and drafted
-- Tighten queue and job-detail visibility for voice-derived actions
-- Document and verify operator review states for manual-review-needed cases
+Tickets:
+
+1. Transcript quality scoring and low-confidence handling
+Files:
+- [parse_call_transcript.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/nodes/parse_call_transcript.py)
+- [call_transcripts.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/call_transcripts.py)
+- [state.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/state.py)
+
+2. Operator audit trail for what Fieldr heard, extracted, and drafted
+Files:
+- [queries.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/db/queries.py)
+- [jobs.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/routers/jobs.py)
+- [QueuePage.tsx](/c:/Users/caleb/OneDrive/Desktop/hello/frontend/src/pages/QueuePage.tsx)
+- [JobDetailPage.tsx](/c:/Users/caleb/OneDrive/Desktop/hello/frontend/src/pages/JobDetailPage.tsx)
+
+3. Queue and job-detail visibility for voice-derived actions
+Files:
+- [QueuePage.tsx](/c:/Users/caleb/OneDrive/Desktop/hello/frontend/src/pages/QueuePage.tsx)
+- [JobDetailPage.tsx](/c:/Users/caleb/OneDrive/Desktop/hello/frontend/src/pages/JobDetailPage.tsx)
+- [transcripts.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/routers/transcripts.py)
+
+4. Manual-review-needed operator states
+Files:
+- [call_transcripts.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/call_transcripts.py)
+- [queries.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/db/queries.py)
+- [QueuePage.tsx](/c:/Users/caleb/OneDrive/Desktop/hello/frontend/src/pages/QueuePage.tsx)
 
 Definition of done:
 
@@ -38,9 +82,23 @@ Definition of done:
 
 Decide whether Fieldr is going to become a real live voice agent and build the missing runtime accordingly.
 
-- Define live call state model
-- Add human escalation / transfer path
-- Add real-time conversational loop only if live voice remains a product priority
+Tickets:
+
+1. Live call state model
+Files:
+- [twilio.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/twilio.py)
+- [state.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/state.py)
+
+2. Human escalation / transfer path
+Files:
+- [twilio.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/twilio.py)
+- future live-call routing / operator-control modules
+
+3. Real-time conversational voice loop
+Files:
+- [twilio.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/webhooks/twilio.py)
+- [ingest.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/nodes/ingest.py)
+- future live-call orchestration modules
 
 Definition of done:
 

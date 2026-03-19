@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { SmartLink } from '../components/SmartLink'
 
 const problemCards = [
   {
@@ -521,15 +522,15 @@ export default function Home() {
               Fieldr captures calls, texts, voice notes, and uploads, extracts what changed, and routes it into review queue, draft quotes, and job history before it costs you. No new app for your crew. Just coverage.
             </p>
             <div className="fieldr-home__cta-row">
-              <a href={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
+              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
                 Book a Demo
-              </a>
+              </SmartLink>
               <Link to="/how-it-works" className="fieldr-home__secondary-cta">
                 See how it works
               </Link>
-              <a href={APP_FLOW_HREF} className="fieldr-home__secondary-cta" style={{ color: 'var(--sienna-lt)' }}>
+              <SmartLink to={APP_FLOW_HREF} className="fieldr-home__secondary-cta" style={{ color: 'var(--sienna-lt)' }}>
                 Launch Agent
-              </a>
+              </SmartLink>
             </div>
             <div className="fieldr-home__meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
           </div>
@@ -601,7 +602,7 @@ export default function Home() {
               </div>
               <h2 className="fieldr-home__voice-headline">Voice in. Review out.</h2>
               <p className="fieldr-home__voice-body">
-                Fieldr captures call transcripts and voice notes, extracts scope changes, follow-ups, and pricing signal, then routes them into your review queue before anything is sent. The agent does the intake work. The contractor stays in control.
+                Fieldr captures call transcripts and voice notes, extracts scope changes, follow-ups, and pricing signal, then routes them into Today, Queue, draft quotes, and job history before anything is sent. The agent does the intake work. The contractor stays in control.
               </p>
             </div>
 
