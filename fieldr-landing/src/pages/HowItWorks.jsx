@@ -394,7 +394,7 @@ export default function HowItWorks() {
                 Book a Demo
               </a>
               <a href={APP_FLOW_HREF} className="fieldr-how__cta-link">
-                See the workspace
+                Launch Agent
               </a>
             </div>
             <div className="fieldr-how__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
@@ -404,4 +404,3 @@ export default function HowItWorks() {
     </>
   )
 }
-

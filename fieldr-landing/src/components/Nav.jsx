@@ -123,7 +123,7 @@ export function Nav() {
 
         <div style={rightStyle}>
           <a href={APP_FLOW_HREF} style={appLinkStyle} className="fieldr-nav-hide-mobile">
-            Open workspace
+            Launch Agent
           </a>
           <a href={BOOK_DEMO_HREF} style={buttonStyle}>
             Book a Demo

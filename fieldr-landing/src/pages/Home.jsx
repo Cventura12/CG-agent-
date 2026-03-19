@@ -429,7 +429,7 @@ export default function Home() {
                 See how it works
               </Link>
               <a href={APP_FLOW_HREF} className="fieldr-home__secondary-cta" style={{ color: 'var(--sienna-lt)' }}>
-                See the workspace
+                Launch Agent
               </a>
             </div>
             <div className="fieldr-home__meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
@@ -496,4 +496,3 @@ export default function Home() {
     </>
   )
 }
-
