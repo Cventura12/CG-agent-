@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { APP_FLOW_PATH, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
 
 const problemCards = [
   {
@@ -416,7 +416,7 @@ export default function Home() {
       <main className="fieldr-home">
         <section className="fieldr-home__hero">
           <div className="fieldr-home__hero-inner">
-            <p className="fieldr-home__eyebrow">Agentic operations · Field contractors</p>
+            <p className="fieldr-home__eyebrow">Agentic operations &middot; Field contractors</p>
             <h1 className="fieldr-home__headline">The field never stops. Neither does Fieldr.</h1>
             <p className="fieldr-home__subhead">
               Fieldr is an AI agent that watches your inbound - calls, texts, voice notes, documents - extracts what matters, and surfaces it before it costs you. No setup. No workflow change. Just coverage.
@@ -428,11 +428,11 @@ export default function Home() {
               <Link to="/how-it-works" className="fieldr-home__secondary-cta">
                 See how it works
               </Link>
-              <Link to={APP_FLOW_PATH} className="fieldr-home__secondary-cta" style={{ color: 'var(--sienna-lt)' }}>
+              <a href={APP_FLOW_HREF} className="fieldr-home__secondary-cta" style={{ color: 'var(--sienna-lt)' }}>
                 See the workspace
-              </Link>
+              </a>
             </div>
-            <div className="fieldr-home__meta">Early access · Chattanooga, TN · Built for field contractors</div>
+            <div className="fieldr-home__meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
           </div>
         </section>
 
@@ -468,7 +468,7 @@ export default function Home() {
           <div className="fieldr-home__section-inner fieldr-home__log-grid">
             <div>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">System log · Live capture</span>
+                <span className="fieldr-home__section-label">System log &middot; Live capture</span>
                 <div className="fieldr-home__section-rule" aria-hidden="true" />
               </div>
               <h2 className="fieldr-home__log-headline">What Fieldr caught while you were on site.</h2>

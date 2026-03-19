@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { APP_FLOW_PATH, BOOK_DEMO_HREF } from './siteLinks'
+import { APP_FLOW_HREF, BOOK_DEMO_HREF } from './siteLinks'
 
 const navStyle = {
   position: 'fixed',
@@ -122,9 +122,9 @@ export function Nav() {
         </div>
 
         <div style={rightStyle}>
-          <NavLink to={APP_FLOW_PATH} style={appLinkStyle} className="fieldr-nav-hide-mobile">
+          <a href={APP_FLOW_HREF} style={appLinkStyle} className="fieldr-nav-hide-mobile">
             Open workspace
-          </NavLink>
+          </a>
           <a href={BOOK_DEMO_HREF} style={buttonStyle}>
             Book a Demo
           </a>

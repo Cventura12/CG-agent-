@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { APP_FLOW_PATH, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
 
 const steps = [
   {
@@ -365,7 +365,7 @@ export default function HowItWorks() {
             </div>
 
             <div className="fieldr-how__memory-panel">
-              <p className="fieldr-how__memory-panelhead">Estimating memory · 5 patterns</p>
+              <p className="fieldr-how__memory-panelhead">Estimating memory &middot; 5 patterns</p>
               {memoryRows.map((row) => (
                 <div key={row.key} className="fieldr-how__memory-row">
                   <div className="fieldr-how__memory-topline">
@@ -393,11 +393,11 @@ export default function HowItWorks() {
               <a href={BOOK_DEMO_HREF} className="fieldr-how__cta-button">
                 Book a Demo
               </a>
-              <Link to={APP_FLOW_PATH} className="fieldr-how__cta-link">
+              <a href={APP_FLOW_HREF} className="fieldr-how__cta-link">
                 See the workspace
-              </Link>
+              </a>
             </div>
-            <div className="fieldr-how__cta-note">20 minutes · No commitment · Chattanooga, TN</div>
+            <div className="fieldr-how__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
       </main>
