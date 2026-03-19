@@ -1,5 +1,11 @@
 import { apiClient, appApiBaseUrl, publicApiBaseUrl, publicApiClient } from "./client";
-import type { VoiceCallSession, VoiceMissingSlot } from "../types";
+import type {
+  VoiceCallDebug,
+  VoiceCallSession,
+  VoiceInterruptionHistoryEntry,
+  VoiceMissingSlot,
+  VoicePromptHistoryEntry,
+} from "../types";
 
 const betaContractorId =
   (import.meta.env.VITE_BETA_CONTRACTOR_ID as string | undefined)?.trim() ??
@@ -69,6 +75,65 @@ function normalizeMissingSlots(value: BackendVoiceSession["missing_slots"]): Voi
     .filter((slot) => slot.name && slot.reason && slot.prompt) as VoiceMissingSlot[];
 }
 
+function normalizePromptHistory(value: unknown): VoicePromptHistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => ({
+      text: String((entry as Record<string, unknown>)?.text ?? "").trim(),
+      phase: String((entry as Record<string, unknown>)?.phase ?? "").trim(),
+      at: String((entry as Record<string, unknown>)?.at ?? "").trim(),
+    }))
+    .filter((entry) => entry.text && entry.at);
+}
+
+function normalizeInterruptionHistory(value: unknown): VoiceInterruptionHistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => ({
+      reason: String((entry as Record<string, unknown>)?.reason ?? "").trim(),
+      prompt: String((entry as Record<string, unknown>)?.prompt ?? "").trim(),
+      excerpt: String((entry as Record<string, unknown>)?.excerpt ?? "").trim() || undefined,
+      at: String((entry as Record<string, unknown>)?.at ?? "").trim(),
+    }))
+    .filter((entry) => entry.reason && entry.at);
+}
+
+function normalizeDebug(metadata: Record<string, unknown>): VoiceCallDebug | undefined {
+  const promptHistory = normalizePromptHistory(metadata.prompt_history);
+  const interruptionHistory = normalizeInterruptionHistory(metadata.interruption_history);
+  const interruptionCount = Number(metadata.interruption_count ?? 0) || 0;
+  const lastInterruptionReason = String(metadata.last_interruption_reason ?? "").trim() || undefined;
+  const lastInterruptedPrompt = String(metadata.last_interrupted_prompt ?? "").trim() || undefined;
+  const lastInterruptionExcerpt = String(metadata.last_interruption_excerpt ?? "").trim() || undefined;
+  const lastPartialTranscript = String(metadata.last_partial_transcript ?? "").trim() || undefined;
+  const vadTurnState = String(metadata.vad_turn_state ?? "").trim() || undefined;
+
+  if (
+    interruptionCount === 0 &&
+    promptHistory.length === 0 &&
+    interruptionHistory.length === 0 &&
+    !lastPartialTranscript &&
+    !vadTurnState
+  ) {
+    return undefined;
+  }
+
+  return {
+    interruptionCount,
+    lastInterruptionReason,
+    lastInterruptedPrompt,
+    lastInterruptionExcerpt,
+    lastPartialTranscript,
+    vadTurnState,
+    promptHistory,
+    interruptionHistory,
+  };
+}
+
 function mapVoiceSession(session: BackendVoiceSession): VoiceCallSession {
   const extractedFields = Object.entries(session.extracted_fields ?? {}).reduce<Record<string, string>>((acc, [key, value]) => {
     const normalized = String(value ?? "").trim();
@@ -105,6 +170,7 @@ function mapVoiceSession(session: BackendVoiceSession): VoiceCallSession {
     updatedAt: String(session.updated_at ?? new Date().toISOString()),
     extractedFields,
     missingSlots: normalizeMissingSlots(session.missing_slots),
+    debug: normalizeDebug(metadata),
   };
 }
 

@@ -7,6 +7,7 @@ import base64
 import json
 import logging
 import os
+from collections import Counter
 from importlib import import_module
 from typing import Any, Optional
 from uuid import uuid4
@@ -622,6 +623,87 @@ def _voice_goal_to_transcript_classification(goal: str) -> str:
     return mapping.get(goal.strip(), "unknown")
 
 
+def _audio_chunk_has_speech_signature(payload: bytes) -> bool:
+    """Best-effort heuristic for whether an inbound mu-law chunk contains speech-like energy."""
+    if len(payload) < 80:
+        return False
+
+    counts = Counter(payload)
+    dominant_ratio = max(counts.values()) / len(payload)
+    silence_ratio = sum(counts.get(value, 0) for value in (0xFF, 0x7F)) / len(payload)
+    varied_ratio = len(counts) / min(len(payload), 32)
+
+    return silence_ratio < 0.82 and dominant_ratio < 0.78 and varied_ratio > 0.10
+
+
+def _trim_history_rows(value: list[dict[str, str]], *, limit: int = 8) -> list[dict[str, str]]:
+    """Keep only the newest bounded number of debug-history rows."""
+    if limit <= 0:
+        return []
+    return value[-limit:]
+
+
+def _append_prompt_history(session, prompt_text: str, *, phase: str) -> object:
+    """Persist one agent prompt into the session metadata for operator debugging."""
+    prompt_value = prompt_text.strip()
+    if not prompt_value:
+        return session
+
+    metadata = dict(session.metadata)
+    history = list(metadata.get("prompt_history") or [])
+    history.append(
+        {
+            "text": prompt_value,
+            "phase": phase.strip() or "runtime",
+            "at": session.updated_at.isoformat(),
+        }
+    )
+    metadata["prompt_history"] = _trim_history_rows(
+        [row for row in history if isinstance(row, dict)],
+        limit=10,
+    )
+    return update_voice_session(session.id, {"metadata": metadata})
+
+
+def _append_interruption_history(
+    session,
+    *,
+    reason: str,
+    prompt_text: str,
+    excerpt: str = "",
+) -> object:
+    """Persist one interruption event into session metadata for operator debugging."""
+    metadata = dict(session.metadata)
+    history = list(metadata.get("interruption_history") or [])
+    history.append(
+        {
+            "reason": reason.strip() or "caller_barge_in",
+            "prompt": prompt_text.strip(),
+            "excerpt": excerpt.strip(),
+            "at": session.updated_at.isoformat(),
+        }
+    )
+    metadata["interruption_history"] = _trim_history_rows(
+        [row for row in history if isinstance(row, dict)],
+        limit=8,
+    )
+    return update_voice_session(session.id, {"metadata": metadata})
+
+
+def _should_interrupt_for_transcript(transcript: str) -> bool:
+    """Use transcript content, not only raw audio shape, to decide whether barge-in is real."""
+    cleaned = transcript.strip()
+    if not cleaned:
+        return False
+
+    min_chars = max(int(os.getenv("TWILIO_VOICE_BARGE_IN_MIN_CHARS", "5") or 5), 1)
+    min_words = max(int(os.getenv("TWILIO_VOICE_BARGE_IN_MIN_WORDS", "2") or 2), 1)
+    if len(cleaned) < min_chars:
+        return False
+    words = [word for word in cleaned.replace("-", " ").split() if word.strip()]
+    return len(words) >= min_words
+
+
 async def _persist_voice_session(session) -> None:
     """Best-effort persistence for one live voice session snapshot."""
     try:
@@ -781,6 +863,7 @@ async def _handoff_live_voice_session(session, plan) -> tuple[object, str, str, 
     await _persist_voice_session(session)
     completion = _voice_completion_message(result)
     session = append_voice_turn(session.id, speaker="agent", text=completion)
+    session = _append_prompt_history(session, completion, phase="completion")
     await _persist_voice_session(session)
     return session, completion, transfer_target, False
 
@@ -1053,6 +1136,7 @@ async def twilio_voice_start(request: Request) -> Response:
 
     prompt = session.last_prompt.strip() or "Fieldr here. Tell me what changed on site or what needs to be quoted."
     session = append_voice_turn(session.id, speaker="agent", text=prompt)
+    session = _append_prompt_history(session, prompt, phase="call_open")
     await _persist_voice_session(session)
 
     action_url = str(request.url_for("twilio_voice_turn"))
@@ -1163,6 +1247,7 @@ async def twilio_voice_turn(request: Request) -> Response:
 
         prompt = "I did not catch that. Tell me the job or site and what changed."
         session = append_voice_turn(session.id, speaker="agent", text=prompt)
+        session = _append_prompt_history(session, prompt, phase="reprompt")
         await _persist_voice_session(session)
         return Response(
             content=_twiml_voice_gather(
@@ -1205,6 +1290,7 @@ async def twilio_voice_turn(request: Request) -> Response:
 
     prompt = plan.next_prompt.strip() or "Tell me what changed on site or what needs to happen next."
     session = append_voice_turn(session.id, speaker="agent", text=prompt)
+    session = _append_prompt_history(session, prompt, phase="follow_up")
     await _persist_voice_session(session)
     return Response(
         content=_twiml_voice_gather(
@@ -1234,9 +1320,18 @@ async def twilio_voice_stream(websocket: WebSocket, session_id: str) -> None:
     bridge = DeepgramLiveBridge()
     tts_bridge = DeepgramTTSBridge()
     send_lock = asyncio.Lock()
-    pending_mark_actions: dict[str, dict[str, str]] = {}
     call_updated = False
     consumer_task: asyncio.Task[None] | None = None
+    last_processed_transcript = ""
+    playback_state: dict[str, Any] = {
+        "token": "",
+        "mark": "",
+        "kind": "",
+        "text": "",
+        "final_action": None,
+        "interrupted": False,
+        "speech_chunks": 0,
+    }
 
     session = update_voice_session(
         session.id,
@@ -1248,53 +1343,140 @@ async def twilio_voice_stream(websocket: WebSocket, session_id: str) -> None:
     )
     await _persist_voice_session(session)
 
+    def _clear_playback_state() -> None:
+        playback_state.update(
+            {
+                "token": "",
+                "mark": "",
+                "kind": "",
+                "text": "",
+                "final_action": None,
+                "interrupted": False,
+                "speech_chunks": 0,
+            }
+        )
+
+    async def _interrupt_prompt_playback(*, reason: str, audio_excerpt: str = "") -> bool:
+        nonlocal session
+        if playback_state.get("kind") != "prompt" or not playback_state.get("token") or playback_state.get("interrupted"):
+            return False
+
+        playback_state["interrupted"] = True
+        try:
+            await _send_stream_clear(websocket, session.stream_sid, send_lock=send_lock)
+        except Exception:
+            LOGGER.exception("Failed clearing Twilio playback during barge-in for session id=%s", session.id)
+
+        metadata = dict(session.metadata)
+        interruption_count = int(metadata.get("interruption_count", 0) or 0) + 1
+        metadata.update(
+            {
+                "interruption_count": interruption_count,
+                "last_interruption_reason": reason,
+                "last_interrupted_prompt": str(playback_state.get("text", "")).strip(),
+            }
+        )
+        if audio_excerpt.strip():
+            metadata["last_interruption_excerpt"] = audio_excerpt.strip()
+        session = update_voice_session(session.id, {"metadata": metadata})
+        session = _append_interruption_history(
+            session,
+            reason=reason,
+            prompt_text=str(playback_state.get("text", "")).strip(),
+            excerpt=audio_excerpt,
+        )
+        await _persist_voice_session(session)
+        return True
+
     async def _play_tts_prompt(
         spoken_text: str,
         *,
         final_action: dict[str, str] | None = None,
         clear_existing: bool = False,
-    ) -> bool:
-        nonlocal pending_mark_actions
+    ) -> str:
         prompt_text = spoken_text.strip()
         stream_sid = session.stream_sid.strip()
         if not prompt_text or not stream_sid:
-            return False
+            return "failed"
 
-        if clear_existing and pending_mark_actions:
+        if clear_existing and playback_state.get("token"):
             try:
                 await _send_stream_clear(websocket, stream_sid, send_lock=send_lock)
             except Exception:
                 LOGGER.exception("Failed clearing pending Twilio audio for session id=%s", session.id)
-            pending_mark_actions = {}
+            _clear_playback_state()
+
+        playback_token = uuid4().hex
+        playback_state.update(
+            {
+                "token": playback_token,
+                "kind": "completion" if final_action is not None else "prompt",
+                "text": prompt_text,
+                "final_action": final_action,
+                "interrupted": False,
+                "speech_chunks": 0,
+                "mark": "",
+            }
+        )
 
         chunk_sent = False
         try:
             async for chunk in tts_bridge.iter_audio(prompt_text):
+                if playback_state.get("token") != playback_token or playback_state.get("interrupted"):
+                    _clear_playback_state()
+                    return "interrupted"
                 if not chunk:
                     continue
                 chunk_sent = True
                 await _send_stream_media(websocket, stream_sid, chunk, send_lock=send_lock)
         except Exception:
             LOGGER.exception("Streaming TTS failed for session id=%s", session.id)
-            return False
+            _clear_playback_state()
+            return "failed"
 
         if not chunk_sent:
-            return False
+            _clear_playback_state()
+            return "failed"
+
+        if playback_state.get("token") != playback_token or playback_state.get("interrupted"):
+            _clear_playback_state()
+            return "interrupted"
 
         mark_name = f"voice-{uuid4().hex[:10]}"
-        if final_action is not None:
-            pending_mark_actions[mark_name] = final_action
+        playback_state["mark"] = mark_name
         await _send_stream_mark(websocket, stream_sid, mark_name, send_lock=send_lock)
-        return True
+        return "played"
 
     async def _consume_transcripts() -> None:
-        nonlocal session, call_updated
+        nonlocal session, call_updated, last_processed_transcript
         async for transcript_event in bridge.iter_events():
-            if call_updated or not transcript_event.is_final:
+            if call_updated:
                 continue
             cleaned = transcript_event.transcript.strip()
             if not cleaned:
                 continue
+
+            metadata = dict(session.metadata)
+            metadata["last_partial_transcript"] = cleaned
+            metadata["vad_turn_state"] = "speech_final" if transcript_event.speech_final else ("final" if transcript_event.is_final else "interim")
+            session = update_voice_session(session.id, {"metadata": metadata})
+            await _persist_voice_session(session)
+
+            if (
+                playback_state.get("kind") == "prompt"
+                and playback_state.get("token")
+                and _should_interrupt_for_transcript(cleaned)
+            ):
+                await _interrupt_prompt_playback(
+                    reason="caller_barge_in_transcript",
+                    audio_excerpt=cleaned,
+                )
+
+            if not transcript_event.is_final and not transcript_event.speech_final:
+                continue
+            if cleaned == last_processed_transcript:
+                continue
+            last_processed_transcript = cleaned
 
             previous_prompt = session.last_prompt.strip()
             session = append_voice_turn(
@@ -1319,7 +1501,7 @@ async def twilio_voice_stream(websocket: WebSocket, session_id: str) -> None:
                     if plan.escalate_to_human and transfer_target
                     else {"kind": "hangup"}
                 )
-                if await _play_tts_prompt(spoken_completion, final_action=final_action, clear_existing=True):
+                if await _play_tts_prompt(spoken_completion, final_action=final_action, clear_existing=True) == "played":
                     call_updated = True
                     break
 
@@ -1348,8 +1530,10 @@ async def twilio_voice_stream(websocket: WebSocket, session_id: str) -> None:
             prompt = plan.next_prompt.strip()
             if prompt and prompt != previous_prompt and session.call_id.strip():
                 session = append_voice_turn(session.id, speaker="agent", text=prompt)
+                session = _append_prompt_history(session, prompt, phase="stream_follow_up")
                 await _persist_voice_session(session)
-                if await _play_tts_prompt(prompt, clear_existing=True):
+                playback_result = await _play_tts_prompt(prompt, clear_existing=True)
+                if playback_result in {"played", "interrupted"}:
                     continue
                 await _update_live_call_twiml(
                     session.call_id,
@@ -1387,8 +1571,12 @@ async def twilio_voice_stream(websocket: WebSocket, session_id: str) -> None:
             if event_type == "mark":
                 mark_payload = payload.get("mark") if isinstance(payload.get("mark"), dict) else {}
                 mark_name = str(mark_payload.get("name", "")).strip()
-                action = pending_mark_actions.pop(mark_name, None)
-                if not action or not session.call_id.strip():
+                if mark_name != str(playback_state.get("mark", "")).strip():
+                    continue
+
+                action = playback_state.get("final_action")
+                _clear_playback_state()
+                if not isinstance(action, dict) or not session.call_id.strip():
                     continue
 
                 action_kind = action.get("kind", "").strip()
@@ -1427,12 +1615,13 @@ async def twilio_voice_stream(websocket: WebSocket, session_id: str) -> None:
                 except Exception:
                     continue
                 audio_buffer.extend(chunk)
-                if pending_mark_actions:
-                    try:
-                        await _send_stream_clear(websocket, session.stream_sid, send_lock=send_lock)
-                    except Exception:
-                        LOGGER.exception("Failed clearing Twilio playback during barge-in for session id=%s", session.id)
-                    pending_mark_actions = {}
+                if playback_state.get("kind") == "prompt" and playback_state.get("token"):
+                    if _audio_chunk_has_speech_signature(chunk):
+                        playback_state["speech_chunks"] = int(playback_state.get("speech_chunks", 0) or 0) + 1
+                        if playback_state["speech_chunks"] >= 2:
+                            await _interrupt_prompt_playback(reason="caller_barge_in_audio")
+                    else:
+                        playback_state["speech_chunks"] = 0
                 await bridge.send_audio(chunk)
                 continue
 

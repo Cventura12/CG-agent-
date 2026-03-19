@@ -148,6 +148,30 @@ export interface VoiceMissingSlot {
   prompt: string;
 }
 
+export interface VoicePromptHistoryEntry {
+  text: string;
+  phase: string;
+  at: string;
+}
+
+export interface VoiceInterruptionHistoryEntry {
+  reason: string;
+  prompt: string;
+  excerpt?: string;
+  at: string;
+}
+
+export interface VoiceCallDebug {
+  interruptionCount: number;
+  lastInterruptionReason?: string;
+  lastInterruptedPrompt?: string;
+  lastInterruptionExcerpt?: string;
+  lastPartialTranscript?: string;
+  vadTurnState?: string;
+  promptHistory: VoicePromptHistoryEntry[];
+  interruptionHistory: VoiceInterruptionHistoryEntry[];
+}
+
 export interface VoiceCallSession {
   id: string;
   callId: string;
@@ -172,4 +196,5 @@ export interface VoiceCallSession {
   updatedAt: string;
   extractedFields: Record<string, string>;
   missingSlots: VoiceMissingSlot[];
+  debug?: VoiceCallDebug;
 }

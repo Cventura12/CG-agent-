@@ -445,67 +445,225 @@ def _should_escalate(text: str, silence_count: int) -> bool:
     return silence_count >= 2 or _contains_any(lowered, _ESCALATION_KEYWORDS)
 
 
-def _required_slots(goal: VoiceConversationGoal, extracted: dict[str, str]) -> list[VoiceMissingSlot]:
-    definitions: dict[str, tuple[str, str]] = {
-        "job_reference": (
+def _dedupe_slot_names(slot_names: Iterable[str]) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for slot_name in slot_names:
+        normalized = slot_name.strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        ordered.append(normalized)
+    return ordered
+
+
+def _required_slot_order(
+    goal: VoiceConversationGoal,
+    extracted: dict[str, str],
+    combined_text: str,
+) -> list[str]:
+    lowered = combined_text.lower()
+    trade = extracted.get("trade", "").strip().lower()
+    material_known = bool(extracted.get("material_or_scope_item", "").strip())
+    insurance_signaled = bool(extracted.get("insurance_context", "").strip()) or _contains_any(
+        lowered,
+        _INSURANCE_KEYWORDS,
+    )
+    urgency_high = extracted.get("urgency", "").strip().lower() == "high"
+    schedule_signaled = bool(extracted.get("schedule_constraint", "").strip()) or _contains_any(
+        lowered,
+        (*_TIMELINE_PATTERNS, "inspection", "crew leaves", "crew closes", "deadline"),
+    )
+
+    if goal == "quote_request":
+        ordered = ["job_reference", "scope_summary", "material_or_scope_item"]
+        if material_known or trade in {"roofing", "electrical", "plumbing", "interiors", "exteriors"}:
+            ordered.append("quantity_or_measurement")
+        if insurance_signaled:
+            ordered.extend(["insurance_context", "customer_decision"])
+        ordered.append("timeline")
+        if urgency_high or schedule_signaled:
+            ordered.append("schedule_constraint")
+        return _dedupe_slot_names(ordered)
+
+    if goal == "issue_report":
+        ordered = ["job_reference", "scope_summary", "material_or_scope_item", "urgency"]
+        if urgency_high:
+            ordered.extend(["schedule_constraint", "site_access"])
+        elif material_known or trade in {"roofing", "exteriors", "plumbing"}:
+            ordered.append("quantity_or_measurement")
+        if insurance_signaled:
+            ordered.append("insurance_context")
+        return _dedupe_slot_names(ordered)
+
+    if goal == "follow_up":
+        ordered = ["job_reference", "scope_summary", "follow_up_target", "customer_decision"]
+        if insurance_signaled:
+            ordered.append("insurance_context")
+        ordered.append("timeline")
+        return _dedupe_slot_names(ordered)
+
+    if goal == "job_update":
+        ordered = ["job_reference", "scope_summary"]
+        if schedule_signaled or urgency_high:
+            ordered.extend(["schedule_constraint", "site_access"])
+        return _dedupe_slot_names(ordered)
+
+    return ["scope_summary", "job_reference"]
+
+
+def _slot_prompt_and_reason(
+    slot_name: str,
+    *,
+    goal: VoiceConversationGoal,
+    extracted: dict[str, str],
+) -> tuple[str, str]:
+    trade = extracted.get("trade", "").strip().lower()
+    urgency_high = extracted.get("urgency", "").strip().lower() == "high"
+    insurance_context = extracted.get("insurance_context", "").strip()
+
+    if slot_name == "job_reference":
+        return (
             "The call still needs a job, site, or customer reference.",
-            "What job or site is this for?",
-        ),
-        "scope_summary": (
+            "What job, site, or customer is this tied to?",
+        )
+
+    if slot_name == "scope_summary":
+        if goal == "follow_up":
+            return (
+                "The follow-up topic is still unclear.",
+                "What are we following up on, and what is still outstanding?",
+            )
+        if goal == "job_update":
+            return (
+                "The office still needs a clear summary of what changed on site.",
+                "What changed on site that the office needs to track?",
+            )
+        return (
             "The requested change or work is still unclear.",
             "Tell me what changed on site or what you need priced.",
-        ),
-        "timeline": (
+        )
+
+    if slot_name == "timeline":
+        return (
             "Timing is still unclear.",
-            "When do you need this handled?",
-        ),
-        "urgency": (
+            "When do you need this handled or followed up on?",
+        )
+
+    if slot_name == "urgency":
+        return (
             "The level of urgency is still unclear.",
-            "Is this something that needs attention today, or can it wait?",
-        ),
-        "follow_up_target": (
+            "Does this need attention today, or can it wait?",
+        )
+
+    if slot_name == "follow_up_target":
+        return (
             "The follow-up target is still unclear.",
-            "Who are we following up with, and what are they waiting on?",
-        ),
-        "material_or_scope_item": (
+            "Who are we waiting on here - owner, customer, sub, or carrier?",
+        )
+
+    if slot_name == "material_or_scope_item":
+        if trade == "roofing":
+            return (
+                "The roof scope item that changed is still unclear.",
+                "What part of the roof changed - flashing, shingle, ridge, decking, or something else?",
+            )
+        if trade == "electrical":
+            return (
+                "The electrical scope item that changed is still unclear.",
+                "Which electrical item changed - fixture, switch, panel, or circuit?",
+            )
+        if trade == "plumbing":
+            return (
+                "The plumbing scope item that changed is still unclear.",
+                "What plumbing item changed - drain, valve, fixture, or supply line?",
+            )
+        return (
             "The scope item or material that changed is still unclear.",
             "What material or scope item changed?",
-        ),
-        "quantity_or_measurement": (
+        )
+
+    if slot_name == "quantity_or_measurement":
+        if trade == "roofing":
+            return (
+                "The call does not include a usable roofing quantity yet.",
+                "How many squares, feet, or pieces changed on the roof?",
+            )
+        if trade == "electrical":
+            return (
+                "The call does not include a usable electrical quantity yet.",
+                "How many fixtures, runs, or devices are involved?",
+            )
+        if trade == "plumbing":
+            return (
+                "The call does not include a usable plumbing quantity yet.",
+                "How many fixtures, feet, or plumbing items changed?",
+            )
+        return (
             "The call does not include any usable quantity or measurement yet.",
             "Do you have a square count, quantity, or rough measurement I should attach?",
-        ),
-        "site_access": (
+        )
+
+    if slot_name == "site_access":
+        if urgency_high:
+            return (
+                "We still do not know whether the crew is blocked or can keep moving.",
+                "Is the crew blocked right now, or can they keep moving while the office handles this?",
+            )
+        return (
             "Any site access or crew constraint is still missing.",
             "Any access, tenant, or crew constraint I need to note with this?",
-        ),
-        "customer_decision": (
+        )
+
+    if slot_name == "customer_decision":
+        if insurance_context:
+            return (
+                "The approval path is still unclear.",
+                "Are we waiting on owner approval, carrier approval, or is this already approved?",
+            )
+        if goal == "follow_up":
+            return (
+                "The decision blocking follow-through is still unclear.",
+                "What decision or response are they holding on?",
+            )
+        return (
             "The customer or owner decision point is still unclear.",
             "What decision is the customer or owner still making on this?",
-        ),
-        "schedule_constraint": (
+        )
+
+    if slot_name == "schedule_constraint":
+        if urgency_high and goal == "issue_report":
+            return (
+                "The field impact timing is still unclear.",
+                "Is the crew blocked right now, or is there a deadline like inspection or before they leave today?",
+            )
+        return (
             "The schedule constraint is still unclear.",
             "Is there a schedule or inspection deadline tied to this?",
-        ),
-        "insurance_context": (
+        )
+
+    if slot_name == "insurance_context":
+        return (
             "Insurance context is still unclear.",
-            "Is insurance or carrier approval part of this request?",
-        ),
-    }
+            "Is insurance, supplement, or carrier approval part of this request?",
+        )
 
-    required_by_goal: dict[VoiceConversationGoal, list[str]] = {
-        "quote_request": ["job_reference", "scope_summary", "material_or_scope_item"],
-        "job_update": ["job_reference", "scope_summary"],
-        "issue_report": ["job_reference", "scope_summary", "urgency", "material_or_scope_item"],
-        "follow_up": ["job_reference", "scope_summary", "follow_up_target", "customer_decision"],
-        "general": ["scope_summary"],
-    }
+    return (
+        "The call is still missing a required detail.",
+        "Give me the next missing detail so I can route this correctly.",
+    )
 
+
+def _required_slots(
+    goal: VoiceConversationGoal,
+    extracted: dict[str, str],
+    combined_text: str,
+) -> list[VoiceMissingSlot]:
     missing: list[VoiceMissingSlot] = []
-    for slot_name in required_by_goal[goal]:
+    for slot_name in _required_slot_order(goal, extracted, combined_text):
         if extracted.get(slot_name, "").strip():
             continue
-        reason, prompt = definitions[slot_name]
+        reason, prompt = _slot_prompt_and_reason(slot_name, goal=goal, extracted=extracted)
         missing.append(VoiceMissingSlot(name=slot_name, reason=reason, prompt=prompt))
     return missing
 
@@ -592,7 +750,7 @@ def plan_voice_session(session: VoiceSession) -> VoiceSessionPlan:
     if insurance_context:
         extracted_fields["insurance_context"] = insurance_context
 
-    missing_slots = _required_slots(goal, extracted_fields)
+    missing_slots = _required_slots(goal, extracted_fields, combined_text)
     escalate_to_human = _should_escalate(combined_text, session.silence_count)
     ready_for_review = bool(caller_turns) and not missing_slots
 

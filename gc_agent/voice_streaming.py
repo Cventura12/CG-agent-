@@ -43,6 +43,7 @@ class LiveTranscriptEvent:
 
     transcript: str
     is_final: bool
+    speech_final: bool = False
     confidence: float | None = None
 
 
@@ -63,6 +64,8 @@ class DeepgramLiveBridge:
         self.sample_rate = sample_rate
         self.encoding = encoding
         self.channels = channels
+        self.endpointing_ms = max(int(os.getenv("DEEPGRAM_STREAM_ENDPOINTING_MS", "220") or 220), 80)
+        self.utterance_end_ms = max(int(os.getenv("DEEPGRAM_STREAM_UTTERANCE_END_MS", "0") or 0), 0)
         self._connection = None
         self._queue: asyncio.Queue[LiveTranscriptEvent | None] = asyncio.Queue()
         self._recv_task: asyncio.Task[None] | None = None
@@ -80,8 +83,11 @@ class DeepgramLiveBridge:
 
         query = (
             f"model={self.model}&encoding={self.encoding}&sample_rate={self.sample_rate}"
-            f"&channels={self.channels}&interim_results=true&punctuate=true&endpointing=300"
+            f"&channels={self.channels}&interim_results=true&punctuate=true"
+            f"&endpointing={self.endpointing_ms}&vad_events=true"
         )
+        if self.utterance_end_ms > 0:
+            query += f"&utterance_end_ms={self.utterance_end_ms}"
         self._connection = await connect(
             f"wss://api.deepgram.com/v1/listen?{query}",
             additional_headers={"Authorization": f"Token {self.api_key}"},
@@ -159,9 +165,11 @@ class DeepgramLiveBridge:
         except (TypeError, ValueError):
             confidence = None
 
+        speech_final = bool(payload.get("speech_final"))
         return LiveTranscriptEvent(
             transcript=transcript,
-            is_final=bool(payload.get("is_final") or payload.get("speech_final")),
+            is_final=bool(payload.get("is_final")),
+            speech_final=speech_final,
             confidence=confidence,
         )
 

@@ -29,6 +29,12 @@ function goalLabel(goal: VoiceCallSession["goal"]): string {
   return goal.replace(/_/g, " ");
 }
 
+function debugStateLabel(value?: string): string | null {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  return normalized.replace(/_/g, " ");
+}
+
 export interface VoiceSessionListProps {
   sessions: VoiceCallSession[];
   title?: string;
@@ -111,6 +117,67 @@ export function VoiceSessionList({
                     Last caller turn
                   </div>
                   <div className="mt-1 text-[12px] text-[var(--t2)]">{session.lastCallerTranscript}</div>
+                </div>
+              ) : null}
+
+              {session.debug ? (
+                <div className="mt-3 rounded-lg border border-[var(--line)] bg-[var(--bg-3)] px-3 py-2.5">
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--t3)]">
+                    <Radio className="h-[12px] w-[12px]" strokeWidth={2} />
+                    Voice debug
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {debugStateLabel(session.debug.vadTurnState) ? (
+                      <span className="rounded-[4px] border border-[var(--line)] bg-[var(--bg)] px-2 py-1 font-mono text-[10px] text-[var(--t2)]">
+                        Turn end: {debugStateLabel(session.debug.vadTurnState)}
+                      </span>
+                    ) : null}
+                    <span className="rounded-[4px] border border-[var(--line)] bg-[var(--bg)] px-2 py-1 font-mono text-[10px] text-[var(--t2)]">
+                      Interruptions: {session.debug.interruptionCount}
+                    </span>
+                    {session.debug.lastInterruptionReason ? (
+                      <span className="rounded-[4px] border border-[var(--line)] bg-[var(--bg)] px-2 py-1 font-mono text-[10px] text-[var(--t2)]">
+                        Last: {debugStateLabel(session.debug.lastInterruptionReason)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {session.debug.promptHistory.length > 0 ? (
+                    <div className="mt-3">
+                      <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--t3)]">Prompt history</div>
+                      <div className="mt-2 space-y-2">
+                        {session.debug.promptHistory.slice(-3).reverse().map((entry) => (
+                          <div key={`${session.id}-${entry.at}-${entry.text}`} className="rounded-[6px] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-2">
+                            <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] text-[var(--t3)]">
+                              <span>{entry.phase}</span>
+                              <span>-</span>
+                              <span>{formatMonoTime(entry.at)}</span>
+                            </div>
+                            <div className="mt-1 text-[12px] text-[var(--t2)]">{entry.text}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {session.debug.interruptionHistory.length > 0 ? (
+                    <div className="mt-3">
+                      <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--t3)]">Interruptions</div>
+                      <div className="mt-2 space-y-2">
+                        {session.debug.interruptionHistory.slice(-2).reverse().map((entry) => (
+                          <div key={`${session.id}-${entry.at}-${entry.reason}`} className="rounded-[6px] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-2">
+                            <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] text-[var(--t3)]">
+                              <span>{debugStateLabel(entry.reason)}</span>
+                              <span>-</span>
+                              <span>{formatMonoTime(entry.at)}</span>
+                            </div>
+                            {entry.prompt ? <div className="mt-1 text-[12px] text-[var(--t2)]">Prompt: {entry.prompt}</div> : null}
+                            {entry.excerpt ? <div className="mt-1 text-[12px] text-[var(--t2)]">Caller: {entry.excerpt}</div> : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

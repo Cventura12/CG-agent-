@@ -26,6 +26,19 @@ def teardown_function() -> None:
     clear_voice_sessions()
 
 
+def test_audio_chunk_speech_signature_distinguishes_silence_from_voice_like_audio() -> None:
+    silence_chunk = bytes([0xFF] * 160)
+    voice_like_chunk = bytes(([0x10, 0x42, 0x87, 0xC3] * 40))
+
+    assert twilio._audio_chunk_has_speech_signature(silence_chunk) is False
+    assert twilio._audio_chunk_has_speech_signature(voice_like_chunk) is True
+
+
+def test_transcript_barge_in_requires_real_words() -> None:
+    assert twilio._should_interrupt_for_transcript("hi") is False
+    assert twilio._should_interrupt_for_transcript("hold on") is True
+
+
 @pytest.mark.asyncio
 async def test_twilio_voice_start_returns_gather_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(twilio, "_validate_twilio_request", lambda *_args, **_kwargs: True)
