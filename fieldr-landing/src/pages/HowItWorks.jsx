@@ -328,6 +328,19 @@ export default function HowItWorks() {
           .fieldr-how__step {
             padding: 36px 20px;
           }
+
+          .fieldr-how__memory-topline {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+          }
+
+          .fieldr-how__cta-button,
+          .fieldr-how__cta-link {
+            width: min(100%, 280px);
+            justify-content: center;
+            text-align: center;
+          }
         }
       `}</style>
 

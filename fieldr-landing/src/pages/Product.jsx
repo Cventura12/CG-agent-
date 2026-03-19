@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BOOK_DEMO_HREF } from '../components/siteLinks'
+import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
 
 const featureRows = [
   {
@@ -722,6 +722,24 @@ export default function Product() {
           text-decoration: none;
         }
 
+        .fieldr-product__cta-actions {
+          margin-top: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .fieldr-product__cta-link {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--dim);
+          text-decoration: none;
+        }
+
         .fieldr-product__cta-note {
           margin-top: 18px;
           font-family: var(--mono);
@@ -757,13 +775,6 @@ export default function Product() {
         }
 
         @media (max-width: 780px) {
-          .fieldr-product__queue-strip,
-          .fieldr-product__statrow,
-          .fieldr-product__table-head,
-          .fieldr-product__table-row {
-            min-width: 640px;
-          }
-
           .fieldr-product__replica-wrap,
           .fieldr-product__features,
           .fieldr-product__header,
@@ -774,6 +785,53 @@ export default function Product() {
 
           .fieldr-product__frame {
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .fieldr-product__header-links {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .fieldr-product__header-demo,
+          .fieldr-product__header-link {
+            width: min(100%, 280px);
+            justify-content: center;
+            text-align: center;
+          }
+
+          .fieldr-product__cta-button,
+          .fieldr-product__cta-link {
+            width: min(100%, 280px);
+            justify-content: center;
+            text-align: center;
+          }
+
+          .fieldr-product__dash {
+            min-width: 920px;
+            grid-template-columns: 212px minmax(0, 1fr);
+            height: 420px;
+          }
+
+          .fieldr-product__sidebar {
+            display: flex;
+          }
+
+          .fieldr-product__workspace {
+            grid-template-columns: minmax(0, 1fr) 248px;
+          }
+
+          .fieldr-product__content {
+            border-right: 1px solid var(--rule);
+            border-bottom: 0;
+          }
+
+          .fieldr-product__topbar {
+            grid-template-columns: auto auto 1fr auto;
+            justify-items: stretch;
+            gap: 16px;
+            padding: 0 20px;
+            min-height: 52px;
           }
         }
       `}</style>
@@ -781,7 +839,7 @@ export default function Product() {
       <main className="fieldr-product" aria-label="Fieldr product page">
         <section className="fieldr-product__header">
           <div className="fieldr-product__inner">
-            <p className="fieldr-product__eyebrow">Product � Agentic workspace</p>
+            <p className="fieldr-product__eyebrow">Product &middot; Agentic workspace</p>
             <h1 className="fieldr-product__headline">The operations layer contractors don&apos;t have.</h1>
             <p className="fieldr-product__subhead">
               One workspace. Every field update captured, queued, quoted, and tracked. Built for the contractor who can&apos;t afford to miss anything.
@@ -789,6 +847,9 @@ export default function Product() {
             <div className="fieldr-product__header-links">
               <a href={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
                 Book a Demo
+              </a>
+              <a href={APP_FLOW_HREF} className="fieldr-product__header-link">
+                Launch Agent
               </a>
               <Link to="/how-it-works" className="fieldr-product__header-link">
                 Review the capture loop
@@ -817,11 +878,12 @@ export default function Product() {
                 </div>
 
                 <div className="fieldr-product__nav">
-                  <div className="fieldr-product__nav-item is-active">Briefing</div>
+                  <div className="fieldr-product__nav-item is-active">Today</div>
                   <div className="fieldr-product__nav-item">
                     <span>Queue</span>
                     <span className="fieldr-product__nav-badge">3</span>
                   </div>
+                  <div className="fieldr-product__nav-item">Quotes</div>
                   <div className="fieldr-product__nav-item">Jobs</div>
                   <div className="fieldr-product__nav-item">Analytics</div>
                 </div>
@@ -837,9 +899,9 @@ export default function Product() {
 
               <div className="fieldr-product__main">
                 <div className="fieldr-product__topbar">
-                  <div className="fieldr-product__top-title">Today&apos;s briefing</div>
-                  <div className="fieldr-product__top-date">Mar 18 � 09:20</div>
-                  <input className="fieldr-product__search" value="Search jobs, quotes, calls" readOnly aria-label="Search" />
+                  <div className="fieldr-product__top-title">Today</div>
+                  <div className="fieldr-product__top-date">Mar 18 &middot; 09:20</div>
+                  <input className="fieldr-product__search" value="Search jobs, quotes, queue" readOnly aria-label="Search" />
                   <button type="button" className="fieldr-product__top-button">New quote</button>
                 </div>
 
@@ -848,10 +910,10 @@ export default function Product() {
                     <div className="fieldr-product__queue-strip">
                       <div className="fieldr-product__queue-number">3</div>
                       <div>
-                        <div className="fieldr-product__queue-title">Three items surfaced for contractor review</div>
-                        <div className="fieldr-product__queue-sub">Field capture is live. Two changes and one stalled follow-up are waiting on a decision.</div>
+                        <div className="fieldr-product__queue-title">Three items surfaced for review</div>
+                        <div className="fieldr-product__queue-sub">Agent capture is live. Two changes and one stalled follow-up are waiting on a decision.</div>
                       </div>
-                      <div className="fieldr-product__queue-pill">Open queue ?</div>
+                      <div className="fieldr-product__queue-pill">Open queue &rarr;</div>
                     </div>
 
                     <div className="fieldr-product__statrow">
@@ -908,9 +970,9 @@ export default function Product() {
 
                   <aside className="fieldr-product__aside">
                     <section className="fieldr-product__panel">
-                      <div className="fieldr-product__panel-label">Today&apos;s briefing</div>
+                      <div className="fieldr-product__panel-label">Agent monitor</div>
                       <div className="fieldr-product__panel-title">Two jobs need attention before noon.</div>
-                      <div className="fieldr-product__panel-body">Hartley needs flashing approval before the supplement goes out. Riverside needs a follow-up before the quote window closes.</div>
+                      <div className="fieldr-product__panel-body">Queue is live. Hartley needs flashing approval before the next quote goes out. Riverside needs a follow-up before the window closes.</div>
                       <div className="fieldr-product__briefing-list">
                         <div className="fieldr-product__briefing-item">
                           <div className="fieldr-product__briefing-heading">Hartley reroof</div>
@@ -967,8 +1029,11 @@ export default function Product() {
         <section className="fieldr-product__cta">
           <div className="fieldr-product__inner">
             <h2 className="fieldr-product__cta-title">Ready to close the gap?</h2>
-            <a href={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</a>
-            <div className="fieldr-product__cta-note">20 minutes � No commitment � Chattanooga, TN</div>
+            <div className="fieldr-product__cta-actions">
+              <a href={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</a>
+              <a href={APP_FLOW_HREF} className="fieldr-product__cta-link">Launch Agent</a>
+            </div>
+            <div className="fieldr-product__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
       </main>

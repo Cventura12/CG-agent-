@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { APP_FLOW_HREF, BOOK_DEMO_HREF } from './siteLinks'
 
@@ -93,12 +94,53 @@ const buttonStyle = {
   textDecoration: 'none',
 }
 
+const mobileMenuButtonStyle = {
+  display: 'none',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  padding: 0,
+  border: '1px solid var(--rule2)',
+  borderRadius: '5px',
+  background: 'var(--surface)',
+  color: 'var(--bright)',
+  cursor: 'pointer',
+}
+
+const mobilePanelStyle = {
+  borderTop: '1px solid var(--rule)',
+  borderBottom: '1px solid var(--rule)',
+  background: 'rgba(13,12,10,0.98)',
+  padding: '12px 20px 16px',
+}
+
+const mobileNavStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+}
+
+const mobileLinkStyle = {
+  fontFamily: 'var(--mono)',
+  fontSize: '10px',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  textDecoration: 'none',
+  color: 'var(--bright)',
+  padding: '6px 0',
+}
+
 export function Nav() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const closeMobile = () => setMobileOpen(false)
+
   return (
     <header style={navStyle}>
       <div style={innerStyle}>
         <div style={leftStyle}>
-          <NavLink to="/" style={wordmarkStyle}>
+          <NavLink to="/" style={wordmarkStyle} onClick={closeMobile}>
             Fieldr
           </NavLink>
 
@@ -128,12 +170,77 @@ export function Nav() {
           <a href={BOOK_DEMO_HREF} style={buttonStyle}>
             Book a Demo
           </a>
+          <button
+            type="button"
+            aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((value) => !value)}
+            style={mobileMenuButtonStyle}
+            className="fieldr-nav-mobile-trigger"
+          >
+            <span className="fieldr-nav-mobile-icon" aria-hidden="true" />
+          </button>
         </div>
       </div>
+      {mobileOpen ? (
+        <div style={mobilePanelStyle} className="fieldr-nav-mobile-panel">
+          <nav aria-label="Mobile" style={mobileNavStyle}>
+            <NavLink to="/" end style={mobileLinkStyle} onClick={closeMobile}>
+              Home
+            </NavLink>
+            <NavLink to="/how-it-works" style={mobileLinkStyle} onClick={closeMobile}>
+              How It Works
+            </NavLink>
+            <NavLink to="/product" style={mobileLinkStyle} onClick={closeMobile}>
+              Product
+            </NavLink>
+            <a href={APP_FLOW_HREF} style={mobileLinkStyle} onClick={closeMobile}>
+              Launch Agent
+            </a>
+          </nav>
+        </div>
+      ) : null}
       <style>{`
         @media (max-width: 760px) {
           .fieldr-nav-hide-mobile {
             display: none;
+          }
+
+          .fieldr-nav-mobile-trigger {
+            display: inline-flex !important;
+          }
+        }
+
+        .fieldr-nav-mobile-icon {
+          position: relative;
+          width: 14px;
+          height: 10px;
+          display: inline-block;
+        }
+
+        .fieldr-nav-mobile-icon::before,
+        .fieldr-nav-mobile-icon::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          width: 14px;
+          height: 1px;
+          background: currentColor;
+        }
+
+        .fieldr-nav-mobile-icon::before {
+          top: 1px;
+          box-shadow: 0 4px 0 currentColor;
+        }
+
+        .fieldr-nav-mobile-icon::after {
+          bottom: 1px;
+        }
+
+        @media (max-width: 520px) {
+          .fieldr-nav-mobile-panel {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
           }
         }
       `}</style>

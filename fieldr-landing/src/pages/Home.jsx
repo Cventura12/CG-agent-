@@ -395,11 +395,37 @@ export default function Home() {
 
           .fieldr-home__hero {
             padding: 72px 20px 56px;
+            min-height: auto;
           }
 
           .fieldr-home__cta-row {
             flex-direction: column;
             gap: 14px;
+          }
+
+          .fieldr-home__primary-cta,
+          .fieldr-home__secondary-cta {
+            width: min(100%, 280px);
+            justify-content: center;
+            text-align: center;
+          }
+
+          .fieldr-home__subhead {
+            font-size: 15px;
+          }
+
+          .fieldr-home__meta {
+            line-height: 1.8;
+          }
+
+          .fieldr-home__statusitem {
+            min-width: 160px;
+            padding: 0 14px;
+          }
+
+          .fieldr-home__section-labelrow {
+            flex-wrap: wrap;
+            gap: 10px;
           }
 
           .fieldr-home__problem-card {
@@ -419,7 +445,7 @@ export default function Home() {
             <p className="fieldr-home__eyebrow">Agentic operations &middot; Field contractors</p>
             <h1 className="fieldr-home__headline">The field never stops. Neither does Fieldr.</h1>
             <p className="fieldr-home__subhead">
-              Fieldr is an AI agent that watches your inbound - calls, texts, voice notes, documents - extracts what matters, and surfaces it before it costs you. No setup. No workflow change. Just coverage.
+              Fieldr captures calls, texts, voice notes, and uploads, extracts what changed, and routes it into review queue, draft quotes, and job history before it costs you. No new app for your crew. Just coverage.
             </p>
             <div className="fieldr-home__cta-row">
               <a href={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
