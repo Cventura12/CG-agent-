@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { AnimatedWords } from '../components/AnimatedWords'
 import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
@@ -38,7 +39,13 @@ export default function HowItWorks() {
 
       intro
         .from('[data-how-reveal="eyebrow"]', { y: 16, opacity: 0, duration: 0.34 })
-        .from('[data-how-reveal="headline"]', { y: 22, opacity: 0, duration: 0.58 }, '-=0.14')
+        .from('.fieldr-how__headline .fieldr-word__inner', {
+          yPercent: 110,
+          opacity: 0,
+          filter: 'blur(10px)',
+          duration: 0.68,
+          stagger: 0.04,
+        }, '-=0.08')
         .from('[data-how-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.42 }, '-=0.34')
 
       gsap.from('[data-how-step]', {
@@ -49,7 +56,8 @@ export default function HowItWorks() {
         },
         y: 24,
         opacity: 0,
-        duration: 0.46,
+        scale: 0.986,
+        duration: 0.5,
         stagger: 0.08,
         ease: 'power2.out',
       })
@@ -151,6 +159,7 @@ export default function HowItWorks() {
           padding: 48px 36px;
           border-right: 1px solid var(--rule);
           background: linear-gradient(180deg, rgba(23,21,18,0.88) 0%, rgba(18,16,14,0.82) 100%);
+          transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
         }
 
         .fieldr-how__step:last-child {
@@ -165,6 +174,12 @@ export default function HowItWorks() {
           width: 100%;
           height: 2px;
           background: linear-gradient(90deg, var(--sienna), rgba(212,103,63,0.18));
+        }
+
+        .fieldr-how__step:hover {
+          transform: translateY(-4px);
+          background: linear-gradient(180deg, rgba(28,26,23,0.94) 0%, rgba(20,18,16,0.9) 100%);
+          box-shadow: 0 24px 48px rgba(0,0,0,0.16);
         }
 
         .fieldr-how__step-number {
@@ -285,7 +300,12 @@ export default function HowItWorks() {
         <section className="fieldr-how__page-header">
           <div className="fieldr-how__inner">
             <p className="fieldr-how__eyebrow" data-how-reveal="eyebrow">How it works</p>
-            <h1 className="fieldr-how__headline" data-how-reveal="headline">How Fieldr keeps things from slipping through.</h1>
+            <AnimatedWords
+              as="h1"
+              className="fieldr-how__headline"
+              text="How Fieldr keeps things from slipping through."
+              data-how-reveal="headline"
+            />
             <p className="fieldr-how__subhead" data-how-reveal="subhead">
               Fieldr works in the background while your crew keeps working. It picks up what already comes in, pulls out what matters, and puts the next decision in front of you before it gets missed.
             </p>

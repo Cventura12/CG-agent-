@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { AnimatedWords } from '../components/AnimatedWords'
 import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
@@ -50,7 +51,13 @@ export default function Product() {
 
       intro
         .from('[data-product-reveal="eyebrow"]', { y: 18, opacity: 0, duration: 0.34 })
-        .from('[data-product-reveal="headline"]', { y: 24, opacity: 0, duration: 0.62 }, '-=0.14')
+        .from('.fieldr-product__headline .fieldr-word__inner', {
+          yPercent: 110,
+          opacity: 0,
+          filter: 'blur(10px)',
+          duration: 0.72,
+          stagger: 0.045,
+        }, '-=0.08')
         .from('[data-product-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.42 }, '-=0.34')
         .from('[data-product-reveal="proof"] > *', { y: 12, opacity: 0, duration: 0.3, stagger: 0.05 }, '-=0.22')
         .from('[data-product-reveal="cta"]', { y: 12, opacity: 0, duration: 0.3 }, '-=0.16')
@@ -65,7 +72,8 @@ export default function Product() {
         },
         y: 24,
         opacity: 0,
-        duration: 0.48,
+        scale: 0.986,
+        duration: 0.54,
         stagger: 0.08,
         ease: 'power2.out',
       })
@@ -184,6 +192,13 @@ export default function Product() {
           letter-spacing: 0.08em;
           text-transform: uppercase;
           color: var(--body);
+          transition: transform 180ms ease, border-color 180ms ease, color 180ms ease;
+        }
+
+        .fieldr-product__pill:hover {
+          transform: translateY(-1px);
+          border-color: rgba(212,103,63,0.28);
+          color: var(--bright);
         }
 
         .fieldr-product__demo,
@@ -222,6 +237,13 @@ export default function Product() {
           background: linear-gradient(180deg, rgba(28,26,23,0.94) 0%, rgba(16,15,13,0.98) 100%);
           box-shadow: 0 24px 64px rgba(0,0,0,0.28);
           backdrop-filter: blur(12px);
+          transition: transform 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+        }
+
+        .fieldr-product__hero-card:hover {
+          transform: translateY(-6px);
+          border-color: rgba(212,103,63,0.24);
+          box-shadow: 0 30px 72px rgba(0,0,0,0.32);
         }
 
         .fieldr-product__hero-card-head {
@@ -292,10 +314,16 @@ export default function Product() {
         .fieldr-product__summary-item {
           padding: 24px 22px 26px;
           border-right: 1px solid var(--rule);
+          transition: background 220ms ease, transform 220ms ease;
         }
 
         .fieldr-product__summary-item:last-child {
           border-right: 0;
+        }
+
+        .fieldr-product__summary-item:hover {
+          background: rgba(255,255,255,0.018);
+          transform: translateY(-4px);
         }
 
         .fieldr-product__summary-label {
@@ -400,9 +428,12 @@ export default function Product() {
               <p className="fieldr-product__eyebrow" data-product-reveal="eyebrow">
                 Product
               </p>
-              <h1 className="fieldr-product__headline" data-product-reveal="headline">
-                The tool that keeps the office on the current version of the job.
-              </h1>
+              <AnimatedWords
+                as="h1"
+                className="fieldr-product__headline"
+                text="The tool that keeps the office on the current version of the job."
+                data-product-reveal="headline"
+              />
               <p className="fieldr-product__subhead" data-product-reveal="subhead">
                 Fieldr keeps field updates, quote pressure, and follow-through in one place so the owner can see what changed and decide what goes out next.
               </p>

@@ -71,3 +71,19 @@ select {
   background: rgba(212,103,63,0.26);
   color: var(--bright);
 }
+
+.fieldr-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  margin-right: 0.18em;
+}
+
+.fieldr-word:last-child {
+  margin-right: 0;
+}
+
+.fieldr-word__inner {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}

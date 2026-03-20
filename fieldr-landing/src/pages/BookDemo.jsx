@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { gsap } from 'gsap'
+import { AnimatedWords } from '../components/AnimatedWords'
 import { BOOK_DEMO_FORM_ENDPOINT } from '../components/siteLinks'
 
 const biggestGapOptions = [
@@ -47,7 +48,13 @@ export default function BookDemo() {
       const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
 
       tl.from('[data-demo-reveal="eyebrow"]', { y: 16, opacity: 0, duration: 0.34 })
-        .from('[data-demo-reveal="headline"]', { y: 24, opacity: 0, duration: 0.58 }, '-=0.14')
+        .from('.fieldr-demo__headline .fieldr-word__inner', {
+          yPercent: 110,
+          opacity: 0,
+          filter: 'blur(10px)',
+          duration: 0.68,
+          stagger: 0.04,
+        }, '-=0.08')
         .from('[data-demo-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.42 }, '-=0.32')
         .from('.fieldr-demo__note', { y: 14, opacity: 0, duration: 0.32, stagger: 0.08 }, '-=0.18')
         .from('.fieldr-demo__form', { y: 24, opacity: 0, duration: 0.5 }, '-=0.34')
@@ -148,10 +155,16 @@ export default function BookDemo() {
         .fieldr-demo__note {
           padding: 16px 18px;
           border-top: 1px solid var(--rule);
+          transition: background 200ms ease, transform 200ms ease;
         }
 
         .fieldr-demo__note:first-child {
           border-top: 0;
+        }
+
+        .fieldr-demo__note:hover {
+          background: rgba(255,255,255,0.018);
+          transform: translateX(4px);
         }
 
         .fieldr-demo__note-kicker {
@@ -330,7 +343,12 @@ export default function BookDemo() {
         <div className="fieldr-demo__inner">
           <div>
             <p className="fieldr-demo__eyebrow" data-demo-reveal="eyebrow">Demo request &middot; Field operations</p>
-            <h1 className="fieldr-demo__headline" data-demo-reveal="headline">Show us the gap. We&apos;ll show you the loop.</h1>
+            <AnimatedWords
+              as="h1"
+              className="fieldr-demo__headline"
+              text="Show us the gap. We'll show you the loop."
+              data-demo-reveal="headline"
+            />
             <p className="fieldr-demo__subhead" data-demo-reveal="subhead">
               This is a focused product walkthrough, not a sales tour. We&apos;ll map your field-to-office gap, show the queue and quote path, and tell you plainly where Fieldr fits and where it does not yet.
             </p>

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { AnimatedWords } from '../components/AnimatedWords'
 import { BOOK_DEMO_HREF, APP_FLOW_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
@@ -88,7 +89,13 @@ export default function Home() {
 
       intro
         .from('[data-home-reveal="eyebrow"]', { y: 16, opacity: 0, duration: 0.34 })
-        .from('[data-home-reveal="headline"]', { y: 26, opacity: 0, duration: 0.66 }, '-=0.14')
+        .from('.fieldr-home__headline .fieldr-word__inner', {
+          yPercent: 110,
+          opacity: 0,
+          filter: 'blur(10px)',
+          duration: 0.72,
+          stagger: 0.045,
+        }, '-=0.08')
         .from('[data-home-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.44 }, '-=0.4')
         .from('[data-home-reveal="cta"] > *', { y: 12, opacity: 0, duration: 0.32, stagger: 0.08 }, '-=0.22')
         .from('[data-home-reveal="readout"]', { y: 10, opacity: 0, duration: 0.32 }, '-=0.18')
@@ -102,7 +109,9 @@ export default function Home() {
         },
         y: 26,
         opacity: 0,
-        duration: 0.52,
+        scale: 0.985,
+        filter: 'blur(8px)',
+        duration: 0.58,
         stagger: 0.08,
         ease: 'power2.out',
       })
@@ -127,7 +136,8 @@ export default function Home() {
         },
         y: 18,
         opacity: 0,
-        duration: 0.38,
+        scale: 0.992,
+        duration: 0.42,
         stagger: 0.1,
         ease: 'power2.out',
       })
@@ -152,7 +162,8 @@ export default function Home() {
         },
         x: 18,
         opacity: 0,
-        duration: 0.38,
+        scale: 0.992,
+        duration: 0.42,
         stagger: 0.1,
         ease: 'power2.out',
       })
@@ -382,6 +393,7 @@ export default function Home() {
           background: linear-gradient(180deg, rgba(24,22,19,0.96) 0%, rgba(18,16,14,0.98) 100%);
           padding: 32px 28px;
           box-shadow: 0 20px 42px rgba(0,0,0,0.14);
+          transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
         }
 
         .fieldr-home__problem-card.is-featured {
@@ -389,6 +401,16 @@ export default function Home() {
           border-color: var(--sienna-bd);
           box-shadow: 0 24px 54px rgba(0,0,0,0.22);
           transform: translateY(-10px);
+        }
+
+        .fieldr-home__problem-card:hover {
+          transform: translateY(-4px);
+          border-color: rgba(212,103,63,0.28);
+          box-shadow: 0 28px 56px rgba(0,0,0,0.22);
+        }
+
+        .fieldr-home__problem-card.is-featured:hover {
+          transform: translateY(-12px);
         }
 
         .fieldr-home__problem-number {
@@ -467,6 +489,7 @@ export default function Home() {
           align-items: start;
           padding: 18px 0;
           border-bottom: 1px solid var(--rule2);
+          transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
         }
 
         .fieldr-home__log-entry.is-featured {
@@ -476,6 +499,10 @@ export default function Home() {
           border-left: 2px solid var(--sienna);
           border-radius: 8px;
           background: rgba(184,83,46,0.08);
+        }
+
+        .fieldr-home__log-entry:hover {
+          transform: translateX(4px);
         }
 
         .fieldr-home__log-time {
@@ -552,6 +579,7 @@ export default function Home() {
           gap: 18px;
           padding: 18px 20px;
           border-top: 1px solid var(--rule2);
+          transition: background 200ms ease, transform 200ms ease;
         }
 
         .fieldr-home__example-row:first-child {
@@ -560,6 +588,11 @@ export default function Home() {
 
         .fieldr-home__example-row.is-fieldr {
           background: rgba(184,83,46,0.07);
+        }
+
+        .fieldr-home__example-row:hover {
+          background: rgba(255,255,255,0.018);
+          transform: translateX(4px);
         }
 
         .fieldr-home__example-kicker {
@@ -752,7 +785,12 @@ export default function Home() {
         <section className="fieldr-home__hero">
           <div className="fieldr-home__hero-inner">
             <p className="fieldr-home__eyebrow" data-home-reveal="eyebrow">Built for general contractors</p>
-            <h1 className="fieldr-home__headline" data-home-reveal="headline">The field never stops. Neither does Fieldr.</h1>
+            <AnimatedWords
+              as="h1"
+              className="fieldr-home__headline"
+              text="The field never stops. Neither does Fieldr."
+              data-home-reveal="headline"
+            />
             <p className="fieldr-home__subhead" data-home-reveal="subhead">
               Fieldr catches calls, texts, voice notes, and uploads from the field, spots what changed, and gets a draft ready before money slips through. No new app for your crew. No extra workflow. Just fewer things falling through the cracks.
             </p>
