@@ -206,12 +206,6 @@ export function Nav() {
             <NavLink to="/product" style={mobileLinkStyle} onClick={closeMobile}>
               Product
             </NavLink>
-            <SmartLink to={APP_FLOW_HREF} style={mobileLinkStyle} onClick={closeMobile}>
-              Agent
-            </SmartLink>
-            <SmartLink to={BOOK_DEMO_HREF} style={mobileLinkStyle} onClick={closeMobile}>
-              Book a Demo
-            </SmartLink>
           </nav>
         </div>
       ) : null}
@@ -247,14 +241,12 @@ export function Nav() {
         }
 
         .fieldr-nav-link:hover,
-        .fieldr-nav-link.is-active,
-        .fieldr-nav-app:hover {
+        .fieldr-nav-link.is-active {
           color: var(--bright) !important;
         }
 
         .fieldr-nav-link:hover::after,
-        .fieldr-nav-link.is-active::after,
-        .fieldr-nav-app:hover::after {
+        .fieldr-nav-link.is-active::after {
           opacity: 1;
           transform: scaleX(1);
         }
@@ -271,6 +263,12 @@ export function Nav() {
         }
 
         .fieldr-nav-agent {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 32px;
+          padding: 0 14px;
+          border-radius: 999px;
           position: relative;
           gap: 8px;
           border: 1px solid var(--rule2);
@@ -282,6 +280,8 @@ export function Nav() {
           text-transform: uppercase;
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.025), 0 10px 24px rgba(0,0,0,0.18);
           transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+          text-decoration: none;
+          white-space: nowrap;
         }
 
         .fieldr-nav-agent::before {
@@ -296,7 +296,7 @@ export function Nav() {
         }
 
         .fieldr-nav-agent::after {
-          content: '↗';
+          content: '?';
           font-size: 10px;
           line-height: 1;
           opacity: 0.78;
@@ -324,6 +324,7 @@ export function Nav() {
         .fieldr-nav-demo--mobile,
         .fieldr-nav-agent--mobile {
           min-height: 38px;
+          width: 100%;
           justify-content: center;
         }
 
@@ -362,6 +363,7 @@ export function Nav() {
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 10px;
             margin-bottom: 10px;
+            align-items: stretch;
           }
         }
 
