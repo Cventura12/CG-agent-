@@ -386,8 +386,10 @@ export default function Home() {
         .fieldr-home__problem-grid {
           display: grid;
           grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.1fr) minmax(0, 0.95fr);
-          gap: 20px;
+          gap: 0;
           align-items: stretch;
+          overflow: hidden;
+          border-radius: 10px;
         }
 
         .fieldr-home__problem-card {
@@ -397,6 +399,10 @@ export default function Home() {
           padding: 32px 28px;
           box-shadow: 0 20px 42px rgba(0,0,0,0.14);
           transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+        }
+
+        .fieldr-home__problem-card + .fieldr-home__problem-card {
+          border-left: 0;
         }
 
         .fieldr-home__problem-card.is-featured {
