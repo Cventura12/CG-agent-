@@ -293,6 +293,13 @@ export default function HowItWorks() {
             justify-content: center;
             text-align: center;
           }
+
+          .fieldr-how__cta-note {
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.8;
+          }
         }
       `}</style>
 

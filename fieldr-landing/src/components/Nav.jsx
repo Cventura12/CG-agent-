@@ -168,10 +168,10 @@ export function Nav() {
         </div>
 
         <div style={rightStyle} data-nav-reveal="actions">
-          <SmartLink to={APP_FLOW_HREF} style={agentButtonStyle} className="fieldr-nav-agent fieldr-nav-hide-mobile" onClick={closeMobile}>
+          <SmartLink to={APP_FLOW_HREF} style={agentButtonStyle} className="fieldr-nav-agent fieldr-nav-hide-mobile fieldr-nav-mobile-hide-action" onClick={closeMobile}>
             Agent
           </SmartLink>
-          <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle} className="fieldr-nav-demo">
+          <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle} className="fieldr-nav-demo fieldr-nav-mobile-hide-action">
             Book a Demo
           </SmartLink>
           <button
@@ -351,7 +351,11 @@ export function Nav() {
 
         @media (max-width: 900px) {
           .fieldr-nav-hide-mobile {
-            display: none;
+            display: none !important;
+          }
+
+          .fieldr-nav-mobile-hide-action {
+            display: none !important;
           }
 
           .fieldr-nav-mobile-trigger {
@@ -359,10 +363,10 @@ export function Nav() {
           }
 
           .fieldr-nav-mobile-actions {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            display: flex;
+            flex-direction: column;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             align-items: stretch;
           }
         }

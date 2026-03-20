@@ -743,6 +743,16 @@ export default function Home() {
             text-align: center;
           }
 
+          .fieldr-home__secondary-cta {
+            display: inline-flex;
+            align-items: center;
+            min-height: 42px;
+            border: 1px solid var(--rule2);
+            border-radius: 999px;
+            background: rgba(22,20,18,0.82);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+          }
+
           .fieldr-home__subhead {
             font-size: 15px;
           }
@@ -752,7 +762,10 @@ export default function Home() {
           }
 
           .fieldr-home__hero-readout {
+            width: min(100%, 320px);
             padding: 10px 12px;
+            row-gap: 8px;
+            line-height: 1.7;
           }
 
           .fieldr-home__section-labelrow {
@@ -789,6 +802,13 @@ export default function Home() {
 
           .fieldr-home__final-button {
             width: min(100%, 280px);
+          }
+
+          .fieldr-home__final-note {
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.8;
           }
         }
       `}</style>

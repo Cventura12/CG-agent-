@@ -418,6 +418,13 @@ export default function Product() {
           .fieldr-product__summary-wrap {
             padding-bottom: 72px;
           }
+
+          .fieldr-product__cta-note {
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.8;
+          }
         }
       `}</style>
 
