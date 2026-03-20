@@ -9,20 +9,20 @@ gsap.registerPlugin(ScrollTrigger)
 
 const ownerRows = [
   {
-    label: 'Catches field updates',
+    label: 'Finds the change',
     copy: 'Calls, texts, and uploads land in one review lane instead of getting buried across inboxes.',
   },
   {
-    label: 'Prepares the next move',
+    label: 'Prepares the decision',
     copy: 'When the work changes, the quote draft and follow-up are already lined up before the billing window closes.',
   },
   {
-    label: 'Keeps the job record current',
+    label: 'Keeps the record clean',
     copy: 'Approvals, notes, and pricing memory stay with the work so the owner is not relying on memory to close it out.',
   },
 ]
 
-const proofPills = ['Calls', 'Texts', 'Voice notes', 'Uploads']
+const proofPills = ['Capture', 'Review', 'Quote prep', 'Job record']
 
 const summaryBlocks = [
   {
@@ -435,7 +435,7 @@ export default function Product() {
                 data-product-reveal="headline"
               />
               <p className="fieldr-product__subhead" data-product-reveal="subhead">
-                Fieldr keeps field updates, quote pressure, and follow-through in one place so the owner can see what changed and decide what goes out next.
+                Fieldr is not another inbox. It keeps field updates, quote pressure, and follow-through in one place so the owner can see what changed and decide what goes out next.
               </p>
               <div className="fieldr-product__proof" data-product-reveal="proof">
                 {proofPills.map((pill) => (
@@ -456,7 +456,7 @@ export default function Product() {
                   The office can see what changed without chasing the thread.
                 </div>
                 <div className="fieldr-product__hero-card-copy">
-                  The agent keeps the office on the current version of the job. It catches the update, prepares the next move, and leaves a record behind.
+                  The agent keeps the office on the current version of the job. It finds the change, prepares the next move, and leaves a usable record behind.
                 </div>
               </div>
 

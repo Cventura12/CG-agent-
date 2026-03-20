@@ -15,18 +15,18 @@ const steps = [
   },
   {
     number: 'STEP 02',
-    title: 'Find what matters',
-    body: 'Fieldr reads it and pulls out what matters - scope changes, promised work, missing details, and price-related information.',
+    title: 'Understand',
+    body: 'Fieldr reads the update and isolates what matters: scope changes, promised work, missing details, and anything that affects price or follow-through.',
   },
   {
     number: 'STEP 03',
-    title: 'Put it in front of you',
-    body: 'The item shows up with the job, what changed, and what needs to happen next. You can approve it, edit it, or ignore it.',
+    title: 'Review',
+    body: 'The item shows up with the job, what changed, why it matters, and what should happen next. You can approve it, edit it, or ignore it.',
   },
   {
     number: 'STEP 04',
-    title: 'Finish the work',
-    body: 'Approved items become draft quotes, follow-ups, or saved job notes. Over time Fieldr learns how you price work, so the next job is faster.',
+    title: 'Write back',
+    body: 'Approved items become draft quotes, follow-ups, or saved job notes. The decision stays attached to the job, so the next move starts from the current truth.',
   },
 ]
 
@@ -307,7 +307,7 @@ export default function HowItWorks() {
               data-how-reveal="headline"
             />
             <p className="fieldr-how__subhead" data-how-reveal="subhead">
-              Fieldr works in the background while your crew keeps working. It picks up what already comes in, pulls out what matters, and puts the next decision in front of you before it gets missed.
+              Fieldr works in the background while your crew keeps working. It captures what already comes in, understands what changed, and puts the next decision in front of you before the job record drifts.
             </p>
           </div>
         </section>

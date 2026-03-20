@@ -10,17 +10,20 @@ gsap.registerPlugin(ScrollTrigger)
 const problemCards = [
   {
     number: '01',
+    kicker: 'Signal loss',
     title: 'Field updates get buried',
     body: 'A sub calls in a change. An owner texts a revision. By the time the office surfaces it, the job has moved on and the margin is already gone.',
   },
   {
     number: '02',
+    kicker: 'Billing gap',
     title: 'The extra work never gets billed',
     body: 'You know what changed on site. Getting that into a revised number before the window closes is where revenue disappears job after job.',
     featured: true,
   },
   {
     number: '03',
+    kicker: 'Record drift',
     title: 'What was promised gets forgotten',
     body: 'Quotes go quiet. Paperwork gets missed. Follow-through lives in memory until the wrong detail costs you money or credibility.',
   },
@@ -60,21 +63,21 @@ const agentLogEntries = [
   },
 ]
 
-const heroSignals = ['7 active jobs', '3 things need review', 'Last update 2m ago']
+const heroSignals = ['Capture live', '3 pending decisions', '1 quote delta flagged']
 
 const exampleRows = [
   {
-    label: 'Inbound',
+    label: 'Signal',
     title: 'A tech texts: "Need two extra outlets in conference room."',
     copy: 'Real field communication. Short, incomplete, and easy to ignore when the office is already moving.',
   },
   {
-    label: 'Usually',
+    label: 'Failure mode',
     title: 'It stays in messages and the quote never gets revised.',
     copy: 'The extra work gets done. Nobody updates the number. The revenue slips because the office catches it too late or not at all.',
   },
   {
-    label: 'Fieldr',
+    label: 'Fieldr action',
     title: 'The change gets caught. The new line item is prepared. It is ready for approval.',
     copy: 'The change stays tied to the job and shows up for review before the billing window closes.',
   },
@@ -422,8 +425,17 @@ export default function Home() {
           opacity: 0.28;
         }
 
-        .fieldr-home__problem-title {
+        .fieldr-home__problem-kicker {
           margin-top: 16px;
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--sienna-lt);
+        }
+
+        .fieldr-home__problem-title {
+          margin-top: 10px;
           font-size: 15px;
           font-weight: 500;
           color: var(--bright);
@@ -792,7 +804,7 @@ export default function Home() {
               data-home-reveal="headline"
             />
             <p className="fieldr-home__subhead" data-home-reveal="subhead">
-              Fieldr catches calls, texts, voice notes, and uploads from the field, spots what changed, and gets a draft ready before money slips through. No new app for your crew. No extra workflow. Just fewer things falling through the cracks.
+              Fieldr reads calls, texts, voice notes, and uploads as operating signal. It detects what changed, prepares the next decision, and gets a draft ready before revenue slips through. No new app for your crew. No extra workflow.
             </p>
             <div className="fieldr-home__cta-row" data-home-reveal="cta">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
@@ -825,6 +837,7 @@ export default function Home() {
               {problemCards.map((card) => (
                 <article key={card.number} className={`fieldr-home__problem-card${card.featured ? ' is-featured' : ''}`} data-home-card>
                   <div className="fieldr-home__problem-number">{card.number}</div>
+                  <div className="fieldr-home__problem-kicker">{card.kicker}</div>
                   <div className="fieldr-home__problem-title">{card.title}</div>
                   <div className="fieldr-home__problem-body">{card.body}</div>
                 </article>
@@ -842,7 +855,7 @@ export default function Home() {
               </div>
               <h2 className="fieldr-home__log-headline">What Fieldr caught while you were on site.</h2>
               <p className="fieldr-home__log-copy">
-                While you are on site, Fieldr catches the update, pulls out what changed, and puts the next step in front of the office before the trail goes cold.
+                While you are on site, Fieldr converts field chatter into decisions. It catches the update, isolates what changed, and puts the next move in front of the office before the trail goes cold.
               </p>
             </div>
 
@@ -870,12 +883,12 @@ export default function Home() {
               </div>
               <h2 className="fieldr-home__example-headline">The extra work gets done. The billing never catches up.</h2>
               <p className="fieldr-home__example-body">
-                A contractor does not lose margin because they cannot estimate. They lose it because the field changes faster than the office can catch up. Fieldr closes that gap before the revised work disappears into texts, calls, and memory.
+                A contractor does not lose margin because they cannot estimate. They lose it because the field changes faster than the office can keep the record current. Fieldr closes that gap before the revised work disappears into texts, calls, and memory.
               </p>
               <div className="fieldr-home__example-foot">
-                <span className="fieldr-home__example-chip">Draft quote</span>
-                <span className="fieldr-home__example-chip">Needs approval</span>
-                <span className="fieldr-home__example-chip">Saved to job file</span>
+                <span className="fieldr-home__example-chip">Quote delta prepared</span>
+                <span className="fieldr-home__example-chip">Approval required</span>
+                <span className="fieldr-home__example-chip">Written to job record</span>
               </div>
             </div>
 
