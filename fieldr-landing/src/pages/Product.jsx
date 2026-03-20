@@ -37,7 +37,7 @@ export default function Product() {
         .from('.fieldr-product__hero-card', { y: 24, opacity: 0, duration: 0.56 }, '-=0.44')
         .from('.fieldr-product__hero-card-row', { y: 10, opacity: 0, duration: 0.34, stagger: 0.06 }, '-=0.28')
         .from('.fieldr-product__frame', { y: 34, opacity: 0, scale: 0.988, duration: 0.7 }, '-=0.26')
-        .from('.fieldr-product__frame-meta', { y: 12, opacity: 0, duration: 0.36 }, '-=0.34')
+        .from('.fieldr-product__frame-intro', { y: 12, opacity: 0, duration: 0.36 }, '-=0.34')
     }, rootRef)
 
     return () => ctx.revert()
@@ -479,7 +479,7 @@ export default function Product() {
         </section>
 
         <section className="fieldr-product__frame-wrap">
-          <div className="fieldr-product__frame-intro fieldr-product__frame-meta">
+          <div className="fieldr-product__frame-intro">
             <div>
               <div className="fieldr-product__frame-kicker">Actual agent view</div>
               <div className="fieldr-product__frame-title">
@@ -499,19 +499,6 @@ export default function Product() {
               <div className="fieldr-product__urlbar">app.fieldr.io</div>
               <div />
             </div>
-
-            <div className="fieldr-product__frame-meta">
-              <div>
-                <div className="fieldr-product__frame-kicker">Actual workspace shown</div>
-                <div className="fieldr-product__frame-title">Today view with queue pressure, quote activity, and live agent work.</div>
-                <div className="fieldr-product__frame-copy">
-                  This is the office surface. The field sends the update. The agent catches it, puts it in front of the GC,
-                  and keeps the job record moving.
-                </div>
-              </div>
-              <div className="fieldr-product__drag-note">Drag to inspect on phone</div>
-            </div>
-
             <div className="fieldr-product__screen">
               <div className="fieldr-product__screen-badges" aria-hidden="true">
                 <div className="fieldr-product__screen-badge">Today view</div>
