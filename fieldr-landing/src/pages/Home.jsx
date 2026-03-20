@@ -856,7 +856,6 @@ export default function Home() {
             <div className="fieldr-home__problem-grid">
               {problemCards.map((card) => (
                 <article key={card.number} className={`fieldr-home__problem-card${card.featured ? ' is-featured' : ''}`} data-home-card>
-                  <div className="fieldr-home__problem-number">{card.number}</div>
                   <div className="fieldr-home__problem-kicker">{card.kicker}</div>
                   <div className="fieldr-home__problem-title">{card.title}</div>
                   <div className="fieldr-home__problem-body">{card.body}</div>
