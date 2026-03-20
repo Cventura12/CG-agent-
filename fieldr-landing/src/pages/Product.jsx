@@ -497,7 +497,6 @@ export default function Product() {
             <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button" data-product-cta>
               Book a Demo
             </SmartLink>
-            <div className="fieldr-product__cta-note" data-product-cta>20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
       </main>
