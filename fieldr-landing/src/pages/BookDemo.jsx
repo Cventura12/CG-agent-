@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { gsap } from 'gsap'
 import { BOOK_DEMO_FORM_ENDPOINT } from '../components/siteLinks'
 
 const biggestGapOptions = [
@@ -36,9 +37,24 @@ export default function BookDemo() {
   })
   const [submitState, setSubmitState] = useState('idle')
   const [errorText, setErrorText] = useState('')
+  const rootRef = useRef(null)
 
   const hasEndpoint = Boolean(BOOK_DEMO_FORM_ENDPOINT)
   const canSubmit = useMemo(() => values.name.trim() && values.company.trim() && values.email.trim(), [values])
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
+
+      tl.from('[data-demo-reveal="eyebrow"]', { y: 16, opacity: 0, duration: 0.34 })
+        .from('[data-demo-reveal="headline"]', { y: 24, opacity: 0, duration: 0.58 }, '-=0.14')
+        .from('[data-demo-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.42 }, '-=0.32')
+        .from('.fieldr-demo__note', { y: 14, opacity: 0, duration: 0.32, stagger: 0.08 }, '-=0.18')
+        .from('.fieldr-demo__form', { y: 24, opacity: 0, duration: 0.5 }, '-=0.34')
+    }, rootRef)
+
+    return () => ctx.revert()
+  }, [])
 
   const handleChange = (field) => (event) => {
     setValues((current) => ({ ...current, [field]: event.target.value }))
@@ -117,15 +133,16 @@ export default function BookDemo() {
           font-size: 15px;
           line-height: 1.75;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
         .fieldr-demo__notes {
           margin-top: 28px;
           border: 1px solid var(--rule);
           border-radius: 8px;
-          background: var(--surface);
+          background: linear-gradient(180deg, rgba(24,22,19,0.94) 0%, rgba(17,16,14,0.98) 100%);
           overflow: hidden;
+          box-shadow: 0 20px 48px rgba(0,0,0,0.2);
         }
 
         .fieldr-demo__note {
@@ -157,13 +174,13 @@ export default function BookDemo() {
           font-size: 12px;
           line-height: 1.7;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
         .fieldr-demo__form {
           border: 1px solid var(--rule2);
           border-radius: 10px;
-          background: var(--surface);
+          background: linear-gradient(180deg, rgba(24,22,19,0.96) 0%, rgba(17,16,14,0.98) 100%);
           padding: 24px;
           box-shadow: 0 24px 60px rgba(0,0,0,0.35);
         }
@@ -197,11 +214,12 @@ export default function BookDemo() {
           width: 100%;
           border: 1px solid var(--rule2);
           border-radius: 6px;
-          background: var(--surface2);
+          background: rgba(31,29,25,0.82);
           color: var(--bright);
           font-family: var(--sans);
           font-size: 14px;
           outline: none;
+          transition: border-color 180ms ease, box-shadow 180ms ease;
         }
 
         .fieldr-demo__input,
@@ -226,6 +244,7 @@ export default function BookDemo() {
         .fieldr-demo__select:focus,
         .fieldr-demo__textarea:focus {
           border-color: var(--sienna-bd);
+          box-shadow: 0 0 0 4px rgba(184,83,46,0.08);
         }
 
         .fieldr-demo__actions {
@@ -243,7 +262,7 @@ export default function BookDemo() {
           border: 0;
           border-radius: 5px;
           padding: 13px 28px;
-          background: var(--sienna);
+          background: linear-gradient(135deg, var(--sienna), var(--sienna-lt));
           color: var(--bright);
           font-family: var(--sans);
           font-size: 14px;
@@ -251,6 +270,13 @@ export default function BookDemo() {
           line-height: 1;
           text-decoration: none;
           cursor: pointer;
+          box-shadow: 0 16px 36px rgba(184,83,46,0.18);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+
+        .fieldr-demo__submit:hover:not([disabled]) {
+          transform: translateY(-1px);
+          box-shadow: 0 20px 42px rgba(184,83,46,0.24);
         }
 
         .fieldr-demo__submit[disabled] {
@@ -300,12 +326,12 @@ export default function BookDemo() {
         }
       `}</style>
 
-      <main className="fieldr-demo" aria-label="Book a Fieldr demo">
+      <main ref={rootRef} className="fieldr-demo" aria-label="Book a Fieldr demo">
         <div className="fieldr-demo__inner">
           <div>
-            <p className="fieldr-demo__eyebrow">Demo request &middot; Field operations</p>
-            <h1 className="fieldr-demo__headline">Show us the gap. We&apos;ll show you the loop.</h1>
-            <p className="fieldr-demo__subhead">
+            <p className="fieldr-demo__eyebrow" data-demo-reveal="eyebrow">Demo request &middot; Field operations</p>
+            <h1 className="fieldr-demo__headline" data-demo-reveal="headline">Show us the gap. We&apos;ll show you the loop.</h1>
+            <p className="fieldr-demo__subhead" data-demo-reveal="subhead">
               This is a focused product walkthrough, not a sales tour. We&apos;ll map your field-to-office gap, show the queue and quote path, and tell you plainly where Fieldr fits and where it does not yet.
             </p>
 

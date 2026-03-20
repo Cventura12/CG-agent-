@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { gsap } from 'gsap'
 import { APP_FLOW_HREF, BOOK_DEMO_HREF } from './siteLinks'
 import { SmartLink } from './SmartLink'
 
@@ -9,8 +10,8 @@ const navStyle = {
   zIndex: 1000,
   height: '56px',
   borderBottom: '1px solid var(--rule)',
-  backdropFilter: 'blur(12px)',
-  background: 'rgba(13,12,10,0.92)',
+  backdropFilter: 'blur(14px)',
+  background: 'rgba(13,12,10,0.72)',
 }
 
 const innerStyle = {
@@ -53,12 +54,6 @@ const navLinkBaseStyle = {
   letterSpacing: '0.12em',
   textTransform: 'uppercase',
   textDecoration: 'none',
-  color: 'var(--muted)',
-  transition: 'color 160ms ease',
-}
-
-const navLinkActiveStyle = {
-  color: 'var(--bright)',
 }
 
 const rightStyle = {
@@ -66,15 +61,6 @@ const rightStyle = {
   alignItems: 'center',
   gap: '14px',
   flexShrink: 0,
-}
-
-const appLinkStyle = {
-  fontFamily: 'var(--mono)',
-  fontSize: '9px',
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  textDecoration: 'none',
-  color: 'var(--dim)',
 }
 
 const buttonStyle = {
@@ -104,7 +90,7 @@ const mobileMenuButtonStyle = {
   padding: 0,
   border: '1px solid var(--rule2)',
   borderRadius: '5px',
-  background: 'var(--surface)',
+  background: 'rgba(22,20,18,0.9)',
   color: 'var(--bright)',
   cursor: 'pointer',
 }
@@ -112,7 +98,7 @@ const mobileMenuButtonStyle = {
 const mobilePanelStyle = {
   borderTop: '1px solid var(--rule)',
   borderBottom: '1px solid var(--rule)',
-  background: 'rgba(13,12,10,0.98)',
+  background: 'rgba(13,12,10,0.96)',
   padding: '12px 20px 16px',
 }
 
@@ -134,41 +120,48 @@ const mobileLinkStyle = {
 
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const rootRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
+
+      tl.from('[data-nav-reveal="wordmark"]', { y: -10, opacity: 0, duration: 0.36 })
+        .from('[data-nav-reveal="primary"] > *', { y: -10, opacity: 0, duration: 0.28, stagger: 0.05 }, '-=0.2')
+        .from('[data-nav-reveal="actions"] > *', { y: -10, opacity: 0, duration: 0.28, stagger: 0.06 }, '-=0.18')
+    }, rootRef)
+
+    return () => ctx.revert()
+  }, [])
 
   const closeMobile = () => setMobileOpen(false)
 
   return (
-    <header style={navStyle}>
+    <header ref={rootRef} style={navStyle}>
       <div style={innerStyle}>
         <div style={leftStyle}>
-          <NavLink to="/" style={wordmarkStyle} onClick={closeMobile}>
+          <NavLink to="/" style={wordmarkStyle} onClick={closeMobile} data-nav-reveal="wordmark" className="fieldr-nav-wordmark">
             Fieldr
           </NavLink>
 
-          <nav aria-label="Primary" style={navLinksStyle} className="fieldr-nav-hide-mobile">
-            <NavLink to="/" end style={({ isActive }) => (isActive ? { ...navLinkBaseStyle, ...navLinkActiveStyle } : navLinkBaseStyle)}>
+          <nav aria-label="Primary" style={navLinksStyle} className="fieldr-nav-hide-mobile" data-nav-reveal="primary">
+            <NavLink to="/" end style={navLinkBaseStyle} className={({ isActive }) => `fieldr-nav-link${isActive ? ' is-active' : ''}`}>
               Home
             </NavLink>
-            <NavLink
-              to="/how-it-works"
-              style={({ isActive }) => (isActive ? { ...navLinkBaseStyle, ...navLinkActiveStyle } : navLinkBaseStyle)}
-            >
+            <NavLink to="/how-it-works" style={navLinkBaseStyle} className={({ isActive }) => `fieldr-nav-link${isActive ? ' is-active' : ''}`}>
               How It Works
             </NavLink>
-            <NavLink
-              to="/product"
-              style={({ isActive }) => (isActive ? { ...navLinkBaseStyle, ...navLinkActiveStyle } : navLinkBaseStyle)}
-            >
+            <NavLink to="/product" style={navLinkBaseStyle} className={({ isActive }) => `fieldr-nav-link${isActive ? ' is-active' : ''}`}>
               Product
             </NavLink>
           </nav>
         </div>
 
-        <div style={rightStyle}>
-          <SmartLink to={APP_FLOW_HREF} style={appLinkStyle} className="fieldr-nav-hide-mobile" onClick={closeMobile}>
+        <div style={rightStyle} data-nav-reveal="actions">
+          <SmartLink to={APP_FLOW_HREF} className="fieldr-nav-link fieldr-nav-app fieldr-nav-hide-mobile" onClick={closeMobile}>
             Agent
           </SmartLink>
-          <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle}>
+          <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle} className="fieldr-nav-demo">
             Book a Demo
           </SmartLink>
           <button
@@ -205,6 +198,59 @@ export function Nav() {
         </div>
       ) : null}
       <style>{`
+        .fieldr-nav-wordmark {
+          position: relative;
+          transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .fieldr-nav-wordmark:hover {
+          opacity: 0.92;
+          transform: translateY(-1px);
+        }
+
+        .fieldr-nav-link {
+          position: relative;
+          color: var(--muted);
+          transition: color 160ms ease;
+        }
+
+        .fieldr-nav-link::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -8px;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--sienna-lt), transparent);
+          opacity: 0;
+          transform: scaleX(0.5);
+          transition: transform 180ms ease, opacity 180ms ease;
+        }
+
+        .fieldr-nav-link:hover,
+        .fieldr-nav-link.is-active,
+        .fieldr-nav-app:hover {
+          color: var(--bright) !important;
+        }
+
+        .fieldr-nav-link:hover::after,
+        .fieldr-nav-link.is-active::after,
+        .fieldr-nav-app:hover::after {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+
+        .fieldr-nav-demo {
+          box-shadow: 0 10px 26px rgba(184,83,46,0.18);
+          transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+        }
+
+        .fieldr-nav-demo:hover {
+          background: var(--sienna-lt) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 14px 30px rgba(184,83,46,0.24);
+        }
+
         @media (max-width: 760px) {
           .fieldr-nav-hide-mobile {
             display: none;

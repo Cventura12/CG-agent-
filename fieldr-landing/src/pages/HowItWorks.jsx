@@ -1,5 +1,10 @@
+import { useLayoutEffect, useRef } from 'react'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const steps = [
   {
@@ -25,6 +30,47 @@ const steps = [
 ]
 
 export default function HowItWorks() {
+  const rootRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const intro = gsap.timeline({ defaults: { ease: 'power2.out' } })
+
+      intro
+        .from('[data-how-reveal="eyebrow"]', { y: 16, opacity: 0, duration: 0.34 })
+        .from('[data-how-reveal="headline"]', { y: 22, opacity: 0, duration: 0.58 }, '-=0.14')
+        .from('[data-how-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.42 }, '-=0.34')
+
+      gsap.from('[data-how-step]', {
+        scrollTrigger: {
+          trigger: '.fieldr-how__steps-grid',
+          start: 'top 82%',
+          once: true,
+        },
+        y: 24,
+        opacity: 0,
+        duration: 0.46,
+        stagger: 0.08,
+        ease: 'power2.out',
+      })
+
+      gsap.from('[data-how-cta]', {
+        scrollTrigger: {
+          trigger: '.fieldr-how__cta',
+          start: 'top 86%',
+          once: true,
+        },
+        y: 24,
+        opacity: 0,
+        duration: 0.44,
+        stagger: 0.08,
+        ease: 'power2.out',
+      })
+    }, rootRef)
+
+    return () => ctx.revert()
+  }, [])
+
   return (
     <>
       <style>{`
@@ -34,11 +80,25 @@ export default function HowItWorks() {
         }
 
         .fieldr-how__page-header {
-          padding: 120px 40px 60px;
+          position: relative;
+          padding: 120px 40px 64px;
           border-bottom: 1px solid var(--rule);
+          overflow: hidden;
+        }
+
+        .fieldr-how__page-header::before {
+          content: '';
+          position: absolute;
+          inset: -8% auto auto -8%;
+          width: 44%;
+          height: 320px;
+          background: radial-gradient(circle at center, rgba(184,83,46,0.08), transparent 68%);
+          pointer-events: none;
         }
 
         .fieldr-how__inner {
+          position: relative;
+          z-index: 1;
           max-width: 1240px;
           margin: 0 auto;
         }
@@ -54,35 +114,43 @@ export default function HowItWorks() {
 
         .fieldr-how__headline {
           margin: 14px 0 0;
+          max-width: 820px;
           font-family: var(--serif);
           font-size: clamp(40px, 6vw, 54px);
           line-height: 1.06;
           letter-spacing: -1px;
           color: var(--bright);
+          text-wrap: balance;
         }
 
         .fieldr-how__subhead {
           margin: 16px 0 0;
-          max-width: 480px;
+          max-width: 520px;
           font-size: 16px;
           line-height: 1.7;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
         .fieldr-how__steps {
+          padding: 0 40px;
           border-bottom: 1px solid var(--rule);
         }
 
         .fieldr-how__steps-grid {
+          max-width: 1240px;
+          margin: 0 auto;
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
+          border-left: 1px solid var(--rule);
+          border-right: 1px solid var(--rule);
         }
 
         .fieldr-how__step {
           position: relative;
           padding: 48px 36px;
           border-right: 1px solid var(--rule);
+          background: linear-gradient(180deg, rgba(23,21,18,0.88) 0%, rgba(18,16,14,0.82) 100%);
         }
 
         .fieldr-how__step:last-child {
@@ -96,7 +164,7 @@ export default function HowItWorks() {
           top: 0;
           width: 100%;
           height: 2px;
-          background: var(--sienna);
+          background: linear-gradient(90deg, var(--sienna), rgba(212,103,63,0.18));
         }
 
         .fieldr-how__step-number {
@@ -121,7 +189,7 @@ export default function HowItWorks() {
           font-size: 13px;
           line-height: 1.7;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
         .fieldr-how__cta {
@@ -147,7 +215,7 @@ export default function HowItWorks() {
           border: 0;
           border-radius: 5px;
           padding: 13px 28px;
-          background: var(--sienna);
+          background: linear-gradient(135deg, var(--sienna), var(--sienna-lt));
           color: var(--bright);
           font-family: var(--sans);
           font-size: 14px;
@@ -155,6 +223,13 @@ export default function HowItWorks() {
           line-height: 1;
           cursor: pointer;
           text-decoration: none;
+          box-shadow: 0 16px 36px rgba(184,83,46,0.18);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+
+        .fieldr-how__cta-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 20px 42px rgba(184,83,46,0.24);
         }
 
         .fieldr-how__cta-note {
@@ -183,6 +258,7 @@ export default function HowItWorks() {
 
         @media (max-width: 640px) {
           .fieldr-how__page-header,
+          .fieldr-how__steps,
           .fieldr-how__cta {
             padding-left: 20px;
             padding-right: 20px;
@@ -205,12 +281,12 @@ export default function HowItWorks() {
         }
       `}</style>
 
-      <main className="fieldr-how" aria-label="Fieldr how it works page">
+      <main ref={rootRef} className="fieldr-how" aria-label="Fieldr how it works page">
         <section className="fieldr-how__page-header">
           <div className="fieldr-how__inner">
-            <p className="fieldr-how__eyebrow">How it works</p>
-            <h1 className="fieldr-how__headline">How Fieldr keeps things from slipping through.</h1>
-            <p className="fieldr-how__subhead">
+            <p className="fieldr-how__eyebrow" data-how-reveal="eyebrow">How it works</p>
+            <h1 className="fieldr-how__headline" data-how-reveal="headline">How Fieldr keeps things from slipping through.</h1>
+            <p className="fieldr-how__subhead" data-how-reveal="subhead">
               Fieldr works in the background while your crew keeps working. It picks up what already comes in, pulls out what matters, and puts the next decision in front of you before it gets missed.
             </p>
           </div>
@@ -219,7 +295,7 @@ export default function HowItWorks() {
         <section className="fieldr-how__steps">
           <div className="fieldr-how__steps-grid">
             {steps.map((step) => (
-              <article key={step.number} className="fieldr-how__step">
+              <article key={step.number} className="fieldr-how__step" data-how-step>
                 <div className="fieldr-how__step-number">{step.number}</div>
                 <div className="fieldr-how__step-title">{step.title}</div>
                 <div className="fieldr-how__step-body">{step.body}</div>
@@ -230,11 +306,11 @@ export default function HowItWorks() {
 
         <section className="fieldr-how__cta">
           <div className="fieldr-how__inner">
-            <h2 className="fieldr-how__cta-title">Ready to see it on your jobs?</h2>
-            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-how__cta-button">
+            <h2 className="fieldr-how__cta-title" data-how-cta>Ready to see it on your jobs?</h2>
+            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-how__cta-button" data-how-cta>
               Book a Demo
             </SmartLink>
-            <div className="fieldr-how__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
+            <div className="fieldr-how__cta-note" data-how-cta>20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
       </main>

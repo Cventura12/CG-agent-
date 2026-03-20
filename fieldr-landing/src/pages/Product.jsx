@@ -1,7 +1,10 @@
-﻿import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const ownerRows = [
   {
@@ -20,23 +23,65 @@ const ownerRows = [
 
 const proofPills = ['Calls', 'Texts', 'Voice notes', 'Uploads']
 
+const summaryBlocks = [
+  {
+    label: 'Queue',
+    title: 'The office sees what needs review first.',
+    copy: 'New scope, stalled follow-ups, and unanswered customer pressure show up in one place instead of getting lost in messages.',
+  },
+  {
+    label: 'Quotes',
+    title: 'Changes are prepared before they go unbilled.',
+    copy: 'When the job changes, the draft number and next action are already lined up so the window does not close first.',
+  },
+  {
+    label: 'Job history',
+    title: 'Every approval leaves a clean trail behind.',
+    copy: 'Follow-through, pricing decisions, and job context stay with the work so the owner is not managing it from memory.',
+  },
+]
+
 export default function Product() {
   const rootRef = useRef(null)
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      const timeline = gsap.timeline({ defaults: { ease: 'power2.out' } })
+      const intro = gsap.timeline({ defaults: { ease: 'power2.out' } })
 
-      timeline
-        .from('[data-product-reveal="eyebrow"]', { y: 18, opacity: 0, duration: 0.42 })
-        .from('[data-product-reveal="headline"]', { y: 26, opacity: 0, duration: 0.68 }, '-=0.16')
-        .from('[data-product-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.48 }, '-=0.4')
-        .from('[data-product-reveal="proof"]', { y: 14, opacity: 0, duration: 0.38 }, '-=0.26')
-        .from('[data-product-reveal="cta"]', { y: 14, opacity: 0, duration: 0.38 }, '-=0.24')
-        .from('.fieldr-product__hero-card', { y: 24, opacity: 0, duration: 0.54 }, '-=0.42')
-        .from('.fieldr-product__hero-card-row', { y: 10, opacity: 0, duration: 0.32, stagger: 0.06 }, '-=0.26')
-        .from('.fieldr-product__summary', { y: 18, opacity: 0, duration: 0.44 }, '-=0.18')
-        .from('.fieldr-product__summary-item', { y: 10, opacity: 0, duration: 0.28, stagger: 0.06 }, '-=0.2')
+      intro
+        .from('[data-product-reveal="eyebrow"]', { y: 18, opacity: 0, duration: 0.34 })
+        .from('[data-product-reveal="headline"]', { y: 24, opacity: 0, duration: 0.62 }, '-=0.14')
+        .from('[data-product-reveal="subhead"]', { y: 18, opacity: 0, duration: 0.42 }, '-=0.34')
+        .from('[data-product-reveal="proof"] > *', { y: 12, opacity: 0, duration: 0.3, stagger: 0.05 }, '-=0.22')
+        .from('[data-product-reveal="cta"]', { y: 12, opacity: 0, duration: 0.3 }, '-=0.16')
+        .from('.fieldr-product__hero-card', { y: 24, opacity: 0, duration: 0.52 }, '-=0.34')
+        .from('.fieldr-product__hero-card-row', { y: 12, opacity: 0, duration: 0.32, stagger: 0.06 }, '-=0.22')
+
+      gsap.from('[data-product-summary]', {
+        scrollTrigger: {
+          trigger: '.fieldr-product__summary',
+          start: 'top 84%',
+          once: true,
+        },
+        y: 24,
+        opacity: 0,
+        duration: 0.48,
+        stagger: 0.08,
+        ease: 'power2.out',
+      })
+
+      gsap.from('[data-product-cta]', {
+        scrollTrigger: {
+          trigger: '.fieldr-product__cta',
+          start: 'top 86%',
+          once: true,
+        },
+        y: 24,
+        opacity: 0,
+        duration: 0.44,
+        stagger: 0.08,
+        ease: 'power2.out',
+      })
     }, rootRef)
 
     return () => ctx.revert()
@@ -53,28 +98,39 @@ export default function Product() {
         .fieldr-product__header {
           position: relative;
           overflow: hidden;
-          padding: 100px 40px 72px;
+          padding: 108px 40px 72px;
           border-bottom: 1px solid var(--rule);
         }
 
         .fieldr-product__header::before {
           content: '';
           position: absolute;
-          inset: -12% auto auto 0;
-          width: 56%;
+          inset: -14% auto auto -6%;
+          width: 52%;
           height: 420px;
-          background: radial-gradient(circle at 24% 28%, rgba(184,83,46,0.14), transparent 64%);
+          background: radial-gradient(circle at 28% 32%, rgba(184,83,46,0.14), transparent 64%);
+          pointer-events: none;
+        }
+
+        .fieldr-product__header::after {
+          content: '';
+          position: absolute;
+          right: -8%;
+          bottom: 10%;
+          width: 32%;
+          height: 240px;
+          background: radial-gradient(circle at center, rgba(90,148,105,0.08), transparent 70%);
           pointer-events: none;
         }
 
         .fieldr-product__inner {
+          position: relative;
+          z-index: 1;
           max-width: 1180px;
           margin: 0 auto;
         }
 
         .fieldr-product__header-grid {
-          position: relative;
-          z-index: 1;
           display: grid;
           grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.72fr);
           gap: 40px;
@@ -98,11 +154,12 @@ export default function Product() {
           line-height: 1.04;
           letter-spacing: -1px;
           color: var(--bright);
+          text-wrap: balance;
         }
 
         .fieldr-product__subhead {
           margin: 16px 0 0;
-          max-width: 500px;
+          max-width: 520px;
           font-size: 16px;
           line-height: 1.7;
           font-weight: 300;
@@ -120,7 +177,8 @@ export default function Product() {
           border: 1px solid var(--rule2);
           border-radius: 999px;
           padding: 7px 11px;
-          background: var(--surface);
+          background: rgba(22,20,18,0.82);
+          backdrop-filter: blur(8px);
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.08em;
@@ -136,13 +194,21 @@ export default function Product() {
           border: 0;
           border-radius: 5px;
           padding: 13px 28px;
-          background: var(--sienna);
+          background: linear-gradient(135deg, var(--sienna), var(--sienna-lt));
           color: var(--bright);
           font-family: var(--sans);
           font-size: 14px;
           font-weight: 500;
           line-height: 1;
           text-decoration: none;
+          box-shadow: 0 16px 36px rgba(184,83,46,0.18);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+
+        .fieldr-product__demo:hover,
+        .fieldr-product__cta-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 20px 42px rgba(184,83,46,0.24);
         }
 
         .fieldr-product__demo {
@@ -153,8 +219,9 @@ export default function Product() {
           border: 1px solid var(--rule2);
           border-radius: 14px;
           overflow: hidden;
-          background: linear-gradient(180deg, rgba(28,26,23,0.96) 0%, rgba(16,15,13,0.98) 100%);
+          background: linear-gradient(180deg, rgba(28,26,23,0.94) 0%, rgba(16,15,13,0.98) 100%);
           box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+          backdrop-filter: blur(12px);
         }
 
         .fieldr-product__hero-card-head {
@@ -218,12 +285,12 @@ export default function Product() {
           border: 1px solid var(--rule);
           border-radius: 16px;
           overflow: hidden;
-          background: linear-gradient(180deg, rgba(24,22,19,0.98) 0%, rgba(17,15,13,0.98) 100%);
+          background: linear-gradient(180deg, rgba(24,22,19,0.96) 0%, rgba(16,15,13,0.98) 100%);
           box-shadow: 0 26px 70px rgba(0,0,0,0.24);
         }
 
         .fieldr-product__summary-item {
-          padding: 22px 22px 24px;
+          padding: 24px 22px 26px;
           border-right: 1px solid var(--rule);
         }
 
@@ -337,8 +404,7 @@ export default function Product() {
                 The tool that keeps the office on the current version of the job.
               </h1>
               <p className="fieldr-product__subhead" data-product-reveal="subhead">
-                Fieldr keeps field updates, quote pressure, and follow-through in one place so the owner can see what
-                changed and decide what goes out next.
+                Fieldr keeps field updates, quote pressure, and follow-through in one place so the owner can see what changed and decide what goes out next.
               </p>
               <div className="fieldr-product__proof" data-product-reveal="proof">
                 {proofPills.map((pill) => (
@@ -359,8 +425,7 @@ export default function Product() {
                   The office can see what changed without chasing the thread.
                 </div>
                 <div className="fieldr-product__hero-card-copy">
-                  The agent keeps the office on the current version of the job. It catches the update, prepares the next
-                  move, and leaves a record behind.
+                  The agent keeps the office on the current version of the job. It catches the update, prepares the next move, and leaves a record behind.
                 </div>
               </div>
 
@@ -377,41 +442,24 @@ export default function Product() {
         <section className="fieldr-product__summary-wrap">
           <div className="fieldr-product__inner">
             <div className="fieldr-product__summary">
-              <div className="fieldr-product__summary-item">
-                <div className="fieldr-product__summary-label">Queue</div>
-                <div className="fieldr-product__summary-title">The office sees what needs review first.</div>
-                <div className="fieldr-product__summary-copy">
-                  New scope, stalled follow-ups, and unanswered customer pressure show up in one place instead of getting
-                  lost in messages.
+              {summaryBlocks.map((block) => (
+                <div key={block.label} className="fieldr-product__summary-item" data-product-summary>
+                  <div className="fieldr-product__summary-label">{block.label}</div>
+                  <div className="fieldr-product__summary-title">{block.title}</div>
+                  <div className="fieldr-product__summary-copy">{block.copy}</div>
                 </div>
-              </div>
-              <div className="fieldr-product__summary-item">
-                <div className="fieldr-product__summary-label">Quotes</div>
-                <div className="fieldr-product__summary-title">Changes are prepared before they go unbilled.</div>
-                <div className="fieldr-product__summary-copy">
-                  When the job changes, the draft number and next action are already lined up so the window does not
-                  close first.
-                </div>
-              </div>
-              <div className="fieldr-product__summary-item">
-                <div className="fieldr-product__summary-label">Job history</div>
-                <div className="fieldr-product__summary-title">Every approval leaves a clean trail behind.</div>
-                <div className="fieldr-product__summary-copy">
-                  Follow-through, pricing decisions, and job context stay with the work so the owner is not managing it
-                  from memory.
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
         <section className="fieldr-product__cta">
           <div className="fieldr-product__inner">
-            <h2 className="fieldr-product__cta-title">Ready to stop chasing missed details?</h2>
-            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button">
+            <h2 className="fieldr-product__cta-title" data-product-cta>Ready to stop chasing missed details?</h2>
+            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button" data-product-cta>
               Book a Demo
             </SmartLink>
-            <div className="fieldr-product__cta-note">20 minutes · No commitment · Chattanooga, TN</div>
+            <div className="fieldr-product__cta-note" data-product-cta>20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
       </main>
