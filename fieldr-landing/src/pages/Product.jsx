@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from 'react'
+import { gsap } from 'gsap'
 import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
@@ -46,7 +48,44 @@ const memoryRows = [
   { key: 'Preferred shingle', value: 'GAF Timberline HDZ', confidence: 5 },
 ]
 
+const ownerRows = [
+  {
+    label: 'Catch what changed',
+    copy: 'Calls, texts, and field notes stop living in inboxes and start showing up where the office can act on them.',
+  },
+  {
+    label: 'Get the number ready faster',
+    copy: 'When the work changes, the draft change gets prepared before the job moves on and the billing window closes.',
+  },
+  {
+    label: 'Leave a clear trail',
+    copy: 'Quotes, follow-ups, and paperwork stay tied to the job so the owner is not relying on memory to close things out.',
+  },
+]
+
 export default function Product() {
+  const rootRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const timeline = gsap.timeline({
+        defaults: { ease: 'power2.out' },
+      })
+
+      timeline
+        .from('[data-product-reveal="eyebrow"]', { y: 18, opacity: 0, duration: 0.45 })
+        .from('[data-product-reveal="headline"]', { y: 28, opacity: 0, duration: 0.7 }, '-=0.18')
+        .from('[data-product-reveal="subhead"]', { y: 20, opacity: 0, duration: 0.55 }, '-=0.42')
+        .from('[data-product-reveal="proof"]', { y: 16, opacity: 0, duration: 0.45 }, '-=0.32')
+        .from('[data-product-reveal="cta"]', { y: 16, opacity: 0, duration: 0.42 }, '-=0.28')
+        .from('.fieldr-product__hero-card', { y: 28, opacity: 0, duration: 0.6 }, '-=0.48')
+        .from('.fieldr-product__hero-card-row', { y: 12, opacity: 0, duration: 0.4, stagger: 0.08 }, '-=0.34')
+        .from('.fieldr-product__frame', { y: 34, opacity: 0, scale: 0.985, duration: 0.72 }, '-=0.3')
+    }, rootRef)
+
+    return () => ctx.revert()
+  }, [])
+
   return (
     <>
       <style>{`
@@ -56,13 +95,37 @@ export default function Product() {
         }
 
         .fieldr-product__header {
-          padding: 120px 40px 80px;
+          position: relative;
+          overflow: hidden;
+          padding: 112px 40px 148px;
           border-bottom: 1px solid var(--rule);
+        }
+
+        .fieldr-product__header::before {
+          content: '';
+          position: absolute;
+          inset: -10% 0 auto;
+          height: 420px;
+          background: radial-gradient(circle at 18% 24%, rgba(184,83,46,0.12), transparent 62%);
+          pointer-events: none;
         }
 
         .fieldr-product__inner {
           max-width: 1240px;
           margin: 0 auto;
+        }
+
+        .fieldr-product__header-grid {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: minmax(0, 0.96fr) minmax(320px, 0.72fr);
+          gap: 56px;
+          align-items: end;
+        }
+
+        .fieldr-product__header-copy {
+          max-width: 760px;
         }
 
         .fieldr-product__eyebrow {
@@ -129,19 +192,77 @@ export default function Product() {
           color: var(--body);
         }
 
+        .fieldr-product__hero-card {
+          border: 1px solid var(--rule2);
+          border-radius: 12px;
+          background: linear-gradient(180deg, rgba(28,26,23,0.94) 0%, rgba(18,17,15,0.96) 100%);
+          box-shadow: 0 24px 60px rgba(0,0,0,0.24);
+          overflow: hidden;
+        }
+
+        .fieldr-product__hero-card-head {
+          padding: 18px 20px 14px;
+          border-bottom: 1px solid var(--rule);
+        }
+
+        .fieldr-product__hero-card-label {
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--sienna-lt);
+        }
+
+        .fieldr-product__hero-card-title {
+          margin-top: 12px;
+          max-width: 280px;
+          font-size: 18px;
+          line-height: 1.35;
+          color: var(--bright);
+        }
+
+        .fieldr-product__hero-card-copy {
+          margin-top: 10px;
+          font-size: 13px;
+          line-height: 1.7;
+          color: var(--body);
+        }
+
+        .fieldr-product__hero-card-row {
+          display: grid;
+          grid-template-columns: 132px minmax(0, 1fr);
+          gap: 18px;
+          padding: 16px 20px;
+          border-top: 1px solid var(--rule);
+        }
+
+        .fieldr-product__hero-card-kicker {
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+
+        .fieldr-product__hero-card-rowcopy {
+          font-size: 12px;
+          line-height: 1.7;
+          color: var(--body);
+        }
+
         .fieldr-product__replica-wrap {
-          max-width: 1000px;
+          max-width: 1160px;
           margin: 0 auto;
-          padding: 0 40px 80px;
+          margin-top: -86px;
+          padding: 0 40px 96px;
         }
 
         .fieldr-product__frame {
-          margin-top: -1px;
           overflow: hidden;
           border: 1px solid var(--rule2);
-          border-radius: 10px;
+          border-radius: 16px;
           background: var(--surface);
-          box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+          box-shadow: 0 40px 100px rgba(0,0,0,0.54);
         }
 
         .fieldr-product__windowbar {
@@ -673,9 +794,18 @@ export default function Product() {
         }
 
         @media (max-width: 1080px) {
+          .fieldr-product__header-grid,
           .fieldr-product__dash,
           .fieldr-product__workspace {
             grid-template-columns: 1fr;
+          }
+
+          .fieldr-product__header {
+            padding-bottom: 120px;
+          }
+
+          .fieldr-product__hero-card {
+            max-width: 620px;
           }
 
           .fieldr-product__sidebar {
@@ -704,9 +834,19 @@ export default function Product() {
             padding-right: 20px;
           }
 
+          .fieldr-product__header {
+            padding-top: 104px;
+            padding-bottom: 96px;
+          }
+
           .fieldr-product__frame {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+          }
+
+          .fieldr-product__hero-card-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
           }
 
           .fieldr-product__header-demo,
@@ -714,6 +854,10 @@ export default function Product() {
             width: min(100%, 280px);
             justify-content: center;
             text-align: center;
+          }
+
+          .fieldr-product__replica-wrap {
+            margin-top: -44px;
           }
 
           .fieldr-product__dash {
@@ -745,23 +889,42 @@ export default function Product() {
         }
       `}</style>
 
-      <main className="fieldr-product" aria-label="Fieldr product page">
+      <main ref={rootRef} className="fieldr-product" aria-label="Fieldr product page">
         <section className="fieldr-product__header">
-          <div className="fieldr-product__inner">
-            <p className="fieldr-product__eyebrow">Product preview</p>
-            <h1 className="fieldr-product__headline">The tool that keeps things from slipping through.</h1>
-            <p className="fieldr-product__subhead">
-              One place to catch field updates, pricing changes, and follow-ups before they turn into missed scope, unbilled work, or forgotten promises.
-            </p>
-            <div className="fieldr-product__header-proof">
-              <span className="fieldr-product__proof-pill">Roofing</span>
-              <span className="fieldr-product__proof-pill">HVAC</span>
-              <span className="fieldr-product__proof-pill">Electrical</span>
-              <span className="fieldr-product__proof-pill">Plumbing</span>
+          <div className="fieldr-product__inner fieldr-product__header-grid">
+            <div className="fieldr-product__header-copy">
+              <p className="fieldr-product__eyebrow" data-product-reveal="eyebrow">Product preview</p>
+              <h1 className="fieldr-product__headline" data-product-reveal="headline">The tool that keeps things from slipping through.</h1>
+              <p className="fieldr-product__subhead" data-product-reveal="subhead">
+                One place to catch field updates, pricing changes, and follow-ups before they turn into missed scope, unbilled work, or forgotten promises.
+              </p>
+              <div className="fieldr-product__header-proof" data-product-reveal="proof">
+                <span className="fieldr-product__proof-pill">Roofing</span>
+                <span className="fieldr-product__proof-pill">HVAC</span>
+                <span className="fieldr-product__proof-pill">Electrical</span>
+                <span className="fieldr-product__proof-pill">Plumbing</span>
+              </div>
+              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__header-demo" data-product-reveal="cta">
+                Book a Demo
+              </SmartLink>
             </div>
-            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
-              Book a Demo
-            </SmartLink>
+
+            <aside className="fieldr-product__hero-card" aria-label="What owners care about">
+              <div className="fieldr-product__hero-card-head">
+                <div className="fieldr-product__hero-card-label">What owners care about</div>
+                <div className="fieldr-product__hero-card-title">Keep the office caught up without asking the crew to change how they work.</div>
+                <div className="fieldr-product__hero-card-copy">
+                  Fieldr is built for the handoff between the field and the office. It catches what changed, gets the number ready faster, and leaves a clean trail behind.
+                </div>
+              </div>
+
+              {ownerRows.map((row) => (
+                <div key={row.label} className="fieldr-product__hero-card-row">
+                  <div className="fieldr-product__hero-card-kicker">{row.label}</div>
+                  <div className="fieldr-product__hero-card-rowcopy">{row.copy}</div>
+                </div>
+              ))}
+            </aside>
           </div>
         </section>
 
