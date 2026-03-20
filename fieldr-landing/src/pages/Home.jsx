@@ -51,12 +51,12 @@ const agentLogEntries = [
   {
     timestamp: '09:19:12',
     tone: 'var(--moss-lt)',
-    title: 'Memory updated',
-    detail: 'Flashing rate pattern written to estimating memory',
+    title: 'Pricing updated',
+    detail: 'Flashing rate saved so the next quote starts faster',
   },
 ]
 
-const heroSignals = ['Watching 7 active jobs', '3 items in queue', 'Last capture 2m ago']
+const heroSignals = ['7 active jobs', '3 things need review', 'Last update 2m ago']
 
 const exampleRows = [
   {
@@ -71,8 +71,8 @@ const exampleRows = [
   },
   {
     label: 'Fieldr',
-    title: 'Scope delta flagged. Draft line item prepared. Review queued.',
-    copy: 'The change is attached to the job, routed to the queue, and prepared for approval before the billing window closes.',
+    title: 'The change gets caught. The new line item is prepared. It is ready for approval.',
+    copy: 'The change stays tied to the job and shows up for review before the billing window closes.',
   },
 ]
 
@@ -643,10 +643,10 @@ export default function Home() {
       <main className="fieldr-home">
         <section className="fieldr-home__hero">
           <div className="fieldr-home__hero-inner">
-            <p className="fieldr-home__eyebrow">Agentic operations &middot; Field contractors</p>
+            <p className="fieldr-home__eyebrow">Built for general contractors</p>
             <h1 className="fieldr-home__headline">The field never stops. Neither does Fieldr.</h1>
             <p className="fieldr-home__subhead">
-              Fieldr captures field communication, detects scope changes, and prepares draft quotes before revenue slips through. No new app for your crew. No extra workflow. Just coverage where money gets lost.
+              Fieldr catches calls, texts, voice notes, and uploads from the field, spots what changed, and gets a draft ready before money slips through. No new app for your crew. No extra workflow. Just fewer things falling through the cracks.
             </p>
             <div className="fieldr-home__cta-row">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
@@ -693,13 +693,13 @@ export default function Home() {
           <div className="fieldr-home__section-inner fieldr-home__log-grid">
             <div>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">System log &middot; Live capture</span>
-                <div className="fieldr-home__section-rule" aria-hidden="true" />
-              </div>
-              <h2 className="fieldr-home__log-headline">What Fieldr caught while you were on site.</h2>
-              <p className="fieldr-home__log-copy">
-                This is the moment the product stops being abstract. The agent catches a field update, structures the change, and queues the next step before the office loses the thread.
-              </p>
+              <span className="fieldr-home__section-label">What Fieldr caught today</span>
+              <div className="fieldr-home__section-rule" aria-hidden="true" />
+            </div>
+            <h2 className="fieldr-home__log-headline">What Fieldr caught while you were on site.</h2>
+            <p className="fieldr-home__log-copy">
+                While you are on site, Fieldr catches the update, pulls out what changed, and puts the next step in front of the office before the trail goes cold.
+            </p>
             </div>
 
             <div className="fieldr-home__log-feed">
@@ -725,7 +725,7 @@ export default function Home() {
           <div className="fieldr-home__section-inner fieldr-home__example-grid">
             <div>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">Operator truth &middot; One missed text</span>
+                <span className="fieldr-home__section-label">One missed text</span>
                 <div className="fieldr-home__section-rule" aria-hidden="true" />
               </div>
               <h2 className="fieldr-home__example-headline">The extra work gets done. The billing never catches up.</h2>
@@ -734,8 +734,8 @@ export default function Home() {
               </p>
               <div className="fieldr-home__example-foot">
                 <span className="fieldr-home__example-chip">Draft quote</span>
-                <span className="fieldr-home__example-chip">Queue review</span>
-                <span className="fieldr-home__example-chip">Tracked job history</span>
+                <span className="fieldr-home__example-chip">Needs approval</span>
+                <span className="fieldr-home__example-chip">Saved to job file</span>
               </div>
             </div>
 

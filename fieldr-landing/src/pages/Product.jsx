@@ -748,10 +748,10 @@ export default function Product() {
       <main className="fieldr-product" aria-label="Fieldr product page">
         <section className="fieldr-product__header">
           <div className="fieldr-product__inner">
-            <p className="fieldr-product__eyebrow">Product &middot; Agentic workspace</p>
-            <h1 className="fieldr-product__headline">The operations layer contractors don&apos;t have.</h1>
+            <p className="fieldr-product__eyebrow">Product preview</p>
+            <h1 className="fieldr-product__headline">The tool that keeps things from slipping through.</h1>
             <p className="fieldr-product__subhead">
-              One workspace. Every field update captured, queued, drafted, and tracked before it turns into missed scope, unbilled work, or forgotten follow-through. Built for the contractor who can&apos;t afford to miss what changed.
+              One place to catch field updates, pricing changes, and follow-ups before they turn into missed scope, unbilled work, or forgotten promises.
             </p>
             <div className="fieldr-product__header-proof">
               <span className="fieldr-product__proof-pill">Roofing</span>
@@ -781,7 +781,7 @@ export default function Product() {
               <aside className="fieldr-product__sidebar">
                 <div className="fieldr-product__sidebar-head">
                   <div className="fieldr-product__wordmark">Fieldr</div>
-                  <div className="fieldr-product__sidebar-sub">agentic operations</div>
+                  <div className="fieldr-product__sidebar-sub">field updates handled</div>
                 </div>
 
                 <div className="fieldr-product__nav">
@@ -808,7 +808,7 @@ export default function Product() {
                 <div className="fieldr-product__topbar">
                   <div className="fieldr-product__top-title">Today</div>
                   <div className="fieldr-product__top-date">Mar 18 &middot; 09:20</div>
-                  <input className="fieldr-product__search" value="Search jobs, quotes, queue" readOnly aria-label="Search" />
+                  <input className="fieldr-product__search" value="Search jobs, quotes, open items" readOnly aria-label="Search" />
                   <button type="button" className="fieldr-product__top-button">New quote</button>
                 </div>
 
@@ -817,10 +817,10 @@ export default function Product() {
                     <div className="fieldr-product__queue-strip">
                       <div className="fieldr-product__queue-number">3</div>
                       <div>
-                        <div className="fieldr-product__queue-title">Three items surfaced for review</div>
-                        <div className="fieldr-product__queue-sub">Agent capture is live. Two changes and one stalled follow-up are waiting on a decision.</div>
+                        <div className="fieldr-product__queue-title">Three things need review</div>
+                        <div className="fieldr-product__queue-sub">Two changes and one stalled follow-up are waiting on the office.</div>
                       </div>
-                      <div className="fieldr-product__queue-pill">Open queue &rarr;</div>
+                      <div className="fieldr-product__queue-pill">Open items &rarr;</div>
                     </div>
 
                     <div className="fieldr-product__statrow">
@@ -877,9 +877,9 @@ export default function Product() {
 
                   <aside className="fieldr-product__aside">
                     <section className="fieldr-product__panel">
-                      <div className="fieldr-product__panel-label">Agent monitor</div>
+                      <div className="fieldr-product__panel-label">Today</div>
                       <div className="fieldr-product__panel-title">Two jobs need attention before noon.</div>
-                      <div className="fieldr-product__panel-body">Queue is live. Hartley needs flashing approval before the next quote goes out. Riverside needs a follow-up before the window closes.</div>
+                      <div className="fieldr-product__panel-body">Hartley needs flashing approval before the next quote goes out. Riverside needs a follow-up before the window closes.</div>
                       <div className="fieldr-product__briefing-list">
                         <div className="fieldr-product__briefing-item">
                           <div className="fieldr-product__briefing-heading">Hartley reroof</div>
@@ -893,8 +893,8 @@ export default function Product() {
                     </section>
 
                     <section className="fieldr-product__panel">
-                      <div className="fieldr-product__panel-label">Estimating memory</div>
-                      <div className="fieldr-product__panel-title">Three strong patterns loaded.</div>
+                      <div className="fieldr-product__panel-label">Pricing memory</div>
+                      <div className="fieldr-product__panel-title">Three pricing patterns saved.</div>
                       <div className="fieldr-product__memory-rows">
                         {memoryRows.map((row) => (
                           <div key={row.key} className="fieldr-product__memory-row">
@@ -923,7 +923,7 @@ export default function Product() {
 
         <section className="fieldr-product__cta">
           <div className="fieldr-product__inner">
-            <h2 className="fieldr-product__cta-title">Ready to close the gap?</h2>
+            <h2 className="fieldr-product__cta-title">Ready to stop chasing missed details?</h2>
             <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</SmartLink>
             <div className="fieldr-product__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>

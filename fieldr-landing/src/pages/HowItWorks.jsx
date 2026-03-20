@@ -5,22 +5,22 @@ const steps = [
   {
     number: 'STEP 01',
     title: 'Capture',
-    body: 'Inbound lands - a call transcript, a voice note, a text, a document upload. Fieldr ingests it automatically. Nothing manual.',
+    body: 'A call, voice note, text, or document comes in. Fieldr picks it up automatically. Nothing to forward. Nothing to retype.',
   },
   {
     number: 'STEP 02',
-    title: 'Extract',
-    body: 'The agent reads every input and pulls out what matters - scope changes, commitments, open questions, pricing signals. Structured, not summarized.',
+    title: 'Find what matters',
+    body: 'Fieldr reads it and pulls out what matters - scope changes, promised work, missing details, and price-related information.',
   },
   {
     number: 'STEP 03',
-    title: 'Queue',
-    body: 'Extracted items surface in your review queue with context. What changed, what it affects, what needs to happen. You approve, edit, or dismiss.',
+    title: 'Put it in front of you',
+    body: 'The item shows up with the job, what changed, and what needs to happen next. You can approve it, edit it, or ignore it.',
   },
   {
     number: 'STEP 04',
-    title: 'Execute + Learn',
-    body: 'Approved items become draft quotes, tracked changes, follow-through, or job history. Every approval writes back to memory. The next job is faster.',
+    title: 'Finish the work',
+    body: 'Approved items become draft quotes, follow-ups, or saved job notes. Over time Fieldr learns how you price work, so the next job is faster.',
   },
 ]
 
@@ -208,10 +208,10 @@ export default function HowItWorks() {
       <main className="fieldr-how" aria-label="Fieldr how it works page">
         <section className="fieldr-how__page-header">
           <div className="fieldr-how__inner">
-            <p className="fieldr-how__eyebrow">System architecture</p>
-            <h1 className="fieldr-how__headline">How the agent works.</h1>
+            <p className="fieldr-how__eyebrow">How it works</p>
+            <h1 className="fieldr-how__headline">How Fieldr keeps things from slipping through.</h1>
             <p className="fieldr-how__subhead">
-              Fieldr runs a continuous capture and review loop. No new workflow. No app for your crew to learn. It watches what already comes in and closes the gap before it widens.
+              Fieldr works in the background while your crew keeps working. It picks up what already comes in, pulls out what matters, and puts the next decision in front of you before it gets missed.
             </p>
           </div>
         </section>
@@ -230,7 +230,7 @@ export default function HowItWorks() {
 
         <section className="fieldr-how__cta">
           <div className="fieldr-how__inner">
-            <h2 className="fieldr-how__cta-title">Ready to close the gap?</h2>
+            <h2 className="fieldr-how__cta-title">Ready to see it on your jobs?</h2>
             <SmartLink to={BOOK_DEMO_HREF} className="fieldr-how__cta-button">
               Book a Demo
             </SmartLink>
