@@ -1,14 +1,14 @@
 :root {
   --bg: #0D0C0A;
-  --surface: #131210;
-  --surface2: #191714;
-  --surface3: #1F1D19;
-  --rule: #252320;
-  --rule2: #2E2B27;
-  --muted: #4A4640;
-  --dim: #6E6860;
-  --body: #A89F94;
-  --bright: #E8E0D4;
+  --surface: #161412;
+  --surface2: #1C1A17;
+  --surface3: #23201C;
+  --rule: #2B2723;
+  --rule2: #3B352F;
+  --muted: #655E55;
+  --dim: #8D847A;
+  --body: #C0B4A5;
+  --bright: #EFE5D8;
   --sienna: #B8532E;
   --sienna-lt: #D4673F;
   --sienna-bg: rgba(184,83,46,0.08);

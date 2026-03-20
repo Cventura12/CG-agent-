@@ -1,23 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
+
+const proofItems = [
+  {
+    label: 'Built for',
+    value: 'Roofing, HVAC, electrical, plumbing',
+  },
+  {
+    label: 'Prevents',
+    value: 'Scope changes from disappearing before they hit the quote',
+  },
+  {
+    label: 'Routes',
+    value: 'Calls, texts, voice notes, and uploads into reviewable work',
+  },
+]
 
 const problemCards = [
   {
     number: '01',
-    title: 'Field updates vanish',
-    body: 'A sub calls about a scope change. An owner texts a revision. It gets buried. By the time you surface it, the margin is gone and the job has moved on.',
+    title: 'Field updates get buried',
+    body: 'A sub calls in a change. An owner texts a revision. By the time the office surfaces it, the job has moved on and the margin is already gone.',
   },
   {
     number: '02',
-    title: 'Changes never reach the quote',
-    body: "You know what changed on site. Getting that into a revised number before the window closes - that's the part that kills margin job after job.",
+    title: 'The extra work never gets billed',
+    body: 'You know what changed on site. Getting that into a revised number before the window closes is where revenue disappears job after job.',
+    featured: true,
   },
   {
     number: '03',
-    title: 'Follow-through lives in your head',
-    body: 'Quotes go silent. Commitments get forgotten. Jobs close without the paperwork that protects you. The system is your memory until it fails.',
+    title: 'What was promised gets forgotten',
+    body: 'Quotes go quiet. Paperwork gets missed. Follow-through lives in memory until the wrong detail costs you money or credibility.',
   },
 ]
 
@@ -32,13 +48,14 @@ const agentLogEntries = [
     timestamp: '09:14:33',
     tone: 'var(--ochre-lt)',
     title: 'Change extracted',
-    detail: 'Scope delta identified - Queued for approval',
+    detail: 'Scope delta identified - Quote revision required before closeout',
   },
   {
     timestamp: '09:16:01',
     tone: 'var(--sienna-lt)',
     title: 'Draft quote generated',
-    detail: '$8,720 total - Awaiting contractor sign-off',
+    detail: '$8,720 total - Awaiting contractor sign-off before it goes to customer',
+    featured: true,
   },
   {
     timestamp: '09:18:44',
@@ -71,6 +88,24 @@ const statusItems = [
   {
     label: 'Last capture: 2m ago',
     tone: 'var(--dim)',
+  },
+]
+
+const exampleRows = [
+  {
+    label: 'Inbound',
+    title: 'A tech texts: "Need two extra outlets in conference room."',
+    copy: 'Real field communication. Short, incomplete, and easy to ignore when the office is already moving.',
+  },
+  {
+    label: 'Usually',
+    title: 'It stays in messages and the quote never gets revised.',
+    copy: 'The extra work gets done. Nobody updates the number. The revenue slips because the office catches it too late or not at all.',
+  },
+  {
+    label: 'Fieldr',
+    title: 'Scope delta flagged. Draft line item prepared. Review queued.',
+    copy: 'The change is attached to the job, routed to the queue, and prepared for approval before the billing window closes.',
   },
 ]
 
@@ -120,8 +155,8 @@ export default function Home() {
           content: '';
           position: absolute;
           inset: -10% 0 auto;
-          height: 480px;
-          background: radial-gradient(circle at top center, rgba(184,83,46,0.06), transparent 72%);
+          height: 520px;
+          background: radial-gradient(circle at top center, rgba(184,83,46,0.08), transparent 72%);
           pointer-events: none;
         }
 
@@ -129,7 +164,7 @@ export default function Home() {
           position: relative;
           z-index: 1;
           width: 100%;
-          max-width: 720px;
+          max-width: 760px;
           text-align: center;
         }
 
@@ -153,11 +188,11 @@ export default function Home() {
 
         .fieldr-home__subhead {
           margin: 24px auto 0;
-          max-width: 480px;
-          font-size: 16px;
-          line-height: 1.7;
+          max-width: 560px;
+          font-size: 17px;
+          line-height: 1.74;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
         .fieldr-home__cta-row {
@@ -188,20 +223,42 @@ export default function Home() {
 
         .fieldr-home__secondary-cta {
           color: var(--bright);
-          font-family: var(--sans);
-          font-size: 14px;
-          font-weight: 400;
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.12em;
           line-height: 1;
           text-decoration: none;
+          text-transform: uppercase;
         }
 
         .fieldr-home__meta {
-          margin-top: 20px;
+          margin-top: 22px;
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.1em;
           text-transform: uppercase;
           color: var(--muted);
+        }
+
+        .fieldr-home__hero-proof {
+          margin-top: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .fieldr-home__hero-pill {
+          border: 1px solid var(--rule2);
+          border-radius: 999px;
+          background: rgba(22,20,18,0.9);
+          padding: 8px 12px;
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--body);
         }
 
         .fieldr-home__statusbar {
@@ -225,7 +282,7 @@ export default function Home() {
           font-size: 8px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          border-right: 1px solid var(--rule);
+          border-right: 1px solid var(--rule2);
           flex: 1 0 auto;
         }
 
@@ -248,6 +305,34 @@ export default function Home() {
           margin: 0 auto;
         }
 
+        .fieldr-home__proof-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
+        }
+
+        .fieldr-home__proof-card {
+          border: 1px solid var(--rule2);
+          border-radius: 6px;
+          background: var(--surface);
+          padding: 20px 20px 18px;
+        }
+
+        .fieldr-home__proof-label {
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--sienna-lt);
+        }
+
+        .fieldr-home__proof-value {
+          margin-top: 10px;
+          font-size: 14px;
+          line-height: 1.65;
+          color: var(--bright);
+        }
+
         .fieldr-home__section-labelrow {
           display: flex;
           align-items: center;
@@ -267,20 +352,28 @@ export default function Home() {
         .fieldr-home__section-rule {
           height: 1px;
           width: 100%;
-          background: var(--rule);
+          background: var(--rule2);
         }
 
         .fieldr-home__problem-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.1fr) minmax(0, 0.95fr);
           gap: 20px;
+          align-items: stretch;
         }
 
         .fieldr-home__problem-card {
-          border: 1px solid var(--rule);
+          border: 1px solid var(--rule2);
           border-radius: 6px;
           background: var(--surface);
           padding: 32px 28px;
+        }
+
+        .fieldr-home__problem-card.is-featured {
+          background: linear-gradient(180deg, rgba(184,83,46,0.09) 0%, rgba(22,20,18,1) 100%);
+          border-color: var(--sienna-bd);
+          box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+          transform: translateY(-10px);
         }
 
         .fieldr-home__problem-number {
@@ -289,7 +382,7 @@ export default function Home() {
           font-style: italic;
           line-height: 1;
           color: var(--sienna-lt);
-          opacity: 0.25;
+          opacity: 0.28;
         }
 
         .fieldr-home__problem-title {
@@ -299,22 +392,27 @@ export default function Home() {
           color: var(--bright);
         }
 
+        .fieldr-home__problem-card.is-featured .fieldr-home__problem-title {
+          color: var(--bright);
+        }
+
         .fieldr-home__problem-body {
           margin-top: 8px;
           font-size: 13px;
-          line-height: 1.7;
+          line-height: 1.72;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
         .fieldr-home__log-section {
           background: var(--surface);
-          border-top: 1px solid var(--rule);
+          border-top: 1px solid var(--rule2);
+          border-bottom: 1px solid var(--rule);
         }
 
         .fieldr-home__log-grid {
           display: grid;
-          grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+          grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
           gap: 48px;
           align-items: start;
         }
@@ -322,23 +420,31 @@ export default function Home() {
         .fieldr-home__log-headline {
           margin: 14px 0 0;
           font-family: var(--serif);
-          font-size: 36px;
+          font-size: 38px;
           line-height: 1.2;
           font-style: italic;
           color: var(--bright);
         }
 
+        .fieldr-home__log-copy {
+          margin-top: 16px;
+          max-width: 420px;
+          font-size: 14px;
+          line-height: 1.75;
+          color: var(--body);
+        }
+
         .fieldr-home__log-feed {
-          border-top: 1px solid var(--rule);
+          border-top: 1px solid var(--rule2);
         }
 
         .fieldr-home__log-entry {
           display: grid;
-          grid-template-columns: 86px 8px minmax(0, 1fr);
-          gap: 16px;
+          grid-template-columns: 96px 10px minmax(0, 1fr);
+          gap: 18px;
           align-items: start;
-          padding: 16px 0;
-          border-bottom: 1px solid var(--rule);
+          padding: 18px 0;
+          border-bottom: 1px solid var(--rule2);
           transform: translateY(12px);
           opacity: 0;
           transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1), opacity 480ms ease;
@@ -349,18 +455,33 @@ export default function Home() {
           opacity: 1;
         }
 
+        .fieldr-home__log-entry.is-featured {
+          margin: 8px 0;
+          padding: 18px 14px;
+          border: 1px solid var(--sienna-bd);
+          border-left: 2px solid var(--sienna);
+          border-radius: 6px;
+          background: rgba(184,83,46,0.08);
+        }
+
         .fieldr-home__log-time {
-          padding-top: 1px;
+          padding-top: 2px;
           font-family: var(--mono);
           font-size: 9px;
-          color: var(--muted);
+          color: var(--body);
+          text-align: right;
         }
 
         .fieldr-home__log-pip {
           width: 4px;
           height: 4px;
-          margin-top: 6px;
+          margin-top: 7px;
           border-radius: 999px;
+        }
+
+        .fieldr-home__log-pip.is-live {
+          animation: fieldrPulse 1.8s ease-in-out infinite;
+          box-shadow: 0 0 0 5px rgba(184,83,46,0.08);
         }
 
         .fieldr-home__log-title {
@@ -372,56 +493,60 @@ export default function Home() {
         .fieldr-home__log-detail {
           margin-top: 4px;
           font-size: 12px;
-          line-height: 1.65;
+          line-height: 1.68;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
-        .fieldr-home__voice-grid {
+        .fieldr-home__example-grid {
           display: grid;
           grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
           gap: 48px;
           align-items: start;
         }
 
-        .fieldr-home__voice-headline {
+        .fieldr-home__example-headline {
           margin: 14px 0 0;
           font-family: var(--serif);
-          font-size: 36px;
+          font-size: 38px;
           line-height: 1.18;
           font-style: italic;
           color: var(--bright);
         }
 
-        .fieldr-home__voice-body {
-          margin-top: 16px;
+        .fieldr-home__example-body {
+          margin-top: 18px;
           max-width: 440px;
-          font-size: 14px;
-          line-height: 1.75;
+          font-size: 15px;
+          line-height: 1.74;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
-        .fieldr-home__voice-panel {
-          border: 1px solid var(--rule);
+        .fieldr-home__example-panel {
+          border: 1px solid var(--rule2);
           border-radius: 6px;
           background: var(--surface);
           overflow: hidden;
         }
 
-        .fieldr-home__voice-row {
+        .fieldr-home__example-row {
           display: grid;
-          grid-template-columns: 120px minmax(0, 1fr);
+          grid-template-columns: 104px minmax(0, 1fr);
           gap: 18px;
           padding: 18px 20px;
-          border-top: 1px solid var(--rule);
+          border-top: 1px solid var(--rule2);
         }
 
-        .fieldr-home__voice-row:first-child {
+        .fieldr-home__example-row:first-child {
           border-top: 0;
         }
 
-        .fieldr-home__voice-kicker {
+        .fieldr-home__example-row.is-fieldr {
+          background: rgba(184,83,46,0.07);
+        }
+
+        .fieldr-home__example-kicker {
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.12em;
@@ -429,30 +554,54 @@ export default function Home() {
           color: var(--sienna-lt);
         }
 
-        .fieldr-home__voice-title {
+        .fieldr-home__example-title {
           font-size: 14px;
           font-weight: 500;
           color: var(--bright);
         }
 
-        .fieldr-home__voice-copy {
+        .fieldr-home__example-copy {
           margin-top: 6px;
           font-size: 12px;
           line-height: 1.7;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
+        }
+
+        .fieldr-home__example-foot {
+          margin-top: 16px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .fieldr-home__example-chip {
+          border: 1px solid var(--rule2);
+          border-radius: 999px;
+          padding: 7px 11px;
+          background: var(--surface);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--body);
         }
 
         @keyframes fieldrPulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.1); }
+          50% { opacity: 0.45; transform: scale(1.12); }
         }
 
         @media (max-width: 960px) {
+          .fieldr-home__proof-grid,
           .fieldr-home__problem-grid,
           .fieldr-home__log-grid,
-          .fieldr-home__voice-grid {
+          .fieldr-home__example-grid {
             grid-template-columns: 1fr;
+          }
+
+          .fieldr-home__problem-card.is-featured {
+            transform: none;
           }
         }
 
@@ -496,8 +645,9 @@ export default function Home() {
             gap: 10px;
           }
 
-          .fieldr-home__problem-card {
-            padding: 28px 22px;
+          .fieldr-home__problem-card,
+          .fieldr-home__proof-card {
+            padding: 26px 22px;
           }
 
           .fieldr-home__log-entry {
@@ -505,7 +655,15 @@ export default function Home() {
             gap: 12px;
           }
 
-          .fieldr-home__voice-row {
+          .fieldr-home__log-entry.is-featured {
+            padding: 16px 12px;
+          }
+
+          .fieldr-home__log-time {
+            text-align: left;
+          }
+
+          .fieldr-home__example-row {
             grid-template-columns: 1fr;
             gap: 10px;
             padding: 18px 16px;
@@ -519,18 +677,21 @@ export default function Home() {
             <p className="fieldr-home__eyebrow">Agentic operations &middot; Field contractors</p>
             <h1 className="fieldr-home__headline">The field never stops. Neither does Fieldr.</h1>
             <p className="fieldr-home__subhead">
-              Fieldr captures calls, texts, voice notes, and uploads, extracts what changed, and routes it into review queue, draft quotes, and job history before it costs you. No new app for your crew. Just coverage.
+              Fieldr captures field communication, detects scope changes, and prepares draft quotes before revenue slips through. Calls, texts, voice notes, and uploads go in. Review queue, follow-through, and job history come out.
             </p>
             <div className="fieldr-home__cta-row">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
                 Book a Demo
               </SmartLink>
-              <Link to="/how-it-works" className="fieldr-home__secondary-cta">
-                See how it works
+              <Link to="/product" className="fieldr-home__secondary-cta">
+                See live workflow
               </Link>
-              <SmartLink to={APP_FLOW_HREF} className="fieldr-home__secondary-cta" style={{ color: 'var(--sienna-lt)' }}>
-                Launch Agent
-              </SmartLink>
+            </div>
+            <div className="fieldr-home__hero-proof">
+              <span className="fieldr-home__hero-pill">Roofing</span>
+              <span className="fieldr-home__hero-pill">HVAC</span>
+              <span className="fieldr-home__hero-pill">Electrical</span>
+              <span className="fieldr-home__hero-pill">Plumbing</span>
             </div>
             <div className="fieldr-home__meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
           </div>
@@ -545,16 +706,29 @@ export default function Home() {
           ))}
         </section>
 
+        <section className="fieldr-home__section" style={{ paddingTop: '56px', paddingBottom: '0' }}>
+          <div className="fieldr-home__section-inner">
+            <div className="fieldr-home__proof-grid">
+              {proofItems.map((item) => (
+                <article key={item.label} className="fieldr-home__proof-card">
+                  <div className="fieldr-home__proof-label">{item.label}</div>
+                  <div className="fieldr-home__proof-value">{item.value}</div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="fieldr-home__section">
           <div className="fieldr-home__section-inner">
             <div className="fieldr-home__section-labelrow">
-              <span className="fieldr-home__section-label">The operational gap</span>
+              <span className="fieldr-home__section-label">Where margin leaks</span>
               <div className="fieldr-home__section-rule" aria-hidden="true" />
             </div>
 
             <div className="fieldr-home__problem-grid">
               {problemCards.map((card) => (
-                <article key={card.number} className="fieldr-home__problem-card">
+                <article key={card.number} className={`fieldr-home__problem-card${card.featured ? ' is-featured' : ''}`}>
                   <div className="fieldr-home__problem-number">{card.number}</div>
                   <div className="fieldr-home__problem-title">{card.title}</div>
                   <div className="fieldr-home__problem-body">{card.body}</div>
@@ -572,17 +746,20 @@ export default function Home() {
                 <div className="fieldr-home__section-rule" aria-hidden="true" />
               </div>
               <h2 className="fieldr-home__log-headline">What Fieldr caught while you were on site.</h2>
+              <p className="fieldr-home__log-copy">
+                This is the moment the product stops being abstract. The agent catches a field update, structures the change, and queues the next step before the office loses the thread.
+              </p>
             </div>
 
             <div className="fieldr-home__log-feed">
               {agentLogEntries.map((entry, index) => (
                 <div
                   key={`${entry.timestamp}-${entry.title}`}
-                  className={`fieldr-home__log-entry${logVisible ? ' is-visible' : ''}`}
+                  className={`fieldr-home__log-entry${logVisible ? ' is-visible' : ''}${entry.featured ? ' is-featured' : ''}`}
                   style={{ transitionDelay: `${index * 150}ms` }}
                 >
                   <div className="fieldr-home__log-time">{entry.timestamp}</div>
-                  <div className="fieldr-home__log-pip" style={{ background: entry.tone }} aria-hidden="true" />
+                  <div className={`fieldr-home__log-pip${entry.featured ? ' is-live' : ''}`} style={{ background: entry.tone }} aria-hidden="true" />
                   <div>
                     <div className="fieldr-home__log-title">{entry.title}</div>
                     <div className="fieldr-home__log-detail">{entry.detail}</div>
@@ -594,46 +771,33 @@ export default function Home() {
         </section>
 
         <section className="fieldr-home__section">
-          <div className="fieldr-home__section-inner fieldr-home__voice-grid">
+          <div className="fieldr-home__section-inner fieldr-home__example-grid">
             <div>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">Voice capability &middot; Safe claim</span>
+                <span className="fieldr-home__section-label">Operator truth &middot; One missed text</span>
                 <div className="fieldr-home__section-rule" aria-hidden="true" />
               </div>
-              <h2 className="fieldr-home__voice-headline">Voice in. Review out.</h2>
-              <p className="fieldr-home__voice-body">
-                Fieldr captures call transcripts and voice notes, extracts scope changes, follow-ups, and pricing signal, then routes them into Today, Queue, draft quotes, and job history before anything is sent. The agent does the intake work. The contractor stays in control.
+              <h2 className="fieldr-home__example-headline">The extra work gets done. The billing never catches up.</h2>
+              <p className="fieldr-home__example-body">
+                A contractor does not lose margin because they cannot estimate. They lose it because the field changes faster than the office can catch up. Fieldr closes that gap before the revised work disappears into texts, calls, and memory.
               </p>
+              <div className="fieldr-home__example-foot">
+                <span className="fieldr-home__example-chip">Draft quote</span>
+                <span className="fieldr-home__example-chip">Queue review</span>
+                <span className="fieldr-home__example-chip">Tracked job history</span>
+              </div>
             </div>
 
-            <div className="fieldr-home__voice-panel">
-              <div className="fieldr-home__voice-row">
-                <div className="fieldr-home__voice-kicker">Capture</div>
-                <div>
-                  <div className="fieldr-home__voice-title">Calls and voice notes land automatically</div>
-                  <div className="fieldr-home__voice-copy">
-                    Phone transcripts, dictated notes, and field voice updates enter the same operational path. No separate crew workflow to train.
+            <div className="fieldr-home__example-panel">
+              {exampleRows.map((row) => (
+                <div key={row.label} className={`fieldr-home__example-row${row.label === 'Fieldr' ? ' is-fieldr' : ''}`}>
+                  <div className="fieldr-home__example-kicker">{row.label}</div>
+                  <div>
+                    <div className="fieldr-home__example-title">{row.title}</div>
+                    <div className="fieldr-home__example-copy">{row.copy}</div>
                   </div>
                 </div>
-              </div>
-              <div className="fieldr-home__voice-row">
-                <div className="fieldr-home__voice-kicker">Extract</div>
-                <div>
-                  <div className="fieldr-home__voice-title">The agent pulls out what changed</div>
-                  <div className="fieldr-home__voice-copy">
-                    Scope deltas, missing information, follow-ups, and pricing cues are structured into reviewable items instead of disappearing into transcript text.
-                  </div>
-                </div>
-              </div>
-              <div className="fieldr-home__voice-row">
-                <div className="fieldr-home__voice-kicker">Review</div>
-                <div>
-                  <div className="fieldr-home__voice-title">Nothing goes out without approval</div>
-                  <div className="fieldr-home__voice-copy">
-                    Approved items can become draft quotes, tracked changes, and job history. Fieldr is built for human-in-the-loop execution, not unsupervised outbound send.
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>

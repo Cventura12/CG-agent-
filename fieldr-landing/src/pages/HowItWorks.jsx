@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
 const steps = [
@@ -407,9 +407,7 @@ export default function HowItWorks() {
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-how__cta-button">
                 Book a Demo
               </SmartLink>
-              <SmartLink to={APP_FLOW_HREF} className="fieldr-how__cta-link">
-                Launch Agent
-              </SmartLink>
+              <Link to="/product" className="fieldr-how__cta-link">See live workflow</Link>
             </div>
             <div className="fieldr-how__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>

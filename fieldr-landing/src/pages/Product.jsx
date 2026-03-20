@@ -1,27 +1,27 @@
 import { Link } from 'react-router-dom'
-import { APP_FLOW_HREF, BOOK_DEMO_HREF } from '../components/siteLinks'
+import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
 const featureRows = [
   {
     label: 'Queue',
     title: 'Human-in-the-loop by design',
-    body: 'The agent drafts. You decide. Every quote, change order, and follow-up runs through your approval before it reaches the client. Always.',
+    body: 'Fieldr catches the change, prepares the next move, and holds it for review. Quote revisions, follow-ups, and scope deltas do not go customer-facing until you approve them.',
   },
   {
     label: 'Voice intake',
     title: 'Dictate from the field',
-    body: 'Leave a voice note between jobs. Fieldr transcribes it, extracts scope and follow-through, and queues a priced draft for review before you get back to the office.',
+    body: 'Leave a voice note between jobs. Fieldr transcribes it, pulls out the missing scope, and prepares the draft before you get back to the office.',
   },
   {
     label: 'Memory',
     title: 'Pricing that compounds',
-    body: 'Every approval writes back to your estimating memory. Labor rates, markup, material preferences - encoded and applied automatically on every future job.',
+    body: 'Every approval writes back to estimating memory. Labor rates, markup, waste factors, and material preferences stop living in old spreadsheets and start getting applied automatically.',
   },
   {
     label: 'Documents',
     title: 'Structured data from any input',
-    body: 'Subcontractor bids, permits, insurance certs, change orders. Fieldr extracts the structured data and tracks what\'s open, what\'s late, and what needs action.',
+    body: 'Subcontractor bids, permits, insurance certs, and change orders stop behaving like dead files. Fieldr extracts the useful details and keeps open work visible until someone closes it.',
   },
 ]
 
@@ -113,7 +113,7 @@ export default function Product() {
           font-size: 16px;
           line-height: 1.7;
           font-weight: 300;
-          color: var(--dim);
+          color: var(--body);
         }
 
         .fieldr-product__header-links {
@@ -145,8 +145,28 @@ export default function Product() {
           font-size: 9px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--dim);
+          color: var(--body);
           text-decoration: none;
+        }
+
+        .fieldr-product__header-proof {
+          margin-top: 18px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .fieldr-product__proof-pill {
+          border: 1px solid var(--rule2);
+          border-radius: 999px;
+          padding: 7px 11px;
+          background: var(--surface);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--body);
         }
 
         .fieldr-product__replica-wrap {
@@ -931,14 +951,17 @@ export default function Product() {
             <p className="fieldr-product__eyebrow">Product &middot; Agentic workspace</p>
             <h1 className="fieldr-product__headline">The operations layer contractors don&apos;t have.</h1>
             <p className="fieldr-product__subhead">
-              One workspace. Every field update captured, queued, quoted, and tracked. Built for the contractor who can&apos;t afford to miss anything.
+              One workspace. Every field update captured, queued, drafted, and tracked before it turns into missed scope, unbilled work, or forgotten follow-through. Built for the contractor who can&apos;t afford to miss what changed.
             </p>
+            <div className="fieldr-product__header-proof">
+              <span className="fieldr-product__proof-pill">Roofing</span>
+              <span className="fieldr-product__proof-pill">HVAC</span>
+              <span className="fieldr-product__proof-pill">Electrical</span>
+              <span className="fieldr-product__proof-pill">Plumbing</span>
+            </div>
             <div className="fieldr-product__header-links">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
                 Book a Demo
-              </SmartLink>
-              <SmartLink to={APP_FLOW_HREF} className="fieldr-product__header-link">
-                Launch Agent
               </SmartLink>
               <Link to="/how-it-works" className="fieldr-product__header-link">
                 Review the capture loop
@@ -1119,9 +1142,9 @@ export default function Product() {
           <div className="fieldr-product__voice-grid">
             <div>
               <div className="fieldr-product__voice-label">Voice capability &middot; Safe claim</div>
-              <h2 className="fieldr-product__voice-headline">Voice becomes tracked work.</h2>
+              <h2 className="fieldr-product__voice-headline">Voice becomes reviewable work.</h2>
               <p className="fieldr-product__voice-body">
-                Fieldr captures call transcripts and voice notes, extracts what changed, and routes those items into Today, Queue, draft quotes, tracked changes, or job history. It is built for human-in-the-loop execution, not unsupervised outbound action.
+                Fieldr captures call transcripts and voice notes, extracts what changed, and routes those items into Today, Queue, draft quotes, tracked changes, or job history. The point is not transcription. The point is catching revenue and follow-through before they disappear.
               </p>
             </div>
 
@@ -1162,7 +1185,7 @@ export default function Product() {
             <h2 className="fieldr-product__cta-title">Ready to close the gap?</h2>
             <div className="fieldr-product__cta-actions">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</SmartLink>
-              <SmartLink to={APP_FLOW_HREF} className="fieldr-product__cta-link">Launch Agent</SmartLink>
+              <Link to="/how-it-works" className="fieldr-product__cta-link">See how it works</Link>
             </div>
             <div className="fieldr-product__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
