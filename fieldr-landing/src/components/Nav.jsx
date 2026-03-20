@@ -267,16 +267,17 @@ export function Nav() {
           align-items: center;
           justify-content: center;
           min-height: 32px;
-          padding: 0 14px;
+          min-width: 108px;
+          padding: 0 16px;
           border-radius: 999px;
           position: relative;
-          gap: 8px;
+          gap: 10px;
           border: 1px solid var(--rule2);
           background: linear-gradient(180deg, rgba(28,26,23,0.94) 0%, rgba(18,16,14,0.98) 100%);
           color: var(--bright);
           font-family: var(--mono);
           font-size: 9px;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.16em;
           text-transform: uppercase;
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.025), 0 10px 24px rgba(0,0,0,0.18);
           transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
@@ -295,26 +296,12 @@ export function Nav() {
           flex: 0 0 auto;
         }
 
-        .fieldr-nav-agent::after {
-          content: '->';
-          font-size: 10px;
-          line-height: 1;
-          opacity: 0.78;
-          transform: translateX(0);
-          transition: transform 180ms ease, opacity 180ms ease;
-        }
-
         .fieldr-nav-agent:hover {
           color: var(--bright);
           border-color: rgba(212,103,63,0.28);
           transform: translateY(-1px);
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 14px 30px rgba(0,0,0,0.24);
           text-decoration: none;
-        }
-
-        .fieldr-nav-agent:hover::after {
-          opacity: 1;
-          transform: translateX(2px);
         }
 
         .fieldr-nav-mobile-actions {
