@@ -3,21 +3,6 @@ import { Link } from 'react-router-dom'
 import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
-const proofItems = [
-  {
-    label: 'Built for',
-    value: 'Roofing, HVAC, electrical, plumbing',
-  },
-  {
-    label: 'Prevents',
-    value: 'Scope changes from disappearing before they hit the quote',
-  },
-  {
-    label: 'Routes',
-    value: 'Calls, texts, voice notes, and uploads into reviewable work',
-  },
-]
-
 const problemCards = [
   {
     number: '01',
@@ -71,25 +56,7 @@ const agentLogEntries = [
   },
 ]
 
-const statusItems = [
-  {
-    label: 'Agent status',
-    tone: 'var(--moss-lt)',
-    withPulse: true,
-  },
-  {
-    label: 'Watching 7 active jobs',
-    tone: 'var(--body)',
-  },
-  {
-    label: '3 items in queue',
-    tone: 'var(--ochre-lt)',
-  },
-  {
-    label: 'Last capture: 2m ago',
-    tone: 'var(--dim)',
-  },
-]
+const heroSignals = ['Watching 7 active jobs', '3 items in queue', 'Last capture 2m ago']
 
 const exampleRows = [
   {
@@ -240,20 +207,17 @@ export default function Home() {
           color: var(--muted);
         }
 
-        .fieldr-home__hero-proof {
-          margin-top: 18px;
-          display: flex;
+        .fieldr-home__hero-readout {
+          margin-top: 20px;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
           flex-wrap: wrap;
-        }
-
-        .fieldr-home__hero-pill {
           border: 1px solid var(--rule2);
           border-radius: 999px;
-          background: rgba(22,20,18,0.9);
-          padding: 8px 12px;
+          background: rgba(22,20,18,0.82);
+          padding: 10px 14px;
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.08em;
@@ -261,39 +225,18 @@ export default function Home() {
           color: var(--body);
         }
 
-        .fieldr-home__statusbar {
-          display: flex;
-          align-items: stretch;
-          min-height: 48px;
-          overflow-x: auto;
-          border-top: 1px solid var(--rule);
-          border-bottom: 1px solid var(--rule);
-          background: var(--surface);
-        }
-
-        .fieldr-home__statusitem {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          min-width: 190px;
-          padding: 0 18px;
-          white-space: nowrap;
-          font-family: var(--mono);
-          font-size: 8px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          border-right: 1px solid var(--rule2);
-          flex: 1 0 auto;
-        }
-
-        .fieldr-home__pulse {
+        .fieldr-home__hero-readout-dot {
           width: 4px;
           height: 4px;
           border-radius: 999px;
           background: var(--moss-lt);
-          animation: fieldrPulse 1.8s ease-in-out infinite;
           box-shadow: 0 0 0 4px var(--moss-bg);
+          animation: fieldrPulse 1.8s ease-in-out infinite;
           flex: 0 0 auto;
+        }
+
+        .fieldr-home__hero-readout-sep {
+          color: var(--muted);
         }
 
         .fieldr-home__section {
@@ -303,34 +246,6 @@ export default function Home() {
         .fieldr-home__section-inner {
           max-width: 1240px;
           margin: 0 auto;
-        }
-
-        .fieldr-home__proof-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 18px;
-        }
-
-        .fieldr-home__proof-card {
-          border: 1px solid var(--rule2);
-          border-radius: 6px;
-          background: var(--surface);
-          padding: 20px 20px 18px;
-        }
-
-        .fieldr-home__proof-label {
-          font-family: var(--mono);
-          font-size: 8px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: var(--sienna-lt);
-        }
-
-        .fieldr-home__proof-value {
-          margin-top: 10px;
-          font-size: 14px;
-          line-height: 1.65;
-          color: var(--bright);
         }
 
         .fieldr-home__section-labelrow {
@@ -587,13 +502,61 @@ export default function Home() {
           color: var(--body);
         }
 
+        .fieldr-home__final-cta {
+          padding: 80px 40px 96px;
+          border-top: 1px solid var(--rule);
+          text-align: center;
+        }
+
+        .fieldr-home__final-title {
+          margin: 0;
+          font-family: var(--serif);
+          font-size: clamp(34px, 5vw, 42px);
+          line-height: 1.16;
+          font-style: italic;
+          color: var(--bright);
+        }
+
+        .fieldr-home__final-copy {
+          margin: 16px auto 0;
+          max-width: 460px;
+          font-size: 14px;
+          line-height: 1.72;
+          color: var(--body);
+        }
+
+        .fieldr-home__final-button {
+          margin-top: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 0;
+          border-radius: 5px;
+          padding: 13px 28px;
+          background: var(--sienna);
+          color: var(--bright);
+          font-family: var(--sans);
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 1;
+          text-decoration: none;
+        }
+
+        .fieldr-home__final-note {
+          margin-top: 18px;
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+
         @keyframes fieldrPulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.45; transform: scale(1.12); }
         }
 
         @media (max-width: 960px) {
-          .fieldr-home__proof-grid,
           .fieldr-home__problem-grid,
           .fieldr-home__log-grid,
           .fieldr-home__example-grid {
@@ -635,9 +598,8 @@ export default function Home() {
             line-height: 1.8;
           }
 
-          .fieldr-home__statusitem {
-            min-width: 160px;
-            padding: 0 14px;
+          .fieldr-home__hero-readout {
+            padding: 10px 12px;
           }
 
           .fieldr-home__section-labelrow {
@@ -645,8 +607,7 @@ export default function Home() {
             gap: 10px;
           }
 
-          .fieldr-home__problem-card,
-          .fieldr-home__proof-card {
+          .fieldr-home__problem-card {
             padding: 26px 22px;
           }
 
@@ -668,6 +629,14 @@ export default function Home() {
             gap: 10px;
             padding: 18px 16px;
           }
+
+          .fieldr-home__final-cta {
+            padding: 72px 20px 88px;
+          }
+
+          .fieldr-home__final-button {
+            width: min(100%, 280px);
+          }
         }
       `}</style>
 
@@ -677,7 +646,7 @@ export default function Home() {
             <p className="fieldr-home__eyebrow">Agentic operations &middot; Field contractors</p>
             <h1 className="fieldr-home__headline">The field never stops. Neither does Fieldr.</h1>
             <p className="fieldr-home__subhead">
-              Fieldr captures field communication, detects scope changes, and prepares draft quotes before revenue slips through. Calls, texts, voice notes, and uploads go in. Review queue, follow-through, and job history come out.
+              Fieldr captures field communication, detects scope changes, and prepares draft quotes before revenue slips through. No new app for your crew. No extra workflow. Just coverage where money gets lost.
             </p>
             <div className="fieldr-home__cta-row">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
@@ -687,35 +656,17 @@ export default function Home() {
                 See live workflow
               </Link>
             </div>
-            <div className="fieldr-home__hero-proof">
-              <span className="fieldr-home__hero-pill">Roofing</span>
-              <span className="fieldr-home__hero-pill">HVAC</span>
-              <span className="fieldr-home__hero-pill">Electrical</span>
-              <span className="fieldr-home__hero-pill">Plumbing</span>
-            </div>
-            <div className="fieldr-home__meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
-          </div>
-        </section>
-
-        <section className="fieldr-home__statusbar" aria-label="Agent status">
-          {statusItems.map((item) => (
-            <div key={item.label} className="fieldr-home__statusitem" style={{ color: item.tone }}>
-              {item.withPulse ? <span className="fieldr-home__pulse" aria-hidden="true" /> : null}
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </section>
-
-        <section className="fieldr-home__section" style={{ paddingTop: '56px', paddingBottom: '0' }}>
-          <div className="fieldr-home__section-inner">
-            <div className="fieldr-home__proof-grid">
-              {proofItems.map((item) => (
-                <article key={item.label} className="fieldr-home__proof-card">
-                  <div className="fieldr-home__proof-label">{item.label}</div>
-                  <div className="fieldr-home__proof-value">{item.value}</div>
-                </article>
+            <div className="fieldr-home__hero-readout" aria-label="Live agent readout">
+              <span className="fieldr-home__hero-readout-dot" aria-hidden="true" />
+              {heroSignals.map((signal, index) => (
+                <span key={signal}>
+                  {index > 0 ? <span className="fieldr-home__hero-readout-sep" aria-hidden="true">&middot;</span> : null}
+                  {' '}
+                  {signal}
+                </span>
               ))}
             </div>
+            <div className="fieldr-home__meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
           </div>
         </section>
 
@@ -799,6 +750,19 @@ export default function Home() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="fieldr-home__final-cta">
+          <div className="fieldr-home__section-inner">
+            <h2 className="fieldr-home__final-title">Ready to stop letting changes disappear?</h2>
+            <p className="fieldr-home__final-copy">
+              Fieldr catches the field updates that usually slip through the office and turns them into reviewable work before they cost you money.
+            </p>
+            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__final-button">
+              Book a Demo
+            </SmartLink>
+            <div className="fieldr-home__final-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
       </main>

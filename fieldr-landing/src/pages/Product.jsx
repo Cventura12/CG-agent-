@@ -1,29 +1,5 @@
-import { Link } from 'react-router-dom'
 import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
-
-const featureRows = [
-  {
-    label: 'Queue',
-    title: 'Human-in-the-loop by design',
-    body: 'Fieldr catches the change, prepares the next move, and holds it for review. Quote revisions, follow-ups, and scope deltas do not go customer-facing until you approve them.',
-  },
-  {
-    label: 'Voice intake',
-    title: 'Dictate from the field',
-    body: 'Leave a voice note between jobs. Fieldr transcribes it, pulls out the missing scope, and prepares the draft before you get back to the office.',
-  },
-  {
-    label: 'Memory',
-    title: 'Pricing that compounds',
-    body: 'Every approval writes back to estimating memory. Labor rates, markup, waste factors, and material preferences stop living in old spreadsheets and start getting applied automatically.',
-  },
-  {
-    label: 'Documents',
-    title: 'Structured data from any input',
-    body: 'Subcontractor bids, permits, insurance certs, and change orders stop behaving like dead files. Fieldr extracts the useful details and keeps open work visible until someone closes it.',
-  },
-]
 
 const jobRows = [
   {
@@ -116,15 +92,8 @@ export default function Product() {
           color: var(--body);
         }
 
-        .fieldr-product__header-links {
-          margin-top: 24px;
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-
         .fieldr-product__header-demo {
+          margin-top: 24px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -137,15 +106,6 @@ export default function Product() {
           font-size: 14px;
           font-weight: 500;
           line-height: 1;
-          text-decoration: none;
-        }
-
-        .fieldr-product__header-link {
-          font-family: var(--mono);
-          font-size: 9px;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--body);
           text-decoration: none;
         }
 
@@ -670,126 +630,6 @@ export default function Product() {
           background: var(--moss);
         }
 
-        .fieldr-product__features {
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 0 40px 80px;
-        }
-
-        .fieldr-product__feature-row {
-          display: grid;
-          grid-template-columns: 180px minmax(0, 1fr);
-          gap: 28px;
-          padding: 32px 0;
-          border-top: 1px solid var(--rule);
-        }
-
-        .fieldr-product__feature-row:last-child {
-          border-bottom: 1px solid var(--rule);
-        }
-
-        .fieldr-product__feature-label {
-          font-family: var(--mono);
-          font-size: 9px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: var(--sienna-lt);
-        }
-
-        .fieldr-product__feature-title {
-          font-size: 15px;
-          font-weight: 500;
-          color: var(--bright);
-        }
-
-        .fieldr-product__feature-body {
-          margin-top: 8px;
-          font-size: 13px;
-          line-height: 1.7;
-          font-weight: 300;
-          color: var(--dim);
-        }
-
-        .fieldr-product__voice {
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 0 40px 80px;
-        }
-
-        .fieldr-product__voice-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-          gap: 36px;
-          align-items: start;
-        }
-
-        .fieldr-product__voice-label {
-          font-family: var(--mono);
-          font-size: 9px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: var(--sienna-lt);
-        }
-
-        .fieldr-product__voice-headline {
-          margin: 14px 0 0;
-          font-family: var(--serif);
-          font-size: 36px;
-          line-height: 1.18;
-          font-style: italic;
-          color: var(--bright);
-        }
-
-        .fieldr-product__voice-body {
-          margin-top: 16px;
-          max-width: 420px;
-          font-size: 14px;
-          line-height: 1.75;
-          font-weight: 300;
-          color: var(--dim);
-        }
-
-        .fieldr-product__voice-panel {
-          border: 1px solid var(--rule);
-          border-radius: 8px;
-          background: var(--surface);
-          overflow: hidden;
-        }
-
-        .fieldr-product__voice-row {
-          display: grid;
-          grid-template-columns: 108px minmax(0, 1fr);
-          gap: 16px;
-          padding: 18px 20px;
-          border-top: 1px solid var(--rule);
-        }
-
-        .fieldr-product__voice-row:first-child {
-          border-top: 0;
-        }
-
-        .fieldr-product__voice-kicker {
-          font-family: var(--mono);
-          font-size: 9px;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--sienna-lt);
-        }
-
-        .fieldr-product__voice-title {
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--bright);
-        }
-
-        .fieldr-product__voice-copy {
-          margin-top: 6px;
-          font-size: 12px;
-          line-height: 1.7;
-          font-weight: 300;
-          color: var(--dim);
-        }
-
         .fieldr-product__cta {
           padding: 80px 40px;
           border-top: 1px solid var(--rule);
@@ -823,24 +663,6 @@ export default function Product() {
           text-decoration: none;
         }
 
-        .fieldr-product__cta-actions {
-          margin-top: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-
-        .fieldr-product__cta-link {
-          font-family: var(--mono);
-          font-size: 9px;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--dim);
-          text-decoration: none;
-        }
-
         .fieldr-product__cta-note {
           margin-top: 18px;
           font-family: var(--mono);
@@ -852,9 +674,7 @@ export default function Product() {
 
         @media (max-width: 1080px) {
           .fieldr-product__dash,
-          .fieldr-product__workspace,
-          .fieldr-product__feature-row,
-          .fieldr-product__voice-grid {
+          .fieldr-product__workspace {
             grid-template-columns: 1fr;
           }
 
@@ -878,8 +698,6 @@ export default function Product() {
 
         @media (max-width: 780px) {
           .fieldr-product__replica-wrap,
-          .fieldr-product__features,
-          .fieldr-product__voice,
           .fieldr-product__header,
           .fieldr-product__cta {
             padding-left: 20px;
@@ -891,29 +709,11 @@ export default function Product() {
             -webkit-overflow-scrolling: touch;
           }
 
-          .fieldr-product__header-links {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
           .fieldr-product__header-demo,
-          .fieldr-product__header-link {
+          .fieldr-product__cta-button {
             width: min(100%, 280px);
             justify-content: center;
             text-align: center;
-          }
-
-          .fieldr-product__cta-button,
-          .fieldr-product__cta-link {
-            width: min(100%, 280px);
-            justify-content: center;
-            text-align: center;
-          }
-
-          .fieldr-product__voice-row {
-            grid-template-columns: 1fr;
-            gap: 10px;
-            padding: 18px 16px;
           }
 
           .fieldr-product__dash {
@@ -959,14 +759,9 @@ export default function Product() {
               <span className="fieldr-product__proof-pill">Electrical</span>
               <span className="fieldr-product__proof-pill">Plumbing</span>
             </div>
-            <div className="fieldr-product__header-links">
-              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
-                Book a Demo
-              </SmartLink>
-              <Link to="/how-it-works" className="fieldr-product__header-link">
-                Review the capture loop
-              </Link>
-            </div>
+            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__header-demo">
+              Book a Demo
+            </SmartLink>
           </div>
         </section>
 
@@ -1126,67 +921,10 @@ export default function Product() {
           </div>
         </section>
 
-        <section className="fieldr-product__features">
-          {featureRows.map((row) => (
-            <div key={row.label} className="fieldr-product__feature-row">
-              <div className="fieldr-product__feature-label">{row.label}</div>
-              <div>
-                <div className="fieldr-product__feature-title">{row.title}</div>
-                <div className="fieldr-product__feature-body">{row.body}</div>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <section className="fieldr-product__voice">
-          <div className="fieldr-product__voice-grid">
-            <div>
-              <div className="fieldr-product__voice-label">Voice capability &middot; Safe claim</div>
-              <h2 className="fieldr-product__voice-headline">Voice becomes reviewable work.</h2>
-              <p className="fieldr-product__voice-body">
-                Fieldr captures call transcripts and voice notes, extracts what changed, and routes those items into Today, Queue, draft quotes, tracked changes, or job history. The point is not transcription. The point is catching revenue and follow-through before they disappear.
-              </p>
-            </div>
-
-            <div className="fieldr-product__voice-panel">
-              <div className="fieldr-product__voice-row">
-                <div className="fieldr-product__voice-kicker">Capture</div>
-                <div>
-                  <div className="fieldr-product__voice-title">Inbound voice lands in the same system as everything else</div>
-                  <div className="fieldr-product__voice-copy">
-                    Calls, dictated notes, and transcript payloads do not live in a separate inbox. They enter the operational loop directly.
-                  </div>
-                </div>
-              </div>
-              <div className="fieldr-product__voice-row">
-                <div className="fieldr-product__voice-kicker">Extract</div>
-                <div>
-                  <div className="fieldr-product__voice-title">The agent pulls scope, risk, and follow-through signal out of transcript text</div>
-                  <div className="fieldr-product__voice-copy">
-                    Instead of a passive transcript archive, Fieldr produces reviewable changes, missing information, and next actions tied to the job.
-                  </div>
-                </div>
-              </div>
-              <div className="fieldr-product__voice-row">
-                <div className="fieldr-product__voice-kicker">Approve</div>
-                <div>
-                  <div className="fieldr-product__voice-title">Nothing is sent without contractor review</div>
-                  <div className="fieldr-product__voice-copy">
-                    The voice path is strongest where it should be strongest: capture and structured review. The contractor still approves what becomes customer-facing work.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="fieldr-product__cta">
           <div className="fieldr-product__inner">
             <h2 className="fieldr-product__cta-title">Ready to close the gap?</h2>
-            <div className="fieldr-product__cta-actions">
-              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</SmartLink>
-              <Link to="/how-it-works" className="fieldr-product__cta-link">See how it works</Link>
-            </div>
+            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-product__cta-button">Book a Demo</SmartLink>
             <div className="fieldr-product__cta-note">20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
