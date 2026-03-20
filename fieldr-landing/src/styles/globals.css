@@ -39,9 +39,7 @@ html {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at top, rgba(184,83,46,0.06), transparent 28%),
-    linear-gradient(180deg, #14120f 0%, var(--bg) 32%, var(--bg) 100%);
+  background: var(--bg);
   color: var(--body);
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
@@ -56,7 +54,7 @@ body::after {
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  opacity: 0.32;
+  opacity: 0.18;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   background-repeat: repeat;
 }
