@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { BOOK_DEMO_HREF } from './siteLinks'
+import { APP_FLOW_HREF, BOOK_DEMO_HREF } from './siteLinks'
 import { SmartLink } from './SmartLink'
 
 const navStyle = {
@@ -165,9 +165,9 @@ export function Nav() {
         </div>
 
         <div style={rightStyle}>
-          <NavLink to="/product" style={appLinkStyle} className="fieldr-nav-hide-mobile" onClick={closeMobile}>
-            See live workflow
-          </NavLink>
+          <SmartLink to={APP_FLOW_HREF} style={appLinkStyle} className="fieldr-nav-hide-mobile" onClick={closeMobile}>
+            Agent
+          </SmartLink>
           <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle}>
             Book a Demo
           </SmartLink>
@@ -195,9 +195,9 @@ export function Nav() {
             <NavLink to="/product" style={mobileLinkStyle} onClick={closeMobile}>
               Product
             </NavLink>
-            <NavLink to="/product" style={mobileLinkStyle} onClick={closeMobile}>
-              See live workflow
-            </NavLink>
+            <SmartLink to={APP_FLOW_HREF} style={mobileLinkStyle} onClick={closeMobile}>
+              Agent
+            </SmartLink>
             <SmartLink to={BOOK_DEMO_HREF} style={mobileLinkStyle} onClick={closeMobile}>
               Book a Demo
             </SmartLink>

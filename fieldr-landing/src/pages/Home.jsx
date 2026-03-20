@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { BOOK_DEMO_HREF } from '../components/siteLinks'
+import { BOOK_DEMO_HREF, APP_FLOW_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
 const problemCards = [
@@ -652,9 +651,7 @@ export default function Home() {
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
                 Book a Demo
               </SmartLink>
-              <Link to="/product" className="fieldr-home__secondary-cta">
-                See live workflow
-              </Link>
+              <SmartLink to={APP_FLOW_HREF} className="fieldr-home__secondary-cta">Agent</SmartLink>
             </div>
             <div className="fieldr-home__hero-readout" aria-label="Live agent readout">
               <span className="fieldr-home__hero-readout-dot" aria-hidden="true" />
