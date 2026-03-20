@@ -6,16 +6,16 @@ import { SmartLink } from '../components/SmartLink'
 
 const ownerRows = [
   {
-    label: 'Field updates land here',
-    copy: 'Calls, texts, and uploads stop living in inboxes and start showing up where the office can actually act on them.',
+    label: 'Catches field updates',
+    copy: 'Calls, texts, and uploads land in one review lane instead of getting buried across inboxes.',
   },
   {
-    label: 'The next step is prepared',
+    label: 'Prepares the next move',
     copy: 'When the work changes, the quote draft and follow-up are already lined up before the billing window closes.',
   },
   {
-    label: 'Everything stays with the job',
-    copy: 'Approvals, notes, and pricing memory stay tied to the work so the owner is not relying on memory to close it out.',
+    label: 'Keeps the job record current',
+    copy: 'Approvals, notes, and pricing memory stay with the work so the owner is not relying on memory to close it out.',
   },
 ]
 
@@ -54,7 +54,7 @@ export default function Product() {
         .fieldr-product__header {
           position: relative;
           overflow: hidden;
-          padding: 104px 40px 112px;
+          padding: 100px 40px 96px;
           border-bottom: 1px solid var(--rule);
         }
 
@@ -78,7 +78,7 @@ export default function Product() {
           z-index: 1;
           display: grid;
           grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.72fr);
-          gap: 48px;
+          gap: 40px;
           align-items: end;
         }
 
@@ -103,7 +103,7 @@ export default function Product() {
 
         .fieldr-product__subhead {
           margin: 16px 0 0;
-          max-width: 520px;
+          max-width: 500px;
           font-size: 16px;
           line-height: 1.7;
           font-weight: 300;
@@ -173,24 +173,24 @@ export default function Product() {
 
         .fieldr-product__hero-card-title {
           margin-top: 12px;
-          max-width: 320px;
-          font-size: 18px;
+          max-width: 300px;
+          font-size: 17px;
           line-height: 1.35;
           color: var(--bright);
         }
 
         .fieldr-product__hero-card-copy {
           margin-top: 10px;
-          font-size: 13px;
-          line-height: 1.7;
+          font-size: 12px;
+          line-height: 1.65;
           color: var(--body);
         }
 
         .fieldr-product__hero-card-row {
           display: grid;
-          grid-template-columns: 138px minmax(0, 1fr);
-          gap: 18px;
-          padding: 16px 20px;
+          grid-template-columns: 124px minmax(0, 1fr);
+          gap: 16px;
+          padding: 14px 20px;
           border-top: 1px solid var(--rule);
         }
 
@@ -204,15 +204,39 @@ export default function Product() {
 
         .fieldr-product__hero-card-rowcopy {
           font-size: 12px;
-          line-height: 1.7;
+          line-height: 1.55;
           color: var(--body);
         }
 
         .fieldr-product__frame-wrap {
           max-width: 1180px;
           margin: 0 auto;
-          margin-top: -58px;
-          padding: 0 40px 92px;
+          margin-top: -18px;
+          padding: 0 40px 88px;
+        }
+
+        .fieldr-product__frame-intro {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 14px;
+        }
+
+        .fieldr-product__frame-kicker {
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--sienna-lt);
+        }
+
+        .fieldr-product__frame-title {
+          margin-top: 8px;
+          max-width: 620px;
+          font-size: 15px;
+          line-height: 1.45;
+          color: var(--bright);
         }
 
         .fieldr-product__frame {
@@ -261,39 +285,7 @@ export default function Product() {
           color: var(--muted);
         }
 
-        .fieldr-product__frame-meta {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          padding: 18px 22px 16px;
-          border-bottom: 1px solid var(--rule);
-          background: linear-gradient(180deg, rgba(28,26,23,0.65) 0%, rgba(22,20,18,0.94) 100%);
-        }
-
-        .fieldr-product__frame-kicker {
-          font-family: var(--mono);
-          font-size: 8px;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          color: var(--sienna-lt);
-        }
-
-        .fieldr-product__frame-title {
-          margin-top: 8px;
-          font-size: 15px;
-          color: var(--bright);
-        }
-
-        .fieldr-product__frame-copy {
-          margin-top: 6px;
-          font-size: 13px;
-          line-height: 1.65;
-          color: var(--body);
-        }
-
         .fieldr-product__drag-note {
-          display: none;
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.08em;
@@ -303,8 +295,22 @@ export default function Product() {
         }
 
         .fieldr-product__screen {
+          position: relative;
           overflow: hidden;
           background: #0E0D0C;
+        }
+
+        .fieldr-product__screen-badges {
+          position: absolute;
+          top: 18px;
+          left: 18px;
+          right: 18px;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          pointer-events: none;
         }
 
         .fieldr-product__screen-scroll {
@@ -318,18 +324,23 @@ export default function Product() {
           background: #0E0D0C;
         }
 
-        .fieldr-product__caption {
-          padding: 14px 22px 18px;
-          border-top: 1px solid var(--rule);
-          font-size: 12px;
-          line-height: 1.7;
-          color: var(--dim);
-          background: rgba(17,15,13,0.96);
+        .fieldr-product__screen-badge {
+          display: inline-flex;
+          align-items: center;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 999px;
+          padding: 8px 11px;
+          background: rgba(13,12,10,0.78);
+          backdrop-filter: blur(10px);
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--bright);
         }
 
-        .fieldr-product__caption strong {
-          color: var(--bright);
-          font-weight: 500;
+        .fieldr-product__screen-badge.is-muted {
+          color: var(--body);
         }
 
         .fieldr-product__cta {
@@ -376,7 +387,7 @@ export default function Product() {
 
           .fieldr-product__header {
             padding-top: 96px;
-            padding-bottom: 84px;
+            padding-bottom: 72px;
           }
 
           .fieldr-product__hero-card-row {
@@ -390,17 +401,17 @@ export default function Product() {
           }
 
           .fieldr-product__frame-wrap {
-            margin-top: -34px;
-            padding-bottom: 80px;
+            margin-top: -12px;
+            padding-bottom: 76px;
           }
 
-          .fieldr-product__frame-meta {
+          .fieldr-product__frame-intro {
             align-items: flex-start;
             flex-direction: column;
           }
 
           .fieldr-product__drag-note {
-            display: block;
+            display: inline-flex;
           }
 
           .fieldr-product__screen-scroll {
@@ -413,8 +424,8 @@ export default function Product() {
             max-width: none;
           }
 
-          .fieldr-product__caption {
-            padding-top: 12px;
+          .fieldr-product__screen-badges {
+            display: none;
           }
         }
       `}</style>
@@ -430,8 +441,8 @@ export default function Product() {
                 This is what the office sees when something changes.
               </h1>
               <p className="fieldr-product__subhead" data-product-reveal="subhead">
-                Calls, texts, uploads, and follow-ups land in one place. The agent catches what changed, prepares the
-                next step, and leaves it ready for review before money slips through.
+                Calls, texts, uploads, and follow-ups land in one place. The agent catches what changed and leaves the
+                next step ready for review before money slips through.
               </p>
               <div className="fieldr-product__proof" data-product-reveal="proof">
                 {proofPills.map((pill) => (
@@ -449,11 +460,11 @@ export default function Product() {
               <div className="fieldr-product__hero-card-head">
                 <div className="fieldr-product__hero-card-label">What owners care about</div>
                 <div className="fieldr-product__hero-card-title">
-                  No one has to chase the thread to figure out what happened.
+                  The office can see what changed without chasing the thread.
                 </div>
                 <div className="fieldr-product__hero-card-copy">
-                  The agent keeps the office on the current version of the job. It catches the update, prepares the
-                  next move, and leaves a record behind.
+                  The agent keeps the office on the current version of the job. It catches the update, prepares the next
+                  move, and leaves a record behind.
                 </div>
               </div>
 
@@ -468,6 +479,16 @@ export default function Product() {
         </section>
 
         <section className="fieldr-product__frame-wrap">
+          <div className="fieldr-product__frame-intro fieldr-product__frame-meta">
+            <div>
+              <div className="fieldr-product__frame-kicker">Actual agent view</div>
+              <div className="fieldr-product__frame-title">
+                One place for queue pressure, quote activity, and live follow-through.
+              </div>
+            </div>
+            <div className="fieldr-product__drag-note">Swipe to inspect on phone</div>
+          </div>
+
           <div className="fieldr-product__frame">
             <div className="fieldr-product__windowbar">
               <div className="fieldr-product__dots" aria-hidden="true">
@@ -492,6 +513,10 @@ export default function Product() {
             </div>
 
             <div className="fieldr-product__screen">
+              <div className="fieldr-product__screen-badges" aria-hidden="true">
+                <div className="fieldr-product__screen-badge">Today view</div>
+                <div className="fieldr-product__screen-badge is-muted">Queue · quotes · follow-ups</div>
+              </div>
               <div className="fieldr-product__screen-scroll">
                 <img
                   className="fieldr-product__screen-image"
@@ -499,11 +524,6 @@ export default function Product() {
                   alt="Fieldr agent workspace showing the Today view with queue items, metrics, agent feed, recent jobs, and activity log."
                 />
               </div>
-            </div>
-
-            <div className="fieldr-product__caption">
-              <strong>Why this matters:</strong> the office does not need another inbox. It needs one place that shows what changed,
-              what is waiting, and what needs approval before the job moves on.
             </div>
           </div>
         </section>
