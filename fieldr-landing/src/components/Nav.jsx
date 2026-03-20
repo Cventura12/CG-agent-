@@ -296,7 +296,7 @@ export function Nav() {
         }
 
         .fieldr-nav-agent::after {
-          content: '?';
+          content: '->';
           font-size: 10px;
           line-height: 1;
           opacity: 0.78;

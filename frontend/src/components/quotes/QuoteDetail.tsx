@@ -40,7 +40,7 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
           <div className="min-w-0 flex-1">
             <div className="text-[14px] font-medium text-[var(--t1)]">{quote.jobName}</div>
             <div className="mt-1 text-[12px] text-[var(--t2)]">{quote.customerName} · {quote.customerContact}</div>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <QuoteStatusBadge status={quote.status} />
               {intakeLabel ? <Badge label={intakeLabel} color="blue" /> : null}
               <span className="font-mono text-[10px] text-[var(--t3)]">Created {formatTimestamp(quote.createdAt)}</span>
@@ -54,21 +54,23 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
 
       <div className="scrollbar-none flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
         <section className="border-b border-[var(--line)] pb-5">
-          <div className="flex items-start justify-between gap-2">
-            {steps.map((step, index) => {
-              const reached = stepReached(quote, step);
-              return (
-                <div key={step} className="flex flex-1 items-center gap-2 last:flex-[0.8]">
-                  <div className="flex flex-col items-center gap-2">
-                    <span className={`flex h-[20px] w-[20px] items-center justify-center rounded-full border ${reached ? "border-[var(--accent)] bg-[var(--acl)] text-[var(--accent-2)]" : "border-dashed border-[var(--line-3)] text-[var(--t3)]"}`}>
-                      <span className="font-mono text-[10px]">{index + 1}</span>
-                    </span>
-                    <span className="font-mono text-[10px] text-[var(--t3)]">{step}</span>
+          <div className="scrollbar-none overflow-x-auto pb-1">
+            <div className="flex min-w-[360px] items-start justify-between gap-2 sm:min-w-0">
+              {steps.map((step, index) => {
+                const reached = stepReached(quote, step);
+                return (
+                  <div key={step} className="flex flex-1 items-center gap-2 last:flex-[0.8]">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className={`flex h-[20px] w-[20px] items-center justify-center rounded-full border ${reached ? "border-[var(--accent)] bg-[var(--acl)] text-[var(--accent-2)]" : "border-dashed border-[var(--line-3)] text-[var(--t3)]"}`}>
+                        <span className="font-mono text-[10px]">{index + 1}</span>
+                      </span>
+                      <span className="font-mono text-[10px] text-[var(--t3)]">{step}</span>
+                    </div>
+                    {index < steps.length - 1 ? <div className={`mt-[-16px] h-px flex-1 ${reached ? "bg-[var(--accent)]" : "bg-[var(--line)]"}`} /> : null}
                   </div>
-                  {index < steps.length - 1 ? <div className={`mt-[-16px] h-px flex-1 ${reached ? "bg-[var(--accent)]" : "bg-[var(--line)]"}`} /> : null}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -79,31 +81,31 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
               <div className="whitespace-pre-line text-[12px] leading-relaxed text-[var(--t2)]">{quote.notes}</div>
             </div>
           ) : null}
-          <div className="overflow-x-auto">
-          <table className="min-w-[520px] w-full border-collapse text-[12px]">
-            <thead>
-              <tr className="border-b border-[var(--line)] text-left font-mono text-[10px] uppercase tracking-wider text-[var(--t3)]">
-                <th className="py-3 pr-3 font-medium">Description</th>
-                <th className="py-3 pr-3 font-medium">Qty</th>
-                <th className="py-3 pr-3 font-medium">Unit price</th>
-                <th className="py-3 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quote.lineItems.map((item) => (
-                <tr key={item.id} className="border-b border-[var(--line)]">
-                  <td className="py-3 pr-3 text-[var(--t1)]">{item.description}</td>
-                  <td className="py-3 pr-3 font-mono text-[var(--t2)]">{item.quantity}</td>
-                  <td className="py-3 pr-3 font-mono text-[var(--t2)]">{formatCurrency(item.unitPrice)}</td>
-                  <td className="py-3 text-right font-mono text-[var(--t1)]">{formatCurrency(item.total)}</td>
+          <div className="scrollbar-none overflow-x-auto">
+            <table className="w-full min-w-[520px] border-collapse text-[12px]">
+              <thead>
+                <tr className="border-b border-[var(--line)] text-left font-mono text-[10px] uppercase tracking-wider text-[var(--t3)]">
+                  <th className="py-3 pr-3 font-medium">Description</th>
+                  <th className="py-3 pr-3 font-medium">Qty</th>
+                  <th className="py-3 pr-3 font-medium">Unit price</th>
+                  <th className="py-3 text-right font-medium">Total</th>
                 </tr>
-              ))}
-              <tr className="border-t-2 border-[var(--line-3)]">
-                <td colSpan={3} className="py-4 font-medium text-[var(--t1)]">Total</td>
-                <td className="py-4 text-right font-mono text-[var(--green)]">{formatCurrency(quote.totalValue)}</td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {quote.lineItems.map((item) => (
+                  <tr key={item.id} className="border-b border-[var(--line)]">
+                    <td className="py-3 pr-3 text-[var(--t1)]">{item.description}</td>
+                    <td className="py-3 pr-3 font-mono text-[var(--t2)]">{item.quantity}</td>
+                    <td className="py-3 pr-3 font-mono text-[var(--t2)]">{formatCurrency(item.unitPrice)}</td>
+                    <td className="py-3 text-right font-mono text-[var(--t1)]">{formatCurrency(item.total)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-[var(--line-3)]">
+                  <td colSpan={3} className="py-4 font-medium text-[var(--t1)]">Total</td>
+                  <td className="py-4 text-right font-mono text-[var(--green)]">{formatCurrency(quote.totalValue)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </div>

@@ -180,7 +180,7 @@ export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteCompo
     baseDraftRef.current = notes.trim();
     setActiveMode("voice");
     setCaptureError(null);
-    setCaptureMessage("Recording… tap again to stop.");
+    setCaptureMessage("Recording... tap again to stop.");
     setIsRecording(true);
     recognition.start();
   }, [isRecording, notes, stopRecording]);
@@ -376,7 +376,7 @@ export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteCompo
                                 <Mic className="h-[14px] w-[14px]" strokeWidth={2} />
                               )
                             }
-                            className="h-[38px] min-w-[158px] justify-center"
+                            className="h-[38px] w-full justify-center sm:w-auto sm:min-w-[158px]"
                           >
                             {isRecording ? "Stop recording" : "Start voice memo"}
                           </Button>
@@ -421,8 +421,8 @@ export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteCompo
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] bg-[var(--bg)] px-4 py-3.5">
-                  <div className="relative flex items-center gap-3">
+                <div className="flex flex-col gap-3 border-t border-[var(--line)] bg-[var(--bg)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative flex w-full flex-wrap items-center gap-3 sm:w-auto">
                     <button
                       ref={triggerRef}
                       type="button"
@@ -439,7 +439,8 @@ export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteCompo
                       <div
                         ref={menuRef}
                         role="menu"
-                        className="absolute bottom-[calc(100%+10px)] left-0 z-10 min-w-[228px] rounded-[16px] border border-[var(--line-2)] bg-[var(--bg-4)] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.42)]"
+                        className="absolute bottom-[calc(100%+10px)] left-0 z-10 rounded-[16px] border border-[var(--line-2)] bg-[var(--bg-4)] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.42)] sm:min-w-[228px]"
+                        style={{ width: "min(228px, calc(100vw - 56px))" }}
                       >
                         <button
                           type="button"
@@ -496,10 +497,10 @@ export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteCompo
                       </div>
                     ) : null}
 
-                    <div className="text-[11px] text-[var(--t2)]">Only one intake mode stays active at a time.</div>
+                    <div className="text-[11px] leading-relaxed text-[var(--t2)] sm:max-w-[240px]">Only one intake mode stays active at a time.</div>
                   </div>
 
-                  <Button variant="accent" onClick={handleCreateDraft} disabled={isRecording} className="h-[38px] min-w-[168px] justify-center">
+                  <Button variant="accent" onClick={handleCreateDraft} disabled={isRecording} className="h-[38px] w-full justify-center sm:w-auto sm:min-w-[168px]">
                     Generate quote
                   </Button>
                 </div>

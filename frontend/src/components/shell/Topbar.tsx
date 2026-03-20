@@ -22,8 +22,8 @@ export function Topbar({ title, subtitle, actions, leading }: TopbarProps) {
       </div>
       <div
         className={clsx(
-          "scrollbar-none flex min-w-0 items-center gap-1.5 overflow-x-auto sm:gap-2",
-          actions ? "max-w-[58vw] sm:max-w-none" : ""
+          "scrollbar-none flex min-w-0 items-center justify-end gap-1.5 overflow-x-auto sm:gap-2",
+          actions ? "max-w-[68vw] sm:max-w-none" : ""
         )}
       >
         {actions}
