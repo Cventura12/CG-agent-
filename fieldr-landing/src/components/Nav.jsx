@@ -59,7 +59,7 @@ const navLinkBaseStyle = {
 const rightStyle = {
   display: 'flex',
   alignItems: 'center',
-  gap: '14px',
+  gap: '10px',
   flexShrink: 0,
 }
 
@@ -78,6 +78,16 @@ const buttonStyle = {
   fontWeight: 500,
   lineHeight: 1,
   cursor: 'pointer',
+  textDecoration: 'none',
+}
+
+const agentButtonStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '32px',
+  padding: '0 14px',
+  borderRadius: '999px',
   textDecoration: 'none',
 }
 
@@ -158,7 +168,7 @@ export function Nav() {
         </div>
 
         <div style={rightStyle} data-nav-reveal="actions">
-          <SmartLink to={APP_FLOW_HREF} className="fieldr-nav-link fieldr-nav-app fieldr-nav-hide-mobile" onClick={closeMobile}>
+          <SmartLink to={APP_FLOW_HREF} style={agentButtonStyle} className="fieldr-nav-agent fieldr-nav-hide-mobile" onClick={closeMobile}>
             Agent
           </SmartLink>
           <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle} className="fieldr-nav-demo">
@@ -179,6 +189,14 @@ export function Nav() {
       {mobileOpen ? (
         <div style={mobilePanelStyle} className="fieldr-nav-mobile-panel">
           <nav aria-label="Mobile" style={mobileNavStyle}>
+            <div className="fieldr-nav-mobile-actions">
+              <SmartLink to={APP_FLOW_HREF} className="fieldr-nav-agent fieldr-nav-agent--mobile" onClick={closeMobile}>
+                Agent
+              </SmartLink>
+              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-nav-demo fieldr-nav-demo--mobile" onClick={closeMobile}>
+                Book a Demo
+              </SmartLink>
+            </div>
             <NavLink to="/" end style={mobileLinkStyle} onClick={closeMobile}>
               Home
             </NavLink>
@@ -211,6 +229,7 @@ export function Nav() {
         .fieldr-nav-link {
           position: relative;
           color: var(--muted);
+          text-decoration: none;
           transition: color 160ms ease;
         }
 
@@ -251,13 +270,98 @@ export function Nav() {
           box-shadow: 0 14px 30px rgba(184,83,46,0.24);
         }
 
-        @media (max-width: 760px) {
+        .fieldr-nav-agent {
+          position: relative;
+          gap: 8px;
+          border: 1px solid var(--rule2);
+          background: linear-gradient(180deg, rgba(28,26,23,0.94) 0%, rgba(18,16,14,0.98) 100%);
+          color: var(--bright);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.025), 0 10px 24px rgba(0,0,0,0.18);
+          transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+        }
+
+        .fieldr-nav-agent::before {
+          content: '';
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: var(--sienna-lt);
+          box-shadow: 0 0 0 4px rgba(212,103,63,0.12);
+          animation: fieldrAgentPulse 1.9s ease-in-out infinite;
+          flex: 0 0 auto;
+        }
+
+        .fieldr-nav-agent::after {
+          content: '↗';
+          font-size: 10px;
+          line-height: 1;
+          opacity: 0.78;
+          transform: translateX(0);
+          transition: transform 180ms ease, opacity 180ms ease;
+        }
+
+        .fieldr-nav-agent:hover {
+          color: var(--bright);
+          border-color: rgba(212,103,63,0.28);
+          transform: translateY(-1px);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 14px 30px rgba(0,0,0,0.24);
+          text-decoration: none;
+        }
+
+        .fieldr-nav-agent:hover::after {
+          opacity: 1;
+          transform: translateX(2px);
+        }
+
+        .fieldr-nav-mobile-actions {
+          display: none;
+        }
+
+        .fieldr-nav-demo--mobile,
+        .fieldr-nav-agent--mobile {
+          min-height: 38px;
+          justify-content: center;
+        }
+
+        .fieldr-nav-demo--mobile {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 0;
+          border-radius: 8px;
+          padding: 0 16px;
+          background: linear-gradient(135deg, var(--sienna), var(--sienna-lt));
+          color: var(--bright);
+          font-family: var(--sans);
+          font-size: 13px;
+          font-weight: 500;
+          text-decoration: none;
+          box-shadow: 0 14px 28px rgba(184,83,46,0.18);
+        }
+
+        @keyframes fieldrAgentPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.45; transform: scale(1.15); }
+        }
+
+        @media (max-width: 900px) {
           .fieldr-nav-hide-mobile {
             display: none;
           }
 
           .fieldr-nav-mobile-trigger {
             display: inline-flex !important;
+          }
+
+          .fieldr-nav-mobile-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
           }
         }
 
@@ -291,6 +395,12 @@ export function Nav() {
           .fieldr-nav-mobile-panel {
             padding-left: 16px !important;
             padding-right: 16px !important;
+          }
+
+          .fieldr-nav-demo {
+            padding-left: 14px !important;
+            padding-right: 14px !important;
+            font-size: 11px !important;
           }
         }
       `}</style>
