@@ -479,13 +479,15 @@ const queueItems: QueueItem[] = [
     jobId: "job-river",
     jobName: "Rivergate tenant finish",
     urgent: false,
-    status: "pending",
+    status: "manual_review",
     extractedActions: [
       { id: "qa-rv1", type: "quote_item", description: "Price ceiling grid reset and lighting relocation.", estimatedValue: 3190, approved: true },
       { id: "qa-rv2", type: "note", description: "Wait for architect confirmation before promising install date.", approved: false },
     ],
     rawTranscriptSnippet: "Clouded note from architect: move three fixtures, reset grid, patch one chase after med gas run.",
     createdAt: hoursAgo(6),
+    confidenceScore: 0.61,
+    manualReviewReason: "Architect markup conflicts with the prior quote scope. GC review required before it goes out.",
   },
   {
     id: "queue-atlas-whatsapp",
@@ -509,14 +511,14 @@ const queueItems: QueueItem[] = [
 const agentStatus: AgentStatus = {
   active: true,
   itemsProcessed: 3,
-  openItems: 2,
+  openItems: 3,
   lastActivityAt: minutesAgo(6),
-  currentTask: "Watching for the next field call",
+  currentTask: "Manual review needed on 1 item",
   log: [
     { id: "log-1", message: "initialized contractor runtime", timestamp: hoursAgo(9), type: "info" },
     { id: "log-2", message: "drafted Hartley flashing supplement from call", timestamp: minutesAgo(21), type: "action" },
     { id: "log-3", message: "holding Atlas WhatsApp thread until PM markup lands", timestamp: minutesAgo(14), type: "waiting" },
-    { id: "log-4", message: "waiting for contractor approval on 2 open items", timestamp: minutesAgo(6), type: "waiting" },
+    { id: "log-4", message: "manual review needed on Rivergate ceiling revision", timestamp: minutesAgo(6), type: "waiting" },
   ],
 };
 

@@ -1,5 +1,5 @@
 export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL" | "WHATSAPP";
-export type QueueStatus = "pending" | "approved" | "dismissed" | "snoozed";
+export type QueueStatus = "pending" | "manual_review" | "approved" | "dismissed" | "snoozed";
 export type QuoteStatus = "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired";
 export type JobStatus = "active" | "quoted" | "in_progress" | "completed" | "stalled";
 export type FollowUpStatus = "scheduled" | "sent" | "responded" | "overdue";
@@ -58,6 +58,11 @@ export interface QueueItem {
   approvedAt?: string;
   generatedQuoteId?: string;
   generatedFollowUpIds?: string[];
+  confidenceScore?: number;
+  manualReviewReason?: string;
+  backendLinked?: boolean;
+  backendDraftType?: string;
+  backendTraceId?: string;
 }
 
 export interface QuoteLineItem {

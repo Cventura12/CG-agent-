@@ -29,7 +29,7 @@ export interface TodayViewProps {
 
 function deriveSetupSteps(queueItems: QueueItem[], openQuotes: number, followUpsDue: number, recentJobs: Job[]): 0 | 1 | 2 | 3 {
   if (openQuotes > 0 || followUpsDue > 0) return 3;
-  if (queueItems.some((item) => item.status !== "pending")) return 2;
+  if (queueItems.some((item) => item.status === "approved" || item.status === "dismissed" || item.status === "snoozed")) return 2;
   if (queueItems.length > 0 || recentJobs.length > 0) return 1;
   return 0;
 }
@@ -47,7 +47,7 @@ function TodayViewContent({
   currentTime,
 }: Required<TodayViewProps> & { requestVoiceTransfer: (id: string) => void }) {
   const navigate = useNavigate();
-  const pendingItems = queueItems.filter((item) => item.status === "pending");
+  const pendingItems = queueItems.filter((item) => item.status === "pending" || item.status === "manual_review");
   const urgentItems = pendingItems.filter((item) => item.urgent);
   const firstName = user.name.split(" ")[0] ?? user.name;
 
@@ -112,8 +112,12 @@ function TodayViewContent({
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="text-[13px] font-medium text-[var(--t1)]">{item.title}</div>
                             {item.urgent ? <Badge label="Urgent" color="amber" /> : null}
+                            {item.status === "manual_review" ? <Badge label="Manual review" color="accent" /> : null}
                           </div>
                           <div className="mt-1 text-[12px] leading-relaxed text-[var(--t2)]">{item.description}</div>
+                          {item.status === "manual_review" && item.manualReviewReason ? (
+                            <div className="mt-2 text-[11px] text-[var(--accent-2)]">{item.manualReviewReason}</div>
+                          ) : null}
                           <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">{item.jobName ?? "Unassigned"} · {formatTimeAgo(item.createdAt)}</div>
                         </div>
                         <ArrowRight className="mt-[4px] h-[14px] w-[14px] text-[var(--t3)]" strokeWidth={2} />

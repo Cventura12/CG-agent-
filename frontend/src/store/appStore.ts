@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { approveWorkspaceQueueItem, dismissWorkspaceQueueItem, fetchWorkspaceQueueItems } from "../api/workspaceQueue";
 import { fetchVoiceSessions, transferVoiceSession } from "../api/voice";
 import { mockAppState } from "../lib/mockData";
 import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteIntakeSource, QuoteLineItem, User, VoiceCallSession } from "../types";
@@ -20,9 +21,11 @@ interface AppStore {
 
   setUser: (user: User) => void;
   setAgentStatus: (status: AgentStatus) => void;
-  approveAllQueueItems: () => void;
-  approveQueueItem: (id: string) => void;
-  dismissQueueItem: (id: string) => void;
+  setQueueItems: (items: QueueItem[]) => void;
+  refreshQueueItems: () => Promise<void>;
+  approveAllQueueItems: () => Promise<void>;
+  approveQueueItem: (id: string) => Promise<void>;
+  dismissQueueItem: (id: string) => Promise<void>;
   snoozeQueueItem: (id: string, until: string) => void;
   toggleExtractedAction: (queueItemId: string, actionId: string) => void;
   setActiveJob: (id: string | null) => void;
@@ -142,10 +145,23 @@ function quoteIntakeSourceFromQueueItem(item: QueueItem): QuoteIntakeSource {
   return "manual";
 }
 
+function queueNeedsReview(item: QueueItem): boolean {
+  return item.status === "pending" || item.status === "manual_review";
+}
+
 function syncJobsState(jobs: Job[], quotes: Quote[], followUps: FollowUp[], queueItems: QueueItem[]): Job[] {
+  const jobIdByName = jobs.reduce<Record<string, string>>((acc, job) => {
+    acc[normalizeLookupKey(job.name)] = job.id;
+    return acc;
+  }, {});
+
   const countsByJob = queueItems.reduce<Record<string, number>>((acc, item) => {
-    if (item.jobId && item.status === "pending") {
-      acc[item.jobId] = (acc[item.jobId] ?? 0) + 1;
+    const linkedJobId =
+      (item.jobId && jobs.some((job) => job.id === item.jobId) ? item.jobId : undefined) ??
+      (item.jobName ? jobIdByName[normalizeLookupKey(item.jobName)] : undefined);
+
+    if (linkedJobId && queueNeedsReview(item)) {
+      acc[linkedJobId] = (acc[linkedJobId] ?? 0) + 1;
     }
     return acc;
   }, {});
@@ -169,7 +185,60 @@ function syncJobsState(jobs: Job[], quotes: Quote[], followUps: FollowUp[], queu
 }
 
 function pendingCount(queueItems: QueueItem[]): number {
-  return queueItems.filter((item) => item.status === "pending").length;
+  return queueItems.filter(queueNeedsReview).length;
+}
+
+function sortQueueItems(items: QueueItem[]): QueueItem[] {
+  return [...items].sort((left, right) => {
+    const leftPriority = left.status === "manual_review" ? 0 : left.urgent ? 1 : 2;
+    const rightPriority = right.status === "manual_review" ? 0 : right.urgent ? 1 : 2;
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+  });
+}
+
+function summarizeQueueTask(queueItems: QueueItem[]): string {
+  const manualReviewCount = queueItems.filter((item) => item.status === "manual_review").length;
+  if (manualReviewCount > 0) {
+    return `Manual review needed on ${manualReviewCount} item${manualReviewCount === 1 ? "" : "s"}`;
+  }
+
+  const openCount = pendingCount(queueItems);
+  return openCount > 0 ? "Waiting for contractor review" : "Watching for new inbound work";
+}
+
+function mergeLiveQueueItems(current: QueueItem[], incoming: QueueItem[]): QueueItem[] {
+  const incomingById = new Map(incoming.map((item) => [item.id, item]));
+  const currentById = new Map(current.map((item) => [item.id, item]));
+
+  const mergedIncoming = incoming.map((item) => {
+    const existing = currentById.get(item.id);
+    const existingActions = new Map((existing?.extractedActions ?? []).map((action) => [action.id, action]));
+    const resolvedLocally = existing && !queueNeedsReview(existing);
+
+    return {
+      ...item,
+      status: resolvedLocally ? existing.status : item.status,
+      approvedAt: existing?.approvedAt,
+      generatedQuoteId: existing?.generatedQuoteId,
+      generatedFollowUpIds: existing?.generatedFollowUpIds,
+      extractedActions: item.extractedActions.map((action) => {
+        const existingAction = existingActions.get(action.id);
+        return existingAction ? { ...action, approved: existingAction.approved } : action;
+      }),
+    } satisfies QueueItem;
+  });
+
+  const preservedExisting = current.filter((item) => {
+    if (!incomingById.has(item.id)) {
+      return !item.backendLinked || !queueNeedsReview(item);
+    }
+    return false;
+  });
+
+  return sortQueueItems([...mergedIncoming, ...preservedExisting]);
 }
 
 function syncAgentStatus(agentStatus: AgentStatus, queueItems: QueueItem[], processedIncrement = 0, currentTask?: string): AgentStatus {
@@ -284,7 +353,7 @@ function applyQueueApprovals(
   let followUpCount = 0;
 
   const queueItems = state.queueItems.map((item) => {
-    if (!queueItemIds.includes(item.id) || item.status !== "pending") {
+    if (!queueItemIds.includes(item.id) || !queueNeedsReview(item)) {
       return item;
     }
 
@@ -373,12 +442,13 @@ function applyQueueApprovals(
   ].filter(Boolean);
 
   const jobsWithSync = syncJobsState(jobs, quotes, followUps, queueItems);
+  const summary = summaryParts.join(" · ");
   const agentStatus = summaryParts.length > 0
-    ? appendAgentLog(syncAgentStatus(state.agentStatus, queueItems, processedCount, summaryParts.join(" · ")), summaryParts.join(" · "), timestamp)
-    : syncAgentStatus(state.agentStatus, queueItems, 0);
+    ? appendAgentLog(syncAgentStatus(state.agentStatus, queueItems, processedCount, summary), summary, timestamp)
+    : syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems));
 
   return {
-    queueItems,
+    queueItems: sortQueueItems(queueItems),
     quotes,
     followUps,
     jobs: jobsWithSync,
@@ -400,10 +470,31 @@ function mergeVoiceSessionList(current: VoiceCallSession[], incoming: VoiceCallS
   return next;
 }
 
-export const useAppStore = create<AppStore>((set) => ({
+export const useAppStore = create<AppStore>((set, get) => ({
   ...mockAppState,
   setUser: (user) => set({ user }),
   setAgentStatus: (agentStatus) => set({ agentStatus }),
+  setQueueItems: (queueItems) =>
+    set((state) => ({
+      queueItems: sortQueueItems(queueItems),
+      jobs: syncJobsState(state.jobs, state.quotes, state.followUps, queueItems),
+      agentStatus: syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems)),
+    })),
+  refreshQueueItems: async () => {
+    try {
+      const liveQueueItems = await fetchWorkspaceQueueItems();
+      set((state) => {
+        const queueItems = mergeLiveQueueItems(state.queueItems, liveQueueItems);
+        return {
+          queueItems,
+          jobs: syncJobsState(state.jobs, state.quotes, state.followUps, queueItems),
+          agentStatus: syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems)),
+        };
+      });
+    } catch {
+      // Keep the current queue visible when the live backend is unavailable.
+    }
+  },
   setVoiceSessions: (voiceSessions) => set({ voiceSessions }),
   refreshVoiceSessions: async () => {
     try {
@@ -413,28 +504,67 @@ export const useAppStore = create<AppStore>((set) => ({
       // Keep the current local sessions visible when the live backend is unavailable.
     }
   },
-  approveAllQueueItems: () =>
-    set((state) => applyQueueApprovals(state, state.queueItems.filter((item) => item.status === "pending").map((item) => item.id))),
-  approveQueueItem: (id) =>
-    set((state) => applyQueueApprovals(state, [id])),
-  dismissQueueItem: (id) =>
+  approveAllQueueItems: async () => {
+    const items = get().queueItems.filter(queueNeedsReview);
+    const approvedIds: string[] = [];
+
+    for (const item of items) {
+      try {
+        await approveWorkspaceQueueItem(item);
+        approvedIds.push(item.id);
+      } catch {
+        // Leave the item in the queue when the live approval fails.
+      }
+    }
+
+    if (approvedIds.length > 0) {
+      set((state) => applyQueueApprovals(state, approvedIds));
+    }
+  },
+  approveQueueItem: async (id) => {
+    const item = get().queueItems.find((candidate) => candidate.id === id);
+    if (!item) {
+      return;
+    }
+
+    try {
+      await approveWorkspaceQueueItem(item);
+    } catch {
+      return;
+    }
+
+    set((state) => applyQueueApprovals(state, [id]));
+  },
+  dismissQueueItem: async (id) => {
+    const item = get().queueItems.find((candidate) => candidate.id === id);
+    if (!item) {
+      return;
+    }
+
+    try {
+      await dismissWorkspaceQueueItem(item);
+    } catch {
+      return;
+    }
+
     set((state) => {
-      const queueItems = state.queueItems.map((item) => (item.id === id ? { ...item, status: "dismissed" as const } : item));
+      const queueItems = sortQueueItems(state.queueItems.map((entry) => (entry.id === id ? { ...entry, status: "dismissed" as const } : entry)));
       return {
         queueItems,
         jobs: syncJobsState(state.jobs, state.quotes, state.followUps, queueItems),
-        agentStatus: syncAgentStatus(state.agentStatus, queueItems),
+        agentStatus: syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems)),
       };
-    }),
+    });
+  },
   snoozeQueueItem: (id, until) =>
     set((state) => {
-      const queueItems = state.queueItems.map((item) =>
+      const queueItems = sortQueueItems(state.queueItems.map((item) =>
         item.id === id ? { ...item, status: "snoozed" as const, snoozedUntil: until } : item
-      );
+      ));
       return {
         queueItems,
         jobs: syncJobsState(state.jobs, state.quotes, state.followUps, queueItems),
-        agentStatus: syncAgentStatus(state.agentStatus, queueItems),
+        agentStatus: syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems)),
       };
     }),
   toggleExtractedAction: (queueItemId, actionId) =>

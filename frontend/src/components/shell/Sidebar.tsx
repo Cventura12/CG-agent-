@@ -45,8 +45,9 @@ export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
   const recentJobs = [...jobs]
     .sort((left, right) => new Date(right.lastActivityAt ?? right.createdAt).getTime() - new Date(left.lastActivityAt ?? left.createdAt).getTime())
     .slice(0, 6);
-  const queueCount = queueItems.filter((item) => item.status === "pending").length;
-  const urgentCount = queueItems.filter((item) => item.status === "pending" && item.urgent).length;
+  const queueCount = queueItems.filter((item) => item.status === "pending" || item.status === "manual_review").length;
+  const urgentCount = queueItems.filter((item) => (item.status === "pending" || item.status === "manual_review") && item.urgent).length;
+  const manualReviewCount = queueItems.filter((item) => item.status === "manual_review").length;
 
   return (
     <aside className={clsx("flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-[var(--line)] bg-[var(--bg-2)]", className)}>
@@ -81,7 +82,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
                 <Icon className={`h-[14px] w-[14px] ${active ? "opacity-100" : "opacity-60"}`} strokeWidth={1.9} />
                 <span>{item.label}</span>
                 {item.href === "/queue" && queueCount > 0 ? (
-                  <Badge color={urgentCount > 0 ? "accent" : "amber"} label={String(queueCount)} className="ml-auto" />
+                  <Badge color={manualReviewCount > 0 ? "accent" : urgentCount > 0 ? "amber" : "muted"} label={String(queueCount)} className="ml-auto" />
                 ) : null}
               </Link>
             );

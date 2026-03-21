@@ -2,6 +2,7 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { FileText, Menu, Upload, X } from "lucide-react";
 
+import { useQueueItems } from "../../hooks/useQueueItems";
 import { useVoiceSessions } from "../../hooks/useVoiceSessions";
 import { useAppStore } from "../../store/appStore";
 import { Button } from "../ui/Button";
@@ -47,6 +48,7 @@ export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { title, subtitle } = routeMeta(location.pathname);
 
+  useQueueItems();
   useVoiceSessions();
 
   useEffect(() => {

@@ -10,11 +10,12 @@ import { EmptyState } from "../ui/EmptyState";
 import { QueueItem as QueueRow } from "./QueueItem";
 import { QueueItemDetail } from "./QueueItemDetail";
 
-type QueueFilter = "all" | "pending" | "urgent" | "snoozed";
+type QueueFilter = "all" | "needs_review" | "manual_review" | "urgent" | "snoozed";
 
 const filters: Array<{ label: string; value: QueueFilter }> = [
   { label: "All", value: "all" },
-  { label: "Pending", value: "pending" },
+  { label: "Needs review", value: "needs_review" },
+  { label: "Manual review", value: "manual_review" },
   { label: "Urgent", value: "urgent" },
   { label: "Snoozed", value: "snoozed" },
 ];
@@ -24,7 +25,8 @@ export interface QueueViewProps {
 }
 
 function matchesFilter(item: QueueItem, filter: QueueFilter): boolean {
-  if (filter === "pending") return item.status === "pending";
+  if (filter === "needs_review") return item.status === "pending" || item.status === "manual_review";
+  if (filter === "manual_review") return item.status === "manual_review";
   if (filter === "urgent") return item.urgent;
   if (filter === "snoozed") return item.status === "snoozed";
   return true;

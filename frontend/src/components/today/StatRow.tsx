@@ -11,13 +11,15 @@ export interface StatRowProps {
 }
 
 export function StatRow({ queueItems, openQuotes, followUpsDue, activeJobs }: StatRowProps) {
-  const urgentQueue = queueItems.some((item) => item.status === "pending" && item.urgent);
+  const openQueueItems = queueItems.filter((item) => item.status === "pending" || item.status === "manual_review");
+  const urgentQueue = openQueueItems.some((item) => item.urgent);
+  const manualReviewCount = queueItems.filter((item) => item.status === "manual_review").length;
   const cards = [
     {
       label: "Open queue",
-      value: queueItems.filter((item) => item.status === "pending").length,
-      hint: urgentQueue ? "Needs review" : "All clear",
-      tone: urgentQueue ? "text-[var(--amber)]" : "text-[var(--green)]",
+      value: openQueueItems.length,
+      hint: manualReviewCount > 0 ? "Manual review waiting" : urgentQueue ? "Needs review" : "All clear",
+      tone: manualReviewCount > 0 ? "text-[var(--accent-2)]" : urgentQueue ? "text-[var(--amber)]" : "text-[var(--green)]",
     },
     {
       label: "Active quotes",
