@@ -55,6 +55,9 @@ export interface QueueItem {
   rawTranscriptSnippet?: string;
   createdAt: string;
   snoozedUntil?: string;
+  approvedAt?: string;
+  generatedQuoteId?: string;
+  generatedFollowUpIds?: string[];
 }
 
 export interface QuoteLineItem {

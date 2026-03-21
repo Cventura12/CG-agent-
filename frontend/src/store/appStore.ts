@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { fetchVoiceSessions, transferVoiceSession } from "../api/voice";
 import { mockAppState } from "../lib/mockData";
-import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteLineItem, User, VoiceCallSession } from "../types";
+import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteIntakeSource, QuoteLineItem, User, VoiceCallSession } from "../types";
 
 interface AppStore {
   user: User | null;
@@ -128,7 +128,21 @@ function appendAgentLog(agentStatus: AgentStatus, message: string, timestamp: st
   };
 }
 
-function syncJobQuotes(jobs: Job[], quotes: Quote[], queueItems: QueueItem[]): Job[] {
+function addDays(timestamp: string, days: number): string {
+  return new Date(new Date(timestamp).getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function quoteIntakeSourceFromQueueItem(item: QueueItem): QuoteIntakeSource {
+  if (item.source === "CALL") {
+    return "voice";
+  }
+  if (item.source === "UPLOAD") {
+    return item.sourceRef?.toLowerCase().endsWith(".pdf") ? "pdf" : "photo";
+  }
+  return "manual";
+}
+
+function syncJobsState(jobs: Job[], quotes: Quote[], followUps: FollowUp[], queueItems: QueueItem[]): Job[] {
   const countsByJob = queueItems.reduce<Record<string, number>>((acc, item) => {
     if (item.jobId && item.status === "pending") {
       acc[item.jobId] = (acc[item.jobId] ?? 0) + 1;
@@ -138,6 +152,7 @@ function syncJobQuotes(jobs: Job[], quotes: Quote[], queueItems: QueueItem[]): J
 
   return jobs.map((job) => {
     const nextQuotes = quotes.filter((quote) => quote.jobId === job.id);
+    const nextFollowUps = followUps.filter((followUp) => followUp.jobId === job.id);
     const totalApproved = nextQuotes
       .filter((quote) => quote.status === "accepted")
       .reduce((sum, quote) => sum + quote.totalValue, 0);
@@ -145,6 +160,7 @@ function syncJobQuotes(jobs: Job[], quotes: Quote[], queueItems: QueueItem[]): J
     return {
       ...job,
       quotes: nextQuotes,
+      followUps: nextFollowUps,
       totalQuoted: nextQuotes.reduce((sum, quote) => sum + quote.totalValue, 0),
       totalApproved,
       openQueueItems: countsByJob[job.id] ?? 0,
@@ -163,6 +179,212 @@ function syncAgentStatus(agentStatus: AgentStatus, queueItems: QueueItem[], proc
     itemsProcessed: agentStatus.itemsProcessed + processedIncrement,
     openItems: nextPending,
     currentTask: currentTask ?? (nextPending > 0 ? "Waiting for contractor review" : "Watching for new inbound work"),
+  };
+}
+
+function buildQueueQuote(item: QueueItem, job: Job, timestamp: string): Quote | null {
+  const quoteActions = item.extractedActions.filter((action) => action.type === "change_order" || action.type === "quote_item");
+  if (quoteActions.length === 0) {
+    return null;
+  }
+
+  const lineItems: QuoteLineItem[] = quoteActions.map((action, index) => {
+    const description = action.description.charAt(0).toUpperCase() + action.description.slice(1);
+    const unitPrice = typeof action.estimatedValue === "number" ? action.estimatedValue : estimateLineValue(action.description, index);
+    return {
+      id: buildStoreId("line", `${item.id}-${index}`),
+      description,
+      quantity: 1,
+      unitPrice,
+      total: unitPrice,
+    };
+  });
+
+  const notesParts = [`Approved from ${item.source} queue item.`, item.description];
+  if (item.sourceRef) {
+    notesParts.push(`Source ref: ${item.sourceRef}`);
+  }
+
+  return {
+    id: buildStoreId("quote", `${job.name}-${item.title}`),
+    jobId: job.id,
+    jobName: job.name,
+    customerName: job.customerName,
+    customerContact: job.customerContact,
+    status: "draft",
+    lineItems,
+    totalValue: lineItems.reduce((sum, lineItem) => sum + lineItem.total, 0),
+    createdAt: timestamp,
+    sourceQueueItemId: item.id,
+    notes: notesParts.join("\n\n"),
+    intakeSource: quoteIntakeSourceFromQueueItem(item),
+    attachmentName: item.source === "UPLOAD" ? item.sourceRef : undefined,
+  };
+}
+
+function buildQueueFollowUps(item: QueueItem, job: Job, timestamp: string, existingFollowUps: FollowUp[]): FollowUp[] {
+  return item.extractedActions
+    .filter((action) => action.type === "follow_up" || action.type === "commitment")
+    .filter((action) => !existingFollowUps.some((followUp) => followUp.jobId === job.id && normalizeLookupKey(followUp.description) === normalizeLookupKey(action.description)))
+    .map((action, index) => ({
+      id: buildStoreId("followup", `${item.id}-${index}`),
+      jobId: job.id,
+      jobName: job.name,
+      description: action.description,
+      status: "scheduled" as const,
+      scheduledFor: addDays(timestamp, 1),
+    }));
+}
+
+function buildQueueActivities(item: QueueItem, quote: Quote | null, followUps: FollowUp[], timestamp: string): JobActivity[] {
+  const activities: JobActivity[] = [
+    {
+      id: buildStoreId("activity", `${item.id}-approved`),
+      type: item.extractedActions.some((action) => action.type === "change_order") ? "change_order" : "note",
+      description: `Approved ${item.source.toLowerCase()} update: ${item.title}.`,
+      timestamp,
+      value: quote?.totalValue,
+    },
+  ];
+
+  if (quote) {
+    activities.push({
+      id: buildStoreId("activity", `${item.id}-draft`),
+      type: item.extractedActions.some((action) => action.type === "change_order") ? "change_order" : "note",
+      description: `Draft quote prepared from queue review: ${item.title}.`,
+      timestamp,
+      value: quote.totalValue,
+    });
+  }
+
+  followUps.forEach((followUp) => {
+    activities.push({
+      id: buildStoreId("activity", `${followUp.id}-scheduled`),
+      type: "follow_up",
+      description: `Follow-up scheduled: ${followUp.description}`,
+      timestamp,
+    });
+  });
+
+  return activities;
+}
+
+function applyQueueApprovals(
+  state: Pick<AppStore, "agentStatus" | "followUps" | "jobs" | "queueItems" | "quotes" | "selectedQuoteId" | "activeJobId">,
+  queueItemIds: string[]
+): Pick<AppStore, "agentStatus" | "followUps" | "jobs" | "queueItems" | "quotes" | "selectedQuoteId" | "activeJobId"> {
+  const timestamp = new Date().toISOString();
+  let quotes = [...state.quotes];
+  let followUps = [...state.followUps];
+  let jobs = [...state.jobs];
+  let firstQuoteId: string | null = state.selectedQuoteId;
+  let firstJobId: string | null = state.activeJobId;
+  let processedCount = 0;
+  let draftedCount = 0;
+  let followUpCount = 0;
+
+  const queueItems = state.queueItems.map((item) => {
+    if (!queueItemIds.includes(item.id) || item.status !== "pending") {
+      return item;
+    }
+
+    processedCount += 1;
+
+    const existingJob = jobs.find((job) => job.id === item.jobId) ?? jobs.find((job) => item.jobName && normalizeLookupKey(job.name) === normalizeLookupKey(item.jobName));
+    const jobId = existingJob?.id ?? item.jobId ?? buildStoreId("job", item.jobName ?? item.title);
+    const jobName = item.jobName?.trim() || existingJob?.name || item.title;
+    const customerName = existingJob?.customerName ?? "Customer pending";
+    const customerContact = existingJob?.customerContact ?? item.sourceRef ?? "Contact pending";
+
+    if (!existingJob) {
+      jobs = [
+        {
+          id: jobId,
+          name: jobName,
+          customerName,
+          customerContact,
+          status: "active",
+          totalQuoted: 0,
+          totalApproved: 0,
+          openQueueItems: 0,
+          quotes: [],
+          followUps: [],
+          activityLog: [],
+          createdAt: timestamp,
+          lastActivityAt: timestamp,
+          tags: ["queue review", item.source.toLowerCase()],
+          notes: item.description,
+        },
+        ...jobs,
+      ];
+    }
+
+    const job = jobs.find((candidate) => candidate.id === jobId)!;
+    const existingQuote = quotes.find((quote) => quote.sourceQueueItemId === item.id);
+    const quote = existingQuote ?? buildQueueQuote(item, job, timestamp);
+    if (!existingQuote && quote) {
+      quotes = [quote, ...quotes];
+      draftedCount += 1;
+      if (!firstQuoteId) {
+        firstQuoteId = quote.id;
+      }
+    }
+
+    const nextFollowUps = buildQueueFollowUps(item, job, timestamp, followUps);
+    if (nextFollowUps.length > 0) {
+      followUps = [...nextFollowUps, ...followUps];
+      followUpCount += nextFollowUps.length;
+    }
+
+    const activities = buildQueueActivities(item, quote, nextFollowUps, timestamp);
+    jobs = jobs.map((candidate) =>
+      candidate.id === jobId
+        ? {
+            ...candidate,
+            status: quote ? "quoted" : candidate.status,
+            notes: candidate.notes ?? item.description,
+            lastActivityAt: timestamp,
+            activityLog: [...activities, ...candidate.activityLog],
+            tags: Array.from(new Set([...candidate.tags, item.source.toLowerCase(), ...(quote ? ["draft ready"] : []), ...(nextFollowUps.length > 0 ? ["follow-up scheduled"] : [])])),
+          }
+        : candidate
+    );
+
+    if (!firstJobId) {
+      firstJobId = jobId;
+    }
+
+    return {
+      ...item,
+      jobId,
+      jobName,
+      status: "approved" as const,
+      approvedAt: timestamp,
+      generatedQuoteId: quote?.id,
+      generatedFollowUpIds: nextFollowUps.map((followUp) => followUp.id),
+      extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
+    };
+  });
+
+  const summaryParts = [
+    `Approved ${processedCount} queue item${processedCount === 1 ? "" : "s"}`,
+    draftedCount > 0 ? `drafted ${draftedCount} quote${draftedCount === 1 ? "" : "s"}` : "",
+    followUpCount > 0 ? `scheduled ${followUpCount} follow-up${followUpCount === 1 ? "" : "s"}` : "",
+  ].filter(Boolean);
+
+  const jobsWithSync = syncJobsState(jobs, quotes, followUps, queueItems);
+  const agentStatus = summaryParts.length > 0
+    ? appendAgentLog(syncAgentStatus(state.agentStatus, queueItems, processedCount, summaryParts.join(" · ")), summaryParts.join(" · "), timestamp)
+    : syncAgentStatus(state.agentStatus, queueItems, 0);
+
+  return {
+    queueItems,
+    quotes,
+    followUps,
+    jobs: jobsWithSync,
+    agentStatus,
+    activeJobId: firstJobId,
+    selectedQuoteId: firstQuoteId,
   };
 }
 
@@ -192,46 +414,15 @@ export const useAppStore = create<AppStore>((set) => ({
     }
   },
   approveAllQueueItems: () =>
-    set((state) => {
-      const processed = state.queueItems.filter((item) => item.status === "pending").length;
-      const queueItems = state.queueItems.map((item) =>
-        item.status === "pending"
-          ? {
-              ...item,
-              status: "approved" as const,
-              extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
-            }
-          : item
-      );
-      return {
-        queueItems,
-        jobs: syncJobQuotes(state.jobs, state.quotes, queueItems),
-        agentStatus: syncAgentStatus(state.agentStatus, queueItems, processed),
-      };
-    }),
+    set((state) => applyQueueApprovals(state, state.queueItems.filter((item) => item.status === "pending").map((item) => item.id))),
   approveQueueItem: (id) =>
-    set((state) => {
-      const queueItems = state.queueItems.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: "approved" as const,
-              extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
-            }
-          : item
-      );
-      return {
-        queueItems,
-        jobs: syncJobQuotes(state.jobs, state.quotes, queueItems),
-        agentStatus: syncAgentStatus(state.agentStatus, queueItems, 1),
-      };
-    }),
+    set((state) => applyQueueApprovals(state, [id])),
   dismissQueueItem: (id) =>
     set((state) => {
       const queueItems = state.queueItems.map((item) => (item.id === id ? { ...item, status: "dismissed" as const } : item));
       return {
         queueItems,
-        jobs: syncJobQuotes(state.jobs, state.quotes, queueItems),
+        jobs: syncJobsState(state.jobs, state.quotes, state.followUps, queueItems),
         agentStatus: syncAgentStatus(state.agentStatus, queueItems),
       };
     }),
@@ -242,7 +433,7 @@ export const useAppStore = create<AppStore>((set) => ({
       );
       return {
         queueItems,
-        jobs: syncJobQuotes(state.jobs, state.quotes, queueItems),
+        jobs: syncJobsState(state.jobs, state.quotes, state.followUps, queueItems),
         agentStatus: syncAgentStatus(state.agentStatus, queueItems),
       };
     }),
@@ -329,10 +520,69 @@ export const useAppStore = create<AppStore>((set) => ({
     })),
   updateQuoteStatus: (id, status) =>
     set((state) => {
-      const quotes = state.quotes.map((quote) => (quote.id === id ? { ...quote, status } : quote));
+      const timestamp = new Date().toISOString();
+      let activityEntry: JobActivity | null = null;
+      const quotes = state.quotes.map((quote) => {
+        if (quote.id !== id) {
+          return quote;
+        }
+
+        const nextQuote: Quote = {
+          ...quote,
+          status,
+          sentAt: status === "sent" ? quote.sentAt ?? timestamp : quote.sentAt,
+          viewedAt: status === "viewed" ? quote.viewedAt ?? timestamp : quote.viewedAt,
+          respondedAt: ["accepted", "rejected", "expired"].includes(status) ? quote.respondedAt ?? timestamp : quote.respondedAt,
+        };
+
+        if (status === "sent") {
+          activityEntry = {
+            id: buildStoreId("activity", `${quote.jobName}-quote-sent`),
+            type: "quote_sent",
+            description: `Quote sent to ${quote.customerName}.`,
+            timestamp,
+            value: quote.totalValue,
+          };
+        } else if (status === "accepted") {
+          activityEntry = {
+            id: buildStoreId("activity", `${quote.jobName}-quote-accepted`),
+            type: "quote_accepted",
+            description: `Quote accepted by ${quote.customerName}.`,
+            timestamp,
+            value: quote.totalValue,
+          };
+        } else if (status === "rejected") {
+          activityEntry = {
+            id: buildStoreId("activity", `${quote.jobName}-quote-rejected`),
+            type: "note",
+            description: `Quote marked rejected for ${quote.customerName}.`,
+            timestamp,
+            value: quote.totalValue,
+          };
+        }
+
+        return nextQuote;
+      });
+
+      const jobs = syncJobsState(
+        state.jobs.map((job) =>
+          activityEntry && quotes.some((quote) => quote.id === id && quote.jobId === job.id)
+            ? {
+                ...job,
+                status: status === "accepted" && job.status === "quoted" ? "in_progress" : job.status,
+                lastActivityAt: timestamp,
+                activityLog: [activityEntry, ...job.activityLog],
+              }
+            : job
+        ),
+        quotes,
+        state.followUps,
+        state.queueItems
+      );
+
       return {
         quotes,
-        jobs: syncJobQuotes(state.jobs, quotes, state.queueItems),
+        jobs,
       };
     }),
   createQuoteDraft: (input) => {
@@ -418,7 +668,7 @@ export const useAppStore = create<AppStore>((set) => ({
           ];
 
       const quotes = [quote, ...state.quotes];
-      const jobs = syncJobQuotes(baseJobs, quotes, state.queueItems);
+      const jobs = syncJobsState(baseJobs, quotes, state.followUps, state.queueItems);
       const sourceLabel: Record<QuoteDraftInput["intakeSource"], string> = {
         manual: "manual intake",
         voice: "voice memo",
