@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { APP_FLOW_HREF, BOOK_DEMO_HREF } from './siteLinks'
 import { SmartLink } from './SmartLink'
+import { ArborLogo } from './ArborLogo'
 
 const navStyle = {
   position: 'fixed',
@@ -150,8 +151,8 @@ export function Nav() {
     <header ref={rootRef} style={navStyle}>
       <div style={innerStyle}>
         <div style={leftStyle}>
-          <NavLink to="/" style={wordmarkStyle} onClick={closeMobile} data-nav-reveal="wordmark" className="fieldr-nav-wordmark">
-            Fieldr
+          <NavLink to="/" style={wordmarkStyle} onClick={closeMobile} data-nav-reveal="wordmark" className="fieldr-nav-wordmark" aria-label="Arbor home">
+            <ArborLogo />
           </NavLink>
 
           <nav aria-label="Primary" style={navLinksStyle} className="fieldr-nav-hide-mobile" data-nav-reveal="primary">
@@ -212,12 +213,41 @@ export function Nav() {
       <style>{`
         .fieldr-nav-wordmark {
           position: relative;
+          display: inline-flex;
+          align-items: center;
           transition: opacity 180ms ease, transform 180ms ease;
         }
 
         .fieldr-nav-wordmark:hover {
           opacity: 0.92;
           transform: translateY(-1px);
+        }
+
+        .arbor-logo {
+          display: inline-flex;
+          align-items: center;
+          gap: 11px;
+          line-height: 1;
+          color: var(--bright);
+        }
+
+        .arbor-logo__mark {
+          width: 28px;
+          height: 28px;
+          flex: 0 0 auto;
+          filter: drop-shadow(0 8px 20px rgba(0,0,0,0.22));
+        }
+
+        .arbor-logo__type {
+          display: inline-block;
+          font-family: var(--serif);
+          font-size: 18px;
+          font-weight: 600;
+          letter-spacing: -0.03em;
+          color: var(--bright);
+          transform: translateY(-0.5px);
+          text-rendering: optimizeLegibility;
+          white-space: nowrap;
         }
 
         .fieldr-nav-link {
@@ -385,6 +415,19 @@ export function Nav() {
         }
 
         @media (max-width: 520px) {
+          .arbor-logo {
+            gap: 9px;
+          }
+
+          .arbor-logo__mark {
+            width: 24px;
+            height: 24px;
+          }
+
+          .arbor-logo__type {
+            font-size: 16px;
+          }
+
           .fieldr-nav-mobile-panel {
             padding-left: 16px !important;
             padding-right: 16px !important;
