@@ -1,6 +1,6 @@
 ﻿import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useAppStore } from "../../store/appStore";
 import type { Job } from "../../types";
@@ -11,9 +11,20 @@ import { JobDetail } from "./JobDetail";
 function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: boolean }) {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const setActiveJob = useAppStore((state) => state.setActiveJob);
   const updateJobNotes = useAppStore((state) => state.updateJobNotes);
   const [query, setQuery] = useState("");
+  const activeTabParam = searchParams.get("tab");
+  const initialTab =
+    activeTabParam === "activity" ||
+    activeTabParam === "quotes" ||
+    activeTabParam === "followups" ||
+    activeTabParam === "calls" ||
+    activeTabParam === "notes"
+      ? activeTabParam
+      : undefined;
+  const currentSearch = searchParams.toString();
 
   const filteredJobs = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -46,14 +57,24 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
         </div>
         <div className="scrollbar-none flex-1 overflow-y-auto">
           {filteredJobs.map((job) => (
-            <JobCard key={job.id} job={job} selected={selectedJob?.id === job.id} onClick={() => navigate(`/jobs/${job.id}`)} />
+            <JobCard
+              key={job.id}
+              job={job}
+              selected={selectedJob?.id === job.id}
+              onClick={() => navigate(`/jobs/${job.id}${currentSearch ? `?${currentSearch}` : ""}`)}
+            />
           ))}
         </div>
       </div>
 
       <div className={`absolute inset-0 z-20 bg-[var(--bg)] ${selectedJob ? "block" : "hidden"} lg:static lg:block lg:min-w-0 lg:flex-1 lg:overflow-hidden`}>
         {selectedJob ? (
-          <JobDetail job={selectedJob} onSaveNotes={(notes) => updateJobNotes(selectedJob.id, notes)} onClose={() => navigate("/jobs")} />
+          <JobDetail
+            job={selectedJob}
+            initialTab={initialTab}
+            onSaveNotes={(notes) => updateJobNotes(selectedJob.id, notes)}
+            onClose={() => navigate("/jobs")}
+          />
         ) : (
           <EmptyState icon={Search} title="No jobs match this search" description="Try a customer name, address tag, or clear the filter." />
         )}

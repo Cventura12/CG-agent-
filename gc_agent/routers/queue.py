@@ -12,7 +12,9 @@ from pydantic import BaseModel, Field
 from gc_agent.auth import get_current_gc
 from gc_agent.db import queries
 from gc_agent.db.queries import DatabaseError
+from gc_agent.nodes.send_and_track import send_and_track
 from gc_agent.state import Draft
+from gc_agent.workspace_review import build_workspace_review_artifacts
 
 router = APIRouter(tags=["queue"])
 OPEN_ITEM_ACTION_TRACE_PREFIX = "open-item-action:"
@@ -175,7 +177,19 @@ async def approve_draft(
     if updated is None:
         return _error(404, "draft_id not found")
 
-    return _success(_serialize_draft(updated))
+    send_result = await send_and_track(updated)
+    workspace_artifacts = await build_workspace_review_artifacts(
+        draft=updated,
+        contractor_id=gc_id,
+        send_result=send_result,
+    )
+    return _success(
+        {
+            "draft": _serialize_draft(updated),
+            "send_result": send_result,
+            "workspace_artifacts": workspace_artifacts,
+        }
+    )
 
 
 @router.post("/queue/{draft_id}/edit", response_model=None)

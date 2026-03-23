@@ -23,6 +23,7 @@ from gc_agent.nodes.update_memory import build_prompt_tuning_signals, update_mem
 from gc_agent.state import AgentState, Draft
 from gc_agent.telemetry import write_agent_trace
 from gc_agent.tools.upload_storage import is_allowed_upload, upload_quote_source_file
+from gc_agent.workspace_review import build_workspace_review_artifacts
 
 open_router = APIRouter()
 router = APIRouter(dependencies=[Depends(require_api_key)])
@@ -59,6 +60,31 @@ async def run_single_estimate(*args: Any, **kwargs: Any) -> Any:
     return await cli_module.run_single_estimate(*args, **kwargs)
 
 
+async def _get_transcript_quote_prefill(*args: object, **kwargs: object):
+    transcript_module = import_module("gc_agent.call_transcripts")
+    return await transcript_module.get_transcript_quote_prefill(*args, **kwargs)
+
+
+async def _link_transcript_to_job(*args: object, **kwargs: object):
+    transcript_module = import_module("gc_agent.call_transcripts")
+    return await transcript_module.link_transcript_to_job(*args, **kwargs)
+
+
+async def _mark_transcript_reviewed(*args: object, **kwargs: object):
+    transcript_module = import_module("gc_agent.call_transcripts")
+    return await transcript_module.mark_transcript_reviewed(*args, **kwargs)
+
+
+async def _discard_transcript(*args: object, **kwargs: object):
+    transcript_module = import_module("gc_agent.call_transcripts")
+    return await transcript_module.discard_transcript(*args, **kwargs)
+
+
+async def _log_transcript_as_update(*args: object, **kwargs: object):
+    transcript_module = import_module("gc_agent.call_transcripts")
+    return await transcript_module.log_transcript_as_update(*args, **kwargs)
+
+
 class QuoteRequest(BaseModel):
     """Request body for generating a quote from field notes or a transcript."""
 
@@ -87,6 +113,18 @@ class EditDraftRequest(BaseModel):
 
     contractor_id: str = Field(min_length=1)
     content: str = Field(min_length=1)
+
+
+class TranscriptActionRequest(BaseModel):
+    """Request body for transcript inbox actions in the public API."""
+
+    contractor_id: str = Field(min_length=1)
+
+
+class PublicLinkTranscriptJobRequest(TranscriptActionRequest):
+    """Payload for linking a transcript inbox item to a job in the public API."""
+
+    job_id: str = Field(min_length=1)
 
 
 class QuoteDecisionRequest(BaseModel):
@@ -1209,6 +1247,126 @@ async def get_queue(
     }
 
 
+@router.get("/transcripts/inbox")
+async def get_transcript_inbox(
+    contractor_id: str = Query(..., min_length=1),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> dict[str, Any]:
+    """Return transcript inbox items that still need manual routing."""
+    try:
+        transcripts = await queries.list_unlinked_transcript_inbox(contractor_id, limit=limit)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "items": transcripts,
+        "count": len(transcripts),
+    }
+
+
+@router.get("/transcripts/{transcript_id}/quote-prefill")
+async def get_transcript_quote_prefill_public(
+    transcript_id: str,
+    contractor_id: str = Query(..., min_length=1),
+) -> dict[str, Any]:
+    """Return quote-workspace prefill derived from one transcript."""
+    try:
+        prefill = await _get_transcript_quote_prefill(transcript_id, contractor_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if prefill is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="transcript_id not found")
+
+    return prefill.model_dump(mode="json")
+
+
+@router.post("/transcripts/{transcript_id}/link-job")
+async def link_transcript_job_public(
+    transcript_id: str,
+    payload: PublicLinkTranscriptJobRequest,
+) -> dict[str, Any]:
+    """Link a transcript inbox item to an existing job and create queue drafts."""
+    try:
+        result = await _link_transcript_to_job(transcript_id, payload.contractor_id, payload.job_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="transcript_id not found")
+
+    return result
+
+
+@router.post("/transcripts/{transcript_id}/mark-reviewed")
+async def mark_transcript_reviewed_public(
+    transcript_id: str,
+    payload: TranscriptActionRequest,
+) -> dict[str, Any]:
+    """Mark one transcript inbox item as reviewed."""
+    try:
+        result = await _mark_transcript_reviewed(transcript_id, payload.contractor_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="transcript_id not found")
+
+    return result
+
+
+@router.post("/transcripts/{transcript_id}/discard")
+async def discard_transcript_public(
+    transcript_id: str,
+    payload: TranscriptActionRequest,
+) -> dict[str, Any]:
+    """Discard one transcript inbox item."""
+    try:
+        result = await _discard_transcript(transcript_id, payload.contractor_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="transcript_id not found")
+
+    return result
+
+
+@router.post("/transcripts/{transcript_id}/log-update")
+async def log_transcript_update_public(
+    transcript_id: str,
+    payload: TranscriptActionRequest,
+) -> dict[str, Any]:
+    """Convert a linked transcript into the update-log + queue workflow."""
+    try:
+        result = await _log_transcript_as_update(transcript_id, payload.contractor_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="transcript_id not found")
+
+    return result
+
+
 @router.post("/queue/{draft_id}/approve")
 async def approve_queue_item(
     draft_id: str,
@@ -1243,10 +1401,16 @@ async def approve_queue_item(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="draft_id not found after update")
 
     send_result = await send_and_track(updated)
+    workspace_artifacts = await build_workspace_review_artifacts(
+        draft=updated,
+        contractor_id=payload.contractor_id,
+        send_result=send_result,
+    )
     return {
         "trace_id": updated.trace_id,
         "draft": _serialize_draft(updated),
         "send_result": send_result,
+        "workspace_artifacts": workspace_artifacts,
     }
 
 

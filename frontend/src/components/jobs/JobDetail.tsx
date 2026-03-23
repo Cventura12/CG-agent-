@@ -26,10 +26,11 @@ export interface JobDetailProps {
   job: Job;
   onSaveNotes: (notes: string) => void;
   onClose?: () => void;
+  initialTab?: JobTab;
 }
 
-export function JobDetail({ job, onSaveNotes, onClose }: JobDetailProps) {
-  const [activeTab, setActiveTab] = useState<JobTab>("activity");
+export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }: JobDetailProps) {
+  const [activeTab, setActiveTab] = useState<JobTab>(initialTab);
   const [notesDraft, setNotesDraft] = useState(job.notes ?? "");
   const voiceSessions = useAppStore((state) =>
     state.voiceSessions.filter(
@@ -43,6 +44,10 @@ export function JobDetail({ job, onSaveNotes, onClose }: JobDetailProps) {
   useEffect(() => {
     setNotesDraft(job.notes ?? "");
   }, [job.id, job.notes]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab, job.id]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {

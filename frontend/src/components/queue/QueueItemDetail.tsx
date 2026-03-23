@@ -34,6 +34,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
   const canApprove = item.status === "pending" || item.status === "manual_review";
   const canDismiss = item.status === "pending" || item.status === "manual_review" || item.status === "snoozed";
   const generatedFollowUpCount = item.generatedFollowUpIds?.length ?? 0;
+  const isTranscriptItem = item.backendKind === "transcript";
 
   return (
     <div className="flex h-full w-full shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:w-[380px] lg:w-[340px]">
@@ -90,6 +91,36 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           </div>
         </section>
 
+        {isTranscriptItem && (item.linkedQuoteId || (item.relatedQueueItemIds?.length ?? 0) > 0) ? (
+          <section className="border-t border-[var(--line)] pt-4">
+            <SectionLabel>Linked context</SectionLabel>
+            <div className="mt-3 space-y-2">
+              {item.linkedQuoteId ? (
+                <Link
+                  to={`/quotes/${item.linkedQuoteId}`}
+                  onClick={onClose}
+                  className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
+                >
+                  <span>Open linked quote</span>
+                  <span className="font-mono text-[10px] text-[var(--accent-2)]">Quote {item.linkedQuoteId}</span>
+                </Link>
+              ) : null}
+              {item.relatedQueueItemIds?.[0] ? (
+                <Link
+                  to={`/queue/${item.relatedQueueItemIds[0]}`}
+                  onClick={onClose}
+                  className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
+                >
+                  <span>Open routed queue draft</span>
+                  <span className="font-mono text-[10px] text-[var(--amber)]">
+                    {item.relatedQueueItemIds.length} queued step{item.relatedQueueItemIds.length === 1 ? "" : "s"}
+                  </span>
+                </Link>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
         {item.generatedQuoteId || generatedFollowUpCount > 0 ? (
           <section className="border-t border-[var(--line)] pt-4">
             <SectionLabel>Generated from review</SectionLabel>
@@ -106,7 +137,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
               ) : null}
               {generatedFollowUpCount > 0 ? (
                 <Link
-                  to={item.jobId ? `/jobs/${item.jobId}` : "/jobs"}
+                  to={item.jobId ? `/jobs/${item.jobId}?tab=followups` : "/jobs"}
                   onClick={onClose}
                   className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
                 >
@@ -125,12 +156,16 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           <div className="flex flex-col gap-2">
             {canApprove ? (
               <Button variant="accent" className="w-full justify-center" onClick={onApproveAll}>
-                {item.status === "manual_review" ? "Approve review & create next step" : "Approve & create next step"}
+                {isTranscriptItem
+                  ? "Mark reviewed"
+                  : item.status === "manual_review"
+                    ? "Approve review & create next step"
+                    : "Approve & create next step"}
               </Button>
             ) : null}
             {canDismiss ? (
               <Button variant="ghost" className="w-full justify-center" onClick={onDismiss}>
-                Dismiss
+                {isTranscriptItem ? "Discard transcript" : "Dismiss"}
               </Button>
             ) : null}
           </div>

@@ -1,6 +1,16 @@
 import { create } from "zustand";
 
-import { approveWorkspaceQueueItem, dismissWorkspaceQueueItem, fetchWorkspaceQueueItems } from "../api/workspaceQueue";
+import {
+  approveWorkspaceQueueItem,
+  dismissWorkspaceQueueItem,
+  fetchWorkspaceQueueItems,
+  mapBackendFollowUpStatus,
+  mapBackendJobActivityType,
+  type BackendWorkspaceArtifacts,
+  type BackendWorkspaceFollowUp,
+  type BackendWorkspaceQuote,
+  type WorkspaceQueueApprovalResult,
+} from "../api/workspaceQueue";
 import { fetchVoiceSessions, transferVoiceSession } from "../api/voice";
 import { mockAppState } from "../lib/mockData";
 import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteIntakeSource, QuoteLineItem, User, VoiceCallSession } from "../types";
@@ -251,6 +261,189 @@ function syncAgentStatus(agentStatus: AgentStatus, queueItems: QueueItem[], proc
   };
 }
 
+function mapBackendQuoteStatus(status: string | undefined): Quote["status"] {
+  const normalized = (status ?? "").trim().toLowerCase();
+  if (normalized === "sent") return "sent";
+  if (normalized === "viewed") return "viewed";
+  if (normalized === "accepted") return "accepted";
+  if (normalized === "rejected") return "rejected";
+  if (normalized === "expired") return "expired";
+  return "draft";
+}
+
+function toQuoteLineItem(item: NonNullable<BackendWorkspaceQuote["line_items"]>[number], index: number): QuoteLineItem {
+  const quantity = typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1;
+  const unitPrice = typeof item.unit_price === "number" ? item.unit_price : 0;
+  const total = typeof item.total === "number" ? item.total : quantity * unitPrice;
+
+  return {
+    id: item.id?.trim() || buildStoreId("line", `backend-${index}`),
+    description: item.description?.trim() || `Line item ${index + 1}`,
+    quantity,
+    unitPrice,
+    total,
+  };
+}
+
+function upsertQuote(quotes: Quote[], quote: Quote): { quotes: Quote[]; inserted: boolean } {
+  const index = quotes.findIndex((entry) => entry.id === quote.id);
+  if (index === -1) {
+    return { quotes: [quote, ...quotes], inserted: true };
+  }
+
+  const next = [...quotes];
+  next[index] = quote;
+  return { quotes: next, inserted: false };
+}
+
+function upsertFollowUps(
+  existingFollowUps: FollowUp[],
+  incoming: FollowUp[]
+): { followUps: FollowUp[]; insertedCount: number } {
+  let insertedCount = 0;
+  const byId = new Map(existingFollowUps.map((followUp) => [followUp.id, followUp]));
+
+  incoming.forEach((followUp) => {
+    if (!byId.has(followUp.id)) {
+      insertedCount += 1;
+    }
+    byId.set(followUp.id, followUp);
+  });
+
+  const followUps = Array.from(byId.values()).sort(
+    (left, right) => new Date(right.scheduledFor).getTime() - new Date(left.scheduledFor).getTime()
+  );
+  return { followUps, insertedCount };
+}
+
+function ensureJobForApproval(
+  jobs: Job[],
+  item: QueueItem,
+  result: WorkspaceQueueApprovalResult,
+  quoteArtifact?: BackendWorkspaceQuote | null,
+  followUpArtifacts: BackendWorkspaceFollowUp[] = []
+): { jobs: Job[]; job: Job | null } {
+  const artifactJobId =
+    quoteArtifact?.job_id?.trim() ||
+    followUpArtifacts.find((followUp) => followUp.job_id?.trim())?.job_id?.trim() ||
+    result.activeJobId?.trim() ||
+    item.jobId?.trim() ||
+    "";
+  const artifactJobName =
+    quoteArtifact?.job_name?.trim() ||
+    followUpArtifacts.find((followUp) => followUp.job_name?.trim())?.job_name?.trim() ||
+    item.jobName?.trim() ||
+    (artifactJobId ? "Linked job" : "");
+  const artifactCustomerName =
+    quoteArtifact?.customer_name?.trim() ||
+    jobs.find((job) => job.id === artifactJobId)?.customerName ||
+    "Customer pending";
+  const artifactCustomerContact =
+    quoteArtifact?.customer_contact?.trim() ||
+    jobs.find((job) => job.id === artifactJobId)?.customerContact ||
+    item.sourceRef?.trim() ||
+    "Contact pending";
+
+  const existingJob =
+    jobs.find((job) => artifactJobId && job.id === artifactJobId) ??
+    jobs.find((job) => artifactJobName && normalizeLookupKey(job.name) === normalizeLookupKey(artifactJobName));
+
+  if (existingJob) {
+    return { jobs, job: existingJob };
+  }
+
+  if (!artifactJobId && !artifactJobName) {
+    return { jobs, job: null };
+  }
+
+  const createdAt = result.approvedAt;
+  const createdJob: Job = {
+    id: artifactJobId || buildStoreId("job", artifactJobName),
+    name: artifactJobName,
+    customerName: artifactCustomerName,
+    customerContact: artifactCustomerContact,
+    status: "active",
+    totalQuoted: 0,
+    totalApproved: 0,
+    openQueueItems: 0,
+    quotes: [],
+    followUps: [],
+    activityLog: [],
+    createdAt,
+    lastActivityAt: createdAt,
+    tags: ["queue review", item.source.toLowerCase()],
+    notes: item.description,
+  };
+
+  return { jobs: [createdJob, ...jobs], job: createdJob };
+}
+
+function buildQuoteFromBackendArtifact(
+  artifact: BackendWorkspaceQuote,
+  item: QueueItem,
+  job: Job,
+  fallbackTimestamp: string
+): Quote | null {
+  const quoteId = artifact.id?.trim();
+  if (!quoteId) {
+    return null;
+  }
+
+  const lineItems = Array.isArray(artifact.line_items)
+    ? artifact.line_items.map((lineItem, index) => toQuoteLineItem(lineItem, index))
+    : [];
+  const totalValue =
+    typeof artifact.total_value === "number"
+      ? artifact.total_value
+      : lineItems.reduce((sum, lineItem) => sum + lineItem.total, 0);
+
+  return {
+    id: quoteId,
+    jobId: artifact.job_id?.trim() || job.id,
+    jobName: artifact.job_name?.trim() || job.name,
+    customerName: artifact.customer_name?.trim() || job.customerName,
+    customerContact: artifact.customer_contact?.trim() || job.customerContact,
+    status: mapBackendQuoteStatus(artifact.status),
+    lineItems,
+    totalValue,
+    createdAt: artifact.created_at?.trim() || fallbackTimestamp,
+    sourceQueueItemId: artifact.source_queue_item_id?.trim() || item.id,
+    notes: artifact.notes?.trim() || item.description,
+    intakeSource: quoteIntakeSourceFromQueueItem(item),
+    attachmentName: item.source === "UPLOAD" ? item.sourceRef : undefined,
+  };
+}
+
+function buildFollowUpsFromBackendArtifacts(
+  artifacts: BackendWorkspaceFollowUp[],
+  job: Job
+): FollowUp[] {
+  return artifacts
+    .filter((artifact) => artifact.id?.trim())
+    .map((artifact) => ({
+      id: artifact.id!.trim(),
+      jobId: artifact.job_id?.trim() || job.id,
+      jobName: artifact.job_name?.trim() || job.name,
+      description: artifact.description?.trim() || "Follow up with customer",
+      status: mapBackendFollowUpStatus(artifact.status),
+      scheduledFor: artifact.scheduled_for?.trim() || new Date().toISOString(),
+    }));
+}
+
+function buildJobActivitiesFromBackendArtifacts(
+  artifacts: NonNullable<BackendWorkspaceArtifacts["job_activity"]>
+): JobActivity[] {
+  return artifacts
+    .filter((artifact) => artifact.description?.trim())
+    .map((artifact) => ({
+      id: artifact.id?.trim() || buildStoreId("activity", artifact.description ?? "backend-activity"),
+      type: mapBackendJobActivityType(artifact.type),
+      description: artifact.description!.trim(),
+      timestamp: artifact.timestamp?.trim() || new Date().toISOString(),
+      value: typeof artifact.value === "number" ? artifact.value : undefined,
+    }));
+}
+
 function buildQueueQuote(item: QueueItem, job: Job, timestamp: string): Quote | null {
   const quoteActions = item.extractedActions.filter((action) => action.type === "change_order" || action.type === "quote_item");
   if (quoteActions.length === 0) {
@@ -458,6 +651,124 @@ function applyQueueApprovals(
   };
 }
 
+function applyQueueApprovalResults(
+  state: Pick<AppStore, "agentStatus" | "followUps" | "jobs" | "queueItems" | "quotes" | "selectedQuoteId" | "activeJobId">,
+  approvalResults: WorkspaceQueueApprovalResult[]
+): Pick<AppStore, "agentStatus" | "followUps" | "jobs" | "queueItems" | "quotes" | "selectedQuoteId" | "activeJobId"> {
+  const resultsById = new Map(approvalResults.map((result) => [result.itemId, result]));
+  let quotes = [...state.quotes];
+  let followUps = [...state.followUps];
+  let jobs = [...state.jobs];
+  let firstQuoteId: string | null = state.selectedQuoteId;
+  let firstJobId: string | null = state.activeJobId;
+  let processedCount = 0;
+  let draftedCount = 0;
+  let followUpCount = 0;
+
+  const queueItems = state.queueItems.map((item) => {
+    const result = resultsById.get(item.id);
+    if (!result || !queueNeedsReview(item)) {
+      return item;
+    }
+
+    processedCount += 1;
+    const workspaceArtifacts = result.workspaceArtifacts;
+    const followUpArtifacts = workspaceArtifacts?.followups ?? [];
+    const quoteArtifact = workspaceArtifacts?.quote;
+    const ensured = ensureJobForApproval(jobs, item, result, quoteArtifact, followUpArtifacts);
+    jobs = ensured.jobs;
+    const job = ensured.job;
+    const resolvedJobId = job?.id ?? result.activeJobId ?? item.jobId;
+    const resolvedJobName = job?.name ?? item.jobName;
+
+    const backendQuote = quoteArtifact && job ? buildQuoteFromBackendArtifact(quoteArtifact, item, job, result.approvedAt) : null;
+    if (backendQuote) {
+      const upsertedQuote = upsertQuote(quotes, backendQuote);
+      quotes = upsertedQuote.quotes;
+      if (upsertedQuote.inserted) {
+        draftedCount += 1;
+      }
+      if (!firstQuoteId) {
+        firstQuoteId = backendQuote.id;
+      }
+    }
+
+    const backendFollowUps = job ? buildFollowUpsFromBackendArtifacts(followUpArtifacts, job) : [];
+    if (backendFollowUps.length > 0) {
+      const upsertedFollowUps = upsertFollowUps(followUps, backendFollowUps);
+      followUps = upsertedFollowUps.followUps;
+      followUpCount += upsertedFollowUps.insertedCount;
+    }
+
+    const backendActivities = buildJobActivitiesFromBackendArtifacts(workspaceArtifacts?.job_activity ?? []);
+    const lastActivityAt =
+      backendActivities[0]?.timestamp ||
+      backendQuote?.createdAt ||
+      backendFollowUps[0]?.scheduledFor ||
+      result.approvedAt;
+
+    if (job && resolvedJobId) {
+      jobs = jobs.map((candidate) =>
+        candidate.id === resolvedJobId
+          ? {
+              ...candidate,
+              status: backendQuote ? "quoted" : candidate.status,
+              notes: candidate.notes ?? item.description,
+              lastActivityAt,
+              activityLog: [...backendActivities, ...candidate.activityLog],
+              tags: Array.from(
+                new Set([
+                  ...candidate.tags,
+                  item.source.toLowerCase(),
+                  ...(backendQuote ? ["draft ready"] : []),
+                  ...(backendFollowUps.length > 0 ? ["follow-up scheduled"] : []),
+                  ...(item.backendKind === "transcript" ? ["transcript reviewed"] : []),
+                ])
+              ),
+            }
+          : candidate
+      );
+    }
+
+    if (!firstJobId && resolvedJobId) {
+      firstJobId = resolvedJobId;
+    }
+
+    return {
+      ...item,
+      jobId: resolvedJobId,
+      jobName: resolvedJobName,
+      status: result.status,
+      approvedAt: result.approvedAt,
+      generatedQuoteId: result.generatedQuoteId ?? backendQuote?.id,
+      generatedFollowUpIds: result.generatedFollowUpIds ?? backendFollowUps.map((followUp) => followUp.id),
+      extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
+    };
+  });
+
+  const summaryParts = [
+    `Approved ${processedCount} queue item${processedCount === 1 ? "" : "s"}`,
+    draftedCount > 0 ? `drafted ${draftedCount} quote${draftedCount === 1 ? "" : "s"}` : "",
+    followUpCount > 0 ? `scheduled ${followUpCount} follow-up${followUpCount === 1 ? "" : "s"}` : "",
+  ].filter(Boolean);
+
+  const jobsWithSync = syncJobsState(jobs, quotes, followUps, queueItems);
+  const summary = summaryParts.join(" · ");
+  const agentStatus = summaryParts.length > 0
+    ? appendAgentLog(syncAgentStatus(state.agentStatus, queueItems, processedCount, summary), summary, new Date().toISOString())
+    : syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems));
+
+  return {
+    queueItems: sortQueueItems(queueItems),
+    quotes,
+    followUps,
+    jobs: jobsWithSync,
+    agentStatus,
+    activeJobId: firstJobId,
+    selectedQuoteId: firstQuoteId,
+  };
+}
+
 function mergeVoiceSessionList(current: VoiceCallSession[], incoming: VoiceCallSession): VoiceCallSession[] {
   const existingIndex = current.findIndex((session) => session.id === incoming.id);
   if (existingIndex === -1) {
@@ -507,18 +818,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
   approveAllQueueItems: async () => {
     const items = get().queueItems.filter(queueNeedsReview);
     const approvedIds: string[] = [];
+    const approvalResults: WorkspaceQueueApprovalResult[] = [];
 
     for (const item of items) {
       try {
-        await approveWorkspaceQueueItem(item);
-        approvedIds.push(item.id);
+        const result = await approveWorkspaceQueueItem(item);
+        if (result) {
+          approvalResults.push(result);
+        } else {
+          approvedIds.push(item.id);
+        }
       } catch {
         // Leave the item in the queue when the live approval fails.
       }
     }
 
-    if (approvedIds.length > 0) {
-      set((state) => applyQueueApprovals(state, approvedIds));
+    if (approvalResults.length > 0 || approvedIds.length > 0) {
+      set((state) => {
+        const nextState =
+          approvalResults.length > 0 ? applyQueueApprovalResults(state, approvalResults) : state;
+        return approvedIds.length > 0 ? applyQueueApprovals(nextState, approvedIds) : nextState;
+      });
     }
   },
   approveQueueItem: async (id) => {
@@ -528,7 +848,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
 
     try {
-      await approveWorkspaceQueueItem(item);
+      const result = await approveWorkspaceQueueItem(item);
+      if (result) {
+        set((state) => applyQueueApprovalResults(state, [result]));
+        return;
+      }
     } catch {
       return;
     }

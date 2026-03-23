@@ -61,8 +61,12 @@ export interface QueueItem {
   confidenceScore?: number;
   manualReviewReason?: string;
   backendLinked?: boolean;
+  backendKind?: "draft" | "transcript";
   backendDraftType?: string;
   backendTraceId?: string;
+  transcriptId?: string;
+  relatedQueueItemIds?: string[];
+  linkedQuoteId?: string;
 }
 
 export interface QuoteLineItem {
