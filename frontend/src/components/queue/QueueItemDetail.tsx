@@ -35,6 +35,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
   const canDismiss = item.status === "pending" || item.status === "manual_review" || item.status === "snoozed";
   const generatedFollowUpCount = item.generatedFollowUpIds?.length ?? 0;
   const isTranscriptItem = item.backendKind === "transcript";
+  const hasBackendArtifactErrors = (item.backendArtifactErrors?.length ?? 0) > 0;
 
   return (
     <div className="flex h-full w-full shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:w-[380px] lg:w-[340px]">
@@ -91,6 +92,22 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           </div>
         </section>
 
+        {isTranscriptItem && item.transcriptId ? (
+          <section className="border-t border-[var(--line)] pt-4">
+            <SectionLabel>Transcript tools</SectionLabel>
+            <div className="mt-3 space-y-2">
+              <Link
+                to={`/quotes?compose=1&transcriptId=${encodeURIComponent(item.transcriptId)}${item.jobId ? `&jobId=${encodeURIComponent(item.jobId)}` : ""}`}
+                onClick={onClose}
+                className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
+              >
+                <span>Prepare draft quote from transcript</span>
+                <span className="font-mono text-[10px] text-[var(--blue)]">Prefill ready</span>
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
         {isTranscriptItem && (item.linkedQuoteId || (item.relatedQueueItemIds?.length ?? 0) > 0) ? (
           <section className="border-t border-[var(--line)] pt-4">
             <SectionLabel>Linked context</SectionLabel>
@@ -146,6 +163,24 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
                 </Link>
               ) : null}
               {item.approvedAt ? <div className="font-mono text-[10px] text-[var(--t3)]">Approved {formatTimestamp(item.approvedAt)}</div> : null}
+            </div>
+          </section>
+        ) : null}
+
+        {hasBackendArtifactErrors ? (
+          <section className="border-t border-[var(--line)] pt-4">
+            <SectionLabel>Backend needs attention</SectionLabel>
+            <div className="mt-3 rounded-lg border border-[var(--amber-b)] bg-[var(--amber-b)] p-3">
+              <div className="text-[12px] leading-relaxed text-[var(--t1)]">
+                The review completed, but one or more backend artifact steps came back incomplete.
+              </div>
+              <div className="mt-3 space-y-2">
+                {item.backendArtifactErrors?.map((error) => (
+                  <div key={error} className="rounded-md border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[11px] leading-relaxed text-[var(--amber)]">
+                    {error}
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         ) : null}

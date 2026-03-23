@@ -164,6 +164,7 @@ export interface WorkspaceQueueApprovalResult {
   activeJobId?: string;
   generatedQuoteId?: string;
   generatedFollowUpIds?: string[];
+  backendArtifactErrors?: string[];
 }
 
 function hasBetaQueueCredentials(): boolean {
@@ -588,6 +589,7 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
         .map((followUp) => followUp.id?.trim() || "")
         .filter(Boolean),
       workspaceArtifacts,
+      backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
     };
   }
 
@@ -605,6 +607,7 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
       .map((followUp) => followUp.id?.trim() || "")
       .filter(Boolean),
     workspaceArtifacts,
+    backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
   };
 }
 

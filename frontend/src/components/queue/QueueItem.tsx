@@ -12,6 +12,7 @@ export interface QueueItemProps {
 }
 
 export function QueueItem({ item, selected, onClick }: QueueItemProps) {
+  const hasBackendArtifactErrors = (item.backendArtifactErrors?.length ?? 0) > 0;
   const statusLabel =
     item.status === "manual_review"
       ? "Manual review"
@@ -43,6 +44,11 @@ export function QueueItem({ item, selected, onClick }: QueueItemProps) {
         {item.status === "manual_review" && item.manualReviewReason ? (
           <div className="mt-2 line-clamp-2 text-[11px] text-[var(--accent-2)]">{item.manualReviewReason}</div>
         ) : null}
+        {hasBackendArtifactErrors ? (
+          <div className="mt-2 line-clamp-2 text-[11px] text-[var(--amber)]">
+            {item.backendArtifactErrors?.[0] ?? "One backend step still needs attention."}
+          </div>
+        ) : null}
         <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">
           {item.jobName ?? "Unassigned"} · {formatTimeAgo(item.createdAt)}
         </div>
@@ -52,6 +58,7 @@ export function QueueItem({ item, selected, onClick }: QueueItemProps) {
         {item.status === "manual_review" && typeof item.confidenceScore === "number" ? (
           <Badge label={`${Math.round(item.confidenceScore * 100)}%`} color="accent" />
         ) : null}
+        {hasBackendArtifactErrors ? <Badge label="Artifact issue" color="amber" /> : null}
         <Badge label={statusLabel} color={statusColor} />
       </div>
     </button>

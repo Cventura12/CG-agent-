@@ -234,6 +234,7 @@ function mergeLiveQueueItems(current: QueueItem[], incoming: QueueItem[]): Queue
       approvedAt: existing?.approvedAt,
       generatedQuoteId: existing?.generatedQuoteId,
       generatedFollowUpIds: existing?.generatedFollowUpIds,
+      backendArtifactErrors: existing?.backendArtifactErrors,
       extractedActions: item.extractedActions.map((action) => {
         const existingAction = existingActions.get(action.id);
         return existingAction ? { ...action, approved: existingAction.approved } : action;
@@ -624,6 +625,7 @@ function applyQueueApprovals(
       approvedAt: timestamp,
       generatedQuoteId: quote?.id,
       generatedFollowUpIds: nextFollowUps.map((followUp) => followUp.id),
+      backendArtifactErrors: [],
       extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
     };
   });
@@ -742,6 +744,7 @@ function applyQueueApprovalResults(
       approvedAt: result.approvedAt,
       generatedQuoteId: result.generatedQuoteId ?? backendQuote?.id,
       generatedFollowUpIds: result.generatedFollowUpIds ?? backendFollowUps.map((followUp) => followUp.id),
+      backendArtifactErrors: result.backendArtifactErrors ?? [],
       extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
     };
   });

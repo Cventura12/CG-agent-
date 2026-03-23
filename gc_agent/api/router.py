@@ -1473,6 +1473,25 @@ async def get_jobs(
     }
 
 
+@router.get("/jobs/{job_id}/followup")
+async def get_job_followup_public(
+    job_id: str,
+    contractor_id: str = Query(..., min_length=1),
+) -> dict[str, Any]:
+    """Return the live follow-up runtime state for one job."""
+    try:
+        followup_state = await queries.get_job_followup_state(contractor_id, job_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "followup_state": followup_state,
+    }
+
+
 @router.post("/queue/{draft_id}/edit")
 async def edit_queue_item(
     draft_id: str,

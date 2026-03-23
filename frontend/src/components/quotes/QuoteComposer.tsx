@@ -3,7 +3,7 @@ import { FileText, Mic, Paperclip, Plus, Square, Upload, X } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 
 import { fadeIn } from "../../lib/animations";
-import type { Job, QuoteDraftInput, QuoteIntakeSource } from "../../types";
+import type { Job, QuoteDraftInput, QuoteIntakeSource, WorkspaceTranscriptQuotePrefill } from "../../types";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 
@@ -40,6 +40,9 @@ type SpeechWindow = Window & {
 
 export interface QuoteComposerProps {
   initialJob?: Job | null;
+  transcriptPrefill?: WorkspaceTranscriptQuotePrefill | null;
+  isTranscriptPrefillLoading?: boolean;
+  transcriptPrefillError?: string | null;
   onClose: () => void;
   onCreateDraft: (input: QuoteDraftInput) => void;
 }
@@ -76,7 +79,14 @@ function sourceFromMode(mode: QuoteComposerMode, selectedFile: File | null): Quo
   return "manual";
 }
 
-export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteComposerProps) {
+export function QuoteComposer({
+  initialJob,
+  transcriptPrefill,
+  isTranscriptPrefillLoading = false,
+  transcriptPrefillError = null,
+  onClose,
+  onCreateDraft,
+}: QuoteComposerProps) {
   const [jobName, setJobName] = useState(initialJob?.name ?? "");
   const [customerName, setCustomerName] = useState(initialJob?.customerName ?? "");
   const [customerContact, setCustomerContact] = useState(initialJob?.customerContact ?? "");
@@ -94,8 +104,28 @@ export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteCompo
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const baseDraftRef = useRef("");
+  const appliedTranscriptPrefillIdRef = useRef<string | null>(null);
 
   const readiness = useMemo(() => readinessLabel(notes, activeMode, selectedFile), [activeMode, notes, selectedFile]);
+
+  useEffect(() => {
+    if (!transcriptPrefill?.transcript_id) {
+      return;
+    }
+    if (appliedTranscriptPrefillIdRef.current === transcriptPrefill.transcript_id) {
+      return;
+    }
+
+    appliedTranscriptPrefillIdRef.current = transcriptPrefill.transcript_id;
+    setJobName((current) => current.trim() || initialJob?.name || "Transcript estimate request");
+    setCustomerName((current) => current.trim() || transcriptPrefill.customer_name || transcriptPrefill.caller_name || "");
+    setCustomerContact((current) => current.trim() || transcriptPrefill.caller_phone || "");
+    setNotes(transcriptPrefill.quote_input || "");
+    setActiveMode(null);
+    setSelectedFile(null);
+    setCaptureError(null);
+    setCaptureMessage("Transcript context loaded into this draft.");
+  }, [initialJob?.name, transcriptPrefill]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -329,6 +359,35 @@ export function QuoteComposer({ initialJob, onClose, onCreateDraft }: QuoteCompo
               </section>
 
               <section className="overflow-hidden rounded-[16px] border border-[var(--line-2)] bg-[var(--bg-3)]">
+                {isTranscriptPrefillLoading ? (
+                  <div className="border-b border-[var(--line)] bg-[var(--bg)] px-4 py-3 text-[12px] text-[var(--t2)]">
+                    Loading transcript context into this draft...
+                  </div>
+                ) : null}
+
+                {transcriptPrefillError ? (
+                  <div className="border-b border-[var(--line)] bg-[var(--red-b)] px-4 py-3 text-[12px] text-[var(--red)]">
+                    {transcriptPrefillError}
+                  </div>
+                ) : null}
+
+                {transcriptPrefill ? (
+                  <div className="border-b border-[var(--line)] bg-[var(--bg)] px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge label="TRANSCRIPT PREFILL" color="blue" />
+                      <span className="font-mono text-[10px] text-[var(--t3)]">
+                        {transcriptPrefill.classification.replace(/_/g, " ")}
+                      </span>
+                      {transcriptPrefill.linked_quote_id ? (
+                        <span className="font-mono text-[10px] text-[var(--accent-2)]">
+                          Linked quote {transcriptPrefill.linked_quote_id}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-[12px] leading-relaxed text-[var(--t1)]">{transcriptPrefill.summary}</div>
+                  </div>
+                ) : null}
+
                 {activeMode ? (
                   <div className="border-b border-[var(--line)] px-4 py-4">
                     <div className="mb-3 flex items-start justify-between gap-3">

@@ -177,3 +177,38 @@ async def test_job_detail_returns_not_found_when_job_missing(monkeypatch: pytest
     payload = response.json()
     assert payload["success"] is False
     assert payload["error"] == "job_id not found"
+
+
+@pytest.mark.asyncio
+async def test_job_followup_endpoint_returns_live_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _fake_get_gc_by_clerk_user_id(_: str) -> str | None:
+        return "00000000-0000-0000-0000-000000000001"
+
+    async def _fake_get_job_followup_state(gc_id: str, job_id: str):
+        assert gc_id == "00000000-0000-0000-0000-000000000001"
+        assert job_id == "job-1"
+        return {
+            "open_item_id": "followup-1",
+            "quote_id": "quote-1",
+            "job_id": "job-1",
+            "status": "scheduled",
+            "next_due_at": "2026-03-06T14:00:00+00:00",
+            "reminder_count": 2,
+            "last_reminder_at": "2026-03-05T14:00:00+00:00",
+            "stopped_at": None,
+            "stop_reason": None,
+            "channel": "sms",
+        }
+
+    monkeypatch.setattr(jobs_module.queries, "get_gc_by_clerk_user_id", _fake_get_gc_by_clerk_user_id)
+    monkeypatch.setattr(jobs_module.queries, "get_job_followup_state", _fake_get_job_followup_state)
+
+    _, client = _build_test_client()
+    async with client:
+        response = await client.get("/api/v1/jobs/job-1/followup")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is True
+    assert payload["data"]["followup_state"]["status"] == "scheduled"
+    assert payload["data"]["followup_state"]["reminder_count"] == 2

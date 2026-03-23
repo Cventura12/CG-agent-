@@ -3,9 +3,10 @@ import { FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { fetchWorkspaceTranscriptQuotePrefill } from "../../api/workspaceTranscripts";
 import { fadeUp } from "../../lib/animations";
 import { useAppStore } from "../../store/appStore";
-import type { Quote, QuoteDraftInput } from "../../types";
+import type { Quote, QuoteDraftInput, WorkspaceTranscriptQuotePrefill } from "../../types";
 import { EmptyState } from "../ui/EmptyState";
 import { QuoteCard } from "./QuoteCard";
 import { QuoteComposer } from "./QuoteComposer";
@@ -32,18 +33,66 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
   const updateQuoteStatus = useAppStore((state) => state.updateQuoteStatus);
   const setSelectedQuote = useAppStore((state) => state.setSelectedQuote);
   const createQuoteDraft = useAppStore((state) => state.createQuoteDraft);
+  const jobs = useAppStore((state) => state.jobs);
   const activeJob = useAppStore((state) => state.jobs.find((job) => job.id === state.activeJobId) ?? null);
   const [filter, setFilter] = useState<QuoteFilter>("all");
+  const [transcriptPrefill, setTranscriptPrefill] = useState<WorkspaceTranscriptQuotePrefill | null>(null);
+  const [isTranscriptPrefillLoading, setIsTranscriptPrefillLoading] = useState(false);
+  const [transcriptPrefillError, setTranscriptPrefillError] = useState<string | null>(null);
 
   const filteredQuotes = useMemo(() => quotes.filter((quote) => matchesFilter(quote, filter)), [filter, quotes]);
   const selectedQuote = filteredQuotes.find((quote) => quote.id === id) ?? quotes.find((quote) => quote.id === id) ?? null;
-  const isComposerOpen = useMemo(() => new URLSearchParams(location.search).get("compose") === "1", [location.search]);
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const isComposerOpen = useMemo(() => searchParams.get("compose") === "1", [searchParams]);
+  const transcriptId = useMemo(() => searchParams.get("transcriptId")?.trim() ?? "", [searchParams]);
+  const composerJobId = useMemo(() => searchParams.get("jobId")?.trim() ?? "", [searchParams]);
+  const composerJob = useMemo(
+    () => jobs.find((job) => job.id === composerJobId) ?? activeJob,
+    [activeJob, composerJobId, jobs]
+  );
 
   useEffect(() => {
     if (useStore) {
       setSelectedQuote(selectedQuote?.id ?? null);
     }
   }, [selectedQuote?.id, setSelectedQuote, useStore]);
+
+  useEffect(() => {
+    if (!isComposerOpen || !transcriptId) {
+      setTranscriptPrefill(null);
+      setTranscriptPrefillError(null);
+      setIsTranscriptPrefillLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsTranscriptPrefillLoading(true);
+    setTranscriptPrefillError(null);
+
+    void fetchWorkspaceTranscriptQuotePrefill(transcriptId)
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+        setTranscriptPrefill(payload);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setTranscriptPrefill(null);
+        setTranscriptPrefillError(error instanceof Error ? error.message : "Could not load transcript context.");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsTranscriptPrefillLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isComposerOpen, transcriptId]);
 
   const closeComposer = () => {
     navigate(location.pathname);
@@ -98,7 +147,16 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
         </div>
       </div>
 
-      {isComposerOpen ? <QuoteComposer initialJob={activeJob} onClose={closeComposer} onCreateDraft={handleCreateDraft} /> : null}
+      {isComposerOpen ? (
+        <QuoteComposer
+          initialJob={composerJob}
+          transcriptPrefill={transcriptPrefill}
+          isTranscriptPrefillLoading={isTranscriptPrefillLoading}
+          transcriptPrefillError={transcriptPrefillError}
+          onClose={closeComposer}
+          onCreateDraft={handleCreateDraft}
+        />
+      ) : null}
 
       {selectedQuote && !isComposerOpen ? (
         <motion.div

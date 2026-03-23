@@ -126,6 +126,43 @@ async def test_briefing_and_jobs_endpoints_return_current_data(
 
 
 @pytest.mark.asyncio
+async def test_public_job_followup_endpoint_returns_runtime_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GC_AGENT_API_KEYS", "gc-demo:test-key")
+
+    async def _fake_get_job_followup_state(gc_id: str, job_id: str) -> dict[str, object] | None:
+        assert gc_id == "gc-demo"
+        assert job_id == "job-1"
+        return {
+            "open_item_id": "followup-1",
+            "quote_id": "quote-1",
+            "job_id": "job-1",
+            "status": "scheduled",
+            "next_due_at": "2026-03-06T14:00:00+00:00",
+            "reminder_count": 1,
+            "last_reminder_at": "2026-03-05T14:00:00+00:00",
+            "stopped_at": None,
+            "stop_reason": None,
+            "channel": "sms",
+        }
+
+    monkeypatch.setattr(api_module.queries, "get_job_followup_state", _fake_get_job_followup_state)
+
+    async with _client() as client:
+        response = await client.get(
+            "/jobs/job-1/followup",
+            params={"contractor_id": "gc-demo"},
+            headers={"X-API-Key": "test-key"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["followup_state"]["status"] == "scheduled"
+    assert payload["followup_state"]["quote_id"] == "quote-1"
+
+
+@pytest.mark.asyncio
 async def test_edit_and_discard_queue_endpoints_update_draft_and_trigger_memory(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

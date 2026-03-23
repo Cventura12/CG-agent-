@@ -1,6 +1,8 @@
-ï»¿import { X } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
+import { fetchWorkspaceJobFollowUpState } from "../../api/workspaceJobs";
 import type { Job, JobActivity } from "../../types";
 import { formatCurrency, formatMonoTime } from "../../lib/formatters";
 import { useAppStore } from "../../store/appStore";
@@ -12,6 +14,7 @@ import { JobStatusBadge } from "./JobStatusBadge";
 const tabs = ["activity", "quotes", "followups", "calls", "notes"] as const;
 
 type JobTab = (typeof tabs)[number];
+type LiveFollowUpStatus = "none" | "scheduled" | "stopped" | "pending_destination";
 
 const activityIconTone: Record<JobActivity["type"], { color: string; source?: "CALL" | "EMAIL" }> = {
   call: { color: "bg-[var(--green-b)] text-[var(--green)]", source: "CALL" },
@@ -21,6 +24,37 @@ const activityIconTone: Record<JobActivity["type"], { color: string; source?: "C
   change_order: { color: "bg-[var(--acl)] text-[var(--accent-2)]" },
   follow_up: { color: "bg-[var(--amber-b)] text-[var(--amber)]" },
 };
+
+function liveFollowUpTone(status: LiveFollowUpStatus): string {
+  if (status === "scheduled") return "bg-[var(--green-b)] text-[var(--green)]";
+  if (status === "stopped") return "bg-[var(--red-b)] text-[var(--red)]";
+  if (status === "pending_destination") return "bg-[var(--amber-b)] text-[var(--amber)]";
+  return "bg-[var(--bg-4)] text-[var(--t2)]";
+}
+
+function liveFollowUpLabel(status: LiveFollowUpStatus): string {
+  if (status === "scheduled") return "Active";
+  if (status === "stopped") return "Stopped";
+  if (status === "pending_destination") return "Pending destination";
+  return "Inactive";
+}
+
+function liveFollowUpHeadline(status: LiveFollowUpStatus): string {
+  if (status === "scheduled") return "Automatic follow-through is active on this job.";
+  if (status === "stopped") return "Automatic follow-through is paused on this job.";
+  if (status === "pending_destination") return "Follow-through is waiting on a delivery destination.";
+  return "No automatic follow-through is active on this job right now.";
+}
+
+function liveFollowUpReason(reason: string | null | undefined): string {
+  const normalized = (reason ?? "").trim().toLowerCase();
+  if (normalized === "max_reminders_reached") return "Two follow-through reminders have already been sent.";
+  if (normalized === "manual_stop") return "Automatic follow-through was manually paused.";
+  if (normalized === "quote_discarded") return "The linked quote was discarded.";
+  if (normalized === "quote_accepted") return "The linked quote has already been accepted.";
+  if (!normalized) return "Fieldr is reading the live reminder state directly from the backend.";
+  return normalized.replace(/_/g, " ");
+}
 
 export interface JobDetailProps {
   job: Job;
@@ -32,6 +66,9 @@ export interface JobDetailProps {
 export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }: JobDetailProps) {
   const [activeTab, setActiveTab] = useState<JobTab>(initialTab);
   const [notesDraft, setNotesDraft] = useState(job.notes ?? "");
+  const [liveFollowUpState, setLiveFollowUpState] = useState<Awaited<ReturnType<typeof fetchWorkspaceJobFollowUpState>>>(null);
+  const [isLiveFollowUpLoading, setIsLiveFollowUpLoading] = useState(false);
+  const [liveFollowUpError, setLiveFollowUpError] = useState<string | null>(null);
   const voiceSessions = useAppStore((state) =>
     state.voiceSessions.filter(
       (session) =>
@@ -48,6 +85,40 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab, job.id]);
+
+  useEffect(() => {
+    if (activeTab !== "followups") {
+      return;
+    }
+
+    let cancelled = false;
+    setIsLiveFollowUpLoading(true);
+    setLiveFollowUpError(null);
+
+    void fetchWorkspaceJobFollowUpState(job.id)
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+        setLiveFollowUpState(payload);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setLiveFollowUpError(error instanceof Error ? error.message : "Could not load live follow-up state.");
+        setLiveFollowUpState(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLiveFollowUpLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, job.id]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -77,7 +148,7 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
             <h2 className="text-[18px] font-medium tracking-[-0.4px] text-[var(--t1)]">{job.name}</h2>
             <JobStatusBadge status={job.status} />
           </div>
-          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} Â· {job.customerContact}</div>
+          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} · {job.customerContact}</div>
           {job.address ? <div className="mt-2 font-mono text-[12px] text-[var(--t3)]">{job.address}</div> : null}
           {job.tags.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -172,17 +243,87 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
 
       {activeTab === "followups" ? (
         <div className="space-y-3 pt-4">
-          {job.followUps.map((followUp) => (
-            <div key={followUp.id} className="flex items-start gap-3 rounded-lg border border-[var(--line)] bg-[var(--bg-2)] px-4 py-3">
-              <span className={`mt-[6px] h-[8px] w-[8px] rounded-full ${followUp.status === "overdue" ? "bg-[var(--red)]" : followUp.status === "scheduled" ? "bg-[var(--amber)]" : followUp.status === "responded" ? "bg-[var(--green)]" : "bg-[var(--t3)]"}`} />
-              <div className="min-w-0 flex-1">
-                <div className={`text-[13px] ${followUp.status === "responded" ? "text-[var(--t3)] line-through" : "text-[var(--t1)]"}`}>{followUp.description}</div>
-                <div className={`mt-1 font-mono text-[10px] ${followUp.status === "overdue" ? "text-[var(--red)]" : "text-[var(--t3)]"}`}>
-                  {formatMonoTime(followUp.scheduledFor)}
+          {isLiveFollowUpLoading ? (
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] px-4 py-4 text-[12px] text-[var(--t2)]">
+              Loading live follow-up state...
+            </div>
+          ) : null}
+
+          {liveFollowUpState ? (
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[14px] font-medium text-[var(--t1)]">{liveFollowUpHeadline(liveFollowUpState.status)}</div>
+                  <div className="mt-2 text-[12px] leading-relaxed text-[var(--t2)]">
+                    {liveFollowUpReason(liveFollowUpState.stop_reason)}
+                  </div>
+                </div>
+                <span className={`rounded-[5px] px-2 py-1 font-mono text-[10px] ${liveFollowUpTone(liveFollowUpState.status)}`}>
+                  {liveFollowUpLabel(liveFollowUpState.status)}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-3)] px-3 py-3">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--t3)]">Next due</div>
+                  <div className="mt-2 text-[12px] text-[var(--t1)]">
+                    {liveFollowUpState.next_due_at ? formatMonoTime(liveFollowUpState.next_due_at) : "Not scheduled"}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-3)] px-3 py-3">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--t3)]">Reminders sent</div>
+                  <div className="mt-2 text-[12px] text-[var(--t1)]">{liveFollowUpState.reminder_count}</div>
+                </div>
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-3)] px-3 py-3">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--t3)]">Last reminder</div>
+                  <div className="mt-2 text-[12px] text-[var(--t1)]">
+                    {liveFollowUpState.last_reminder_at ? formatMonoTime(liveFollowUpState.last_reminder_at) : "None yet"}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-3)] px-3 py-3">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--t3)]">Channel</div>
+                  <div className="mt-2 text-[12px] capitalize text-[var(--t1)]">{liveFollowUpState.channel ?? "Unassigned"}</div>
                 </div>
               </div>
+
+              {liveFollowUpState.quote_id ? (
+                <div className="mt-4">
+                  <Link
+                    to={`/quotes/${liveFollowUpState.quote_id}`}
+                    className="inline-flex items-center rounded-md border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
+                  >
+                    Open linked quote
+                  </Link>
+                </div>
+              ) : null}
             </div>
-          ))}
+          ) : null}
+
+          {liveFollowUpError ? (
+            <div className="rounded-lg border border-[var(--amber-b)] bg-[var(--amber-b)] px-4 py-4 text-[12px] leading-relaxed text-[var(--amber)]">
+              {liveFollowUpError} Showing the local follow-up snapshot instead.
+            </div>
+          ) : null}
+
+          {liveFollowUpError
+            ? job.followUps.map((followUp) => (
+                <div key={followUp.id} className="flex items-start gap-3 rounded-lg border border-[var(--line)] bg-[var(--bg-2)] px-4 py-3">
+                  <span className={`mt-[6px] h-[8px] w-[8px] rounded-full ${followUp.status === "overdue" ? "bg-[var(--red)]" : followUp.status === "scheduled" ? "bg-[var(--amber)]" : followUp.status === "responded" ? "bg-[var(--green)]" : "bg-[var(--t3)]"}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-[13px] ${followUp.status === "responded" ? "text-[var(--t3)] line-through" : "text-[var(--t1)]"}`}>{followUp.description}</div>
+                    <div className={`mt-1 font-mono text-[10px] ${followUp.status === "overdue" ? "text-[var(--red)]" : "text-[var(--t3)]"}`}>
+                      {formatMonoTime(followUp.scheduledFor)}
+                    </div>
+                  </div>
+                </div>
+              ))
+            : null}
+
+          {!isLiveFollowUpLoading && !liveFollowUpState && !liveFollowUpError ? (
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] px-4 py-4 text-[12px] text-[var(--t2)]">
+              No live follow-up sequence is active on this job right now.
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -192,7 +333,7 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
             sessions={voiceSessions}
             title="Job call history"
             detail="Streaming call captures, transfer state, and replayable recordings tied to this job."
-            emptyDescription="When the agent captures live calls for this job, theyâ€™ll show up here with transfer and recording state."
+            emptyDescription="When the agent captures live calls for this job, they’ll show up here with transfer and recording state."
             onRequestTransfer={requestVoiceTransfer}
             compact
           />

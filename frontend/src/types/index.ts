@@ -67,6 +67,7 @@ export interface QueueItem {
   transcriptId?: string;
   relatedQueueItemIds?: string[];
   linkedQuoteId?: string;
+  backendArtifactErrors?: string[];
 }
 
 export interface QuoteLineItem {
@@ -209,4 +210,40 @@ export interface VoiceCallSession {
   extractedFields: Record<string, string>;
   missingSlots: VoiceMissingSlot[];
   debug?: VoiceCallDebug;
+}
+
+export interface WorkspaceJobFollowUpState {
+  open_item_id: string | null;
+  quote_id: string | null;
+  job_id: string | null;
+  status: "none" | "scheduled" | "stopped" | "pending_destination";
+  next_due_at: string | null;
+  reminder_count: number;
+  last_reminder_at: string | null;
+  stopped_at: string | null;
+  stop_reason: string | null;
+  channel: string | null;
+}
+
+export interface WorkspaceTranscriptQuotePrefill {
+  transcript_id: string;
+  trace_id: string;
+  classification: string;
+  confidence: number | null;
+  summary: string;
+  urgency: string;
+  caller_name: string;
+  caller_phone: string;
+  linked_job_id: string;
+  linked_quote_id: string;
+  customer_name: string;
+  job_type: string;
+  scope_items: string[];
+  customer_questions: string[];
+  insurance_involved: boolean | null;
+  missing_information: string[];
+  recommended_actions: string[];
+  scheduling_notes: string[];
+  estimate_related: boolean;
+  quote_input: string;
 }

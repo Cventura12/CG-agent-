@@ -378,6 +378,21 @@ async def job_detail(job_id: str, current_gc: str = Depends(get_current_gc)) -> 
     )
 
 
+@router.get("/jobs/{job_id}/followup", response_model=None)
+async def job_followup_state(job_id: str, current_gc: str = Depends(get_current_gc)) -> dict[str, Any] | JSONResponse:
+    """Return the live follow-up runtime state for one job."""
+    gc_id, gc_error = await _resolve_gc_id(current_gc)
+    if gc_error is not None or gc_id is None:
+        return gc_error  # type: ignore[return-value]
+
+    try:
+        followup_state = await queries.get_job_followup_state(gc_id, job_id)
+    except DatabaseError as exc:
+        return _error(500, str(exc))
+
+    return _success({"followup_state": followup_state})
+
+
 @router.post("/jobs/{job_id}/open-items/{open_item_id}/draft-action", response_model=None)
 async def draft_open_item_action(
     job_id: str,
@@ -478,6 +493,7 @@ __all__ = [
     "router",
     "list_jobs",
     "job_detail",
+    "job_followup_state",
     "refresh_briefing",
     "draft_open_item_action",
     "advance_open_item_lifecycle",
