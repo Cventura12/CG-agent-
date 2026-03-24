@@ -20,7 +20,7 @@ export function Topbar({ currentTime, onImportTranscript, onNewQuote }: TopbarPr
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--line)] bg-[var(--bg)] px-5">
       <div className="flex items-center gap-3">
         <div className="text-[13px] text-[var(--t2)]">
-          GC Agent <span className="text-[var(--t3)]">/</span> <span className="text-[var(--t1)]">Today</span>
+          Arbor <span className="text-[var(--t3)]">/</span> <span className="text-[var(--t1)]">Today</span>
         </div>
         <div className="inline-flex items-center gap-[6px] rounded px-[6px] py-[2px] font-mono text-[9px] text-[var(--green)]">
           <span className="h-[5px] w-[5px] rounded-full bg-[var(--green)] animate-pulse-slow" />

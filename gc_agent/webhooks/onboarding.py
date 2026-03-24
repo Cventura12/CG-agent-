@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 _UNREGISTERED_MESSAGE_TEMPLATE = (
-    "Hi! To use GC Agent, sign up at {web_app_url}. "
+    "Hi! To use Arbor, sign up at {web_app_url}. "
     "Once registered, send updates to this number anytime."
 )
 

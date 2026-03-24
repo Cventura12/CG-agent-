@@ -26,14 +26,14 @@ export function useQueueNotificationStub(gcId: string | null): void {
     }
 
     if (!("Notification" in window)) {
-      console.info(`GC Agent queue update: ${nextCount} item(s) waiting.`);
+      console.info(`Arbor queue update: ${nextCount} item(s) waiting.`);
       return;
     }
 
     if (Notification.permission === "granted") {
       const body =
         nextCount === 1 ? "1 draft is waiting for review." : `${nextCount} drafts are waiting for review.`;
-      new Notification("GC Agent queue update", { body });
+      new Notification("Arbor queue update", { body });
       return;
     }
 

@@ -391,7 +391,7 @@ function mapDraftToQueueItem(draft: BackendDraft, jobId?: string, jobName?: stri
     transcript?.summary?.trim() ||
     draft.why?.trim() ||
     draft.content?.trim() ||
-    "Fieldr prepared this item for contractor review.";
+    "Arbor prepared this item for contractor review.";
 
   return {
     id: draft.id,

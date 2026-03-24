@@ -284,7 +284,7 @@ def _build_delivery_message(
     if message_override.strip():
         return message_override.strip()
 
-    company = str(quote.get("company_name", "GC Agent")).strip() or "GC Agent"
+    company = str(quote.get("company_name", "Arbor")).strip() or "Arbor"
     address = str(quote.get("project_address", "your project")).strip() or "your project"
     total = _to_float(quote.get("total_price"))
     scope = str(quote.get("scope_of_work", "")).strip()
@@ -301,7 +301,7 @@ def _build_delivery_message(
 
 def _build_delivery_subject(*, quote_id: str, quote: dict[str, Any]) -> str:
     """Format a concise email subject for an outbound quote."""
-    company = str(quote.get("company_name", "GC Agent")).strip() or "GC Agent"
+    company = str(quote.get("company_name", "Arbor")).strip() or "Arbor"
     address = str(quote.get("project_address", "your project")).strip() or "your project"
     return f"{company} quote for {address} ({quote_id})"
 

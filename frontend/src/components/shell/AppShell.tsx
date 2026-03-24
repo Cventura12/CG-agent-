@@ -5,6 +5,7 @@ import { FileText, Menu, Upload, X } from "lucide-react";
 import { useQueueItems } from "../../hooks/useQueueItems";
 import { useVoiceSessions } from "../../hooks/useVoiceSessions";
 import { useAppStore } from "../../store/appStore";
+import { ArborLogo } from "../brand/ArborLogo";
 import { Button } from "../ui/Button";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -142,7 +143,7 @@ export function AppShell() {
           <div className="flex w-[min(88vw,320px)] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg-2)]">
             <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
               <div>
-                <div className="text-[13px] font-medium text-[var(--t1)]">GC Agent</div>
+                <ArborLogo compact />
                 <div className="mt-[2px] text-[11px] text-[var(--t3)]">Workspace</div>
               </div>
               <button

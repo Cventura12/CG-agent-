@@ -1,4 +1,4 @@
-﻿"""FastAPI application entry point for GC Agent backend."""
+"""FastAPI application entry point for GC Agent backend."""
 
 from __future__ import annotations
 
@@ -617,7 +617,7 @@ async def lifespan(app: FastAPI):
         _APP = None
 
 
-app = FastAPI(title="GC Agent", version=APP_VERSION, lifespan=lifespan)
+app = FastAPI(title="Arbor", version=APP_VERSION, lifespan=lifespan)
 
 allowed_origins = [origin.strip() for origin in settings.frontend_url.split(",") if origin.strip()]
 app.add_middleware(

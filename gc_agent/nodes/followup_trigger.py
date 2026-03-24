@@ -509,7 +509,7 @@ async def ensure_quote_followup(
         "quote_id": quote_value or None,
         "type": "followup",
         "description": _build_open_item_description(final_quote_payload, address, quote_value),
-        "owner": "GC Agent",
+        "owner": "Arbor",
         "status": "open",
         "days_silent": 0,
         "reminder_count": 0,

@@ -155,7 +155,7 @@ export default function TodayView(props: TodayViewProps) {
   const voiceSessions = useAppStore((state) => state.voiceSessions);
   const requestVoiceTransfer = useAppStore((state) => state.requestVoiceTransfer);
 
-  const user = props.user ?? storeUser ?? { id: "user", name: "GC Agent", initials: "GC", role: "Operator", companyName: "GC Agent" };
+  const user = props.user ?? storeUser ?? { id: "user", name: "Arbor Agent", initials: "AR", role: "Operator", companyName: "Arbor" };
   const agentStatus = props.agentStatus ?? storeAgentStatus;
   const queueItems = props.queueItems ?? storeQueueItems;
   const openQuotes = props.openQuotes ?? storeQuotes.filter((quote) => ["draft", "sent", "viewed"].includes(quote.status)).length;

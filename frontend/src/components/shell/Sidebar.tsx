@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { formatTimeAgo } from "../../lib/formatters";
 import { useAppStore } from "../../store/appStore";
+import { ArborLogo } from "../brand/ArborLogo";
 import { Badge } from "../ui/Badge";
 import { SectionLabel } from "../ui/SectionLabel";
 
@@ -52,12 +53,13 @@ export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
   return (
     <aside className={clsx("flex w-[220px] shrink-0 flex-col overflow-hidden border-r border-[var(--line)] bg-[var(--bg-2)]", className)}>
       <div className="border-b border-[var(--line)] px-4 py-3.5">
+        <ArborLogo compact className="mb-3" />
         <SectionLabel>Agent</SectionLabel>
         <div className="mt-2 rounded-lg border border-[var(--acl)] bg-[var(--acl-2)] px-2.5 py-2">
           <div className="flex items-start gap-2">
             <span className={`mt-[4px] h-[6px] w-[6px] rounded-full ${agentStatus.active ? "bg-[var(--accent)] anim-pulse" : "bg-[var(--t3)]"}`} />
             <div className="min-w-0">
-              <div className="text-[11px] font-medium text-[var(--t1)]">GC Agent · {agentStatus.active ? "Active" : "Offline"}</div>
+              <div className="text-[11px] font-medium text-[var(--t1)]">Arbor Agent · {agentStatus.active ? "Active" : "Offline"}</div>
               <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">Monitoring · {agentStatus.openItems} open items</div>
             </div>
           </div>
@@ -138,8 +140,8 @@ export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
       </div>
 
       <div className="border-t border-[var(--line)] px-4 py-3">
-        <div className="text-[12px] font-medium text-[var(--t1)]">{user?.name ?? "GC Agent"}</div>
-        <div className="mt-1 text-[11px] text-[var(--t3)]">{user?.companyName ?? "Contractor runtime"}</div>
+        <div className="text-[12px] font-medium text-[var(--t1)]">{user?.name ?? "Arbor Agent"}</div>
+        <div className="mt-1 text-[11px] text-[var(--t3)]">{user?.companyName ?? "Arbor"}</div>
       </div>
     </aside>
   );

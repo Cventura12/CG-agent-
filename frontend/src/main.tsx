@@ -9,7 +9,7 @@ function BootScreen({ title, detail }: { title: string; detail: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 py-8 text-[var(--t1)]">
       <div className="w-full max-w-md rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--accent)]">GC Agent</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--accent)]">Arbor</p>
         <h1 className="mt-2 text-lg font-medium text-[var(--t1)]">{title}</h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--t2)]">{detail}</p>
       </div>
@@ -32,7 +32,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
 
   override render() {
     if (this.state.hasError) {
-      return <BootScreen title="Frontend error" detail={`GC Agent hit a browser error: ${this.state.message}`} />;
+      return <BootScreen title="Frontend error" detail={`Arbor hit a browser error: ${this.state.message}`} />;
     }
 
     return this.props.children;

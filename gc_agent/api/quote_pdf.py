@@ -114,7 +114,7 @@ def render_quote_pdf(quote_id: str, quote_draft: dict[str, Any]) -> bytes:
         pdf.drawString(0.7 * inch, y_cursor, title.upper())
         return y_cursor - 0.18 * inch
 
-    contractor_name = str(quote_draft.get("company_name") or "GC Agent Contractor").strip()
+    contractor_name = str(quote_draft.get("company_name") or "Arbor Contractor").strip()
     customer_name = str(quote_draft.get("customer_name") or "Customer").strip()
     project_address = str(quote_draft.get("project_address") or "Project address pending").strip()
     scope = str(quote_draft.get("scope_of_work") or "").strip()

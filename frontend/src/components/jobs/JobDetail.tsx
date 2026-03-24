@@ -52,7 +52,7 @@ function liveFollowUpReason(reason: string | null | undefined): string {
   if (normalized === "manual_stop") return "Automatic follow-through was manually paused.";
   if (normalized === "quote_discarded") return "The linked quote was discarded.";
   if (normalized === "quote_accepted") return "The linked quote has already been accepted.";
-  if (!normalized) return "Fieldr is reading the live reminder state directly from the backend.";
+  if (!normalized) return "Arbor is reading the live reminder state directly from the backend.";
   return normalized.replace(/_/g, " ");
 }
 
@@ -148,7 +148,7 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
             <h2 className="text-[18px] font-medium tracking-[-0.4px] text-[var(--t1)]">{job.name}</h2>
             <JobStatusBadge status={job.status} />
           </div>
-          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} � {job.customerContact}</div>
+          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} ï¿½ {job.customerContact}</div>
           {job.address ? <div className="mt-2 font-mono text-[12px] text-[var(--t3)]">{job.address}</div> : null}
           {job.tags.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -333,7 +333,7 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
             sessions={voiceSessions}
             title="Job call history"
             detail="Streaming call captures, transfer state, and replayable recordings tied to this job."
-            emptyDescription="When the agent captures live calls for this job, they�ll show up here with transfer and recording state."
+            emptyDescription="When the agent captures live calls for this job, theyï¿½ll show up here with transfer and recording state."
             onRequestTransfer={requestVoiceTransfer}
             compact
           />

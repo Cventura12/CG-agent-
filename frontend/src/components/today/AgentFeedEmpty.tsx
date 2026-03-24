@@ -58,7 +58,7 @@ export function AgentFeedEmpty({
         <div>
           <div className="text-[13px] font-medium text-[var(--t1)]">Agent is standing by</div>
           <div className="mt-[4px] text-[12px] leading-[1.6] text-[var(--t2)]">
-            GC Agent is live and waiting for the first real input. Connect one source and the
+            Arbor Agent is live and waiting for the first real input. Connect one source and the
             feed becomes the place where calls, transcripts, and unresolved field work surface.
           </div>
         </div>

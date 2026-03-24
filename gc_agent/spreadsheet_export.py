@@ -39,7 +39,7 @@ def _build_quote_rows(
 ) -> list[list[Any]]:
     line_items = quote.get("line_items")
     rows: list[list[Any]] = [
-        ["GC Agent Quote Export", quote_id],
+        ["Arbor Quote Export", quote_id],
         ["Company", str(quote.get("company_name", "") or "").strip()],
         ["Customer", str(quote.get("customer_name", "") or "").strip()],
         ["Project Address", str(quote.get("project_address", "") or "").strip()],

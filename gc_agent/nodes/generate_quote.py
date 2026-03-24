@@ -188,7 +188,7 @@ def _fallback_quote_draft(
     scope_language_examples: list[str],
 ) -> dict[str, object]:
     """Build a deterministic quote when model output is unavailable."""
-    company_name = str(contractor_info.get("company_name") or "GC Agent Estimating").strip()
+    company_name = str(contractor_info.get("company_name") or "Arbor Estimating").strip()
     customer_name = str(job_scope.get("customer_name") or "Customer").strip() or "Customer"
     address = str(job_scope.get("address") or "Project address pending").strip() or "Project address pending"
     line_items = materials.get("line_items")
@@ -294,7 +294,7 @@ def _build_user_prompt(
 
 def render_quote_text(quote_draft: dict[str, object]) -> str:
     """Render a quote draft into readable plain text for manual scoring."""
-    company_name = str(quote_draft.get("company_name") or "GC Agent")
+    company_name = str(quote_draft.get("company_name") or "Arbor")
     customer_name = str(quote_draft.get("customer_name") or "Customer")
     project_address = str(quote_draft.get("project_address") or "Address pending")
     scope_of_work = str(quote_draft.get("scope_of_work") or "")

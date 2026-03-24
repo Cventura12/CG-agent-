@@ -69,7 +69,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
             <SectionLabel>Manual review</SectionLabel>
             <div className="mt-2 text-[12px] leading-relaxed text-[var(--t1)]">{item.manualReviewReason}</div>
             <div className="mt-2 text-[11px] text-[var(--t2)]">
-              Fieldr is keeping this in front of the office until a human confirms the next step.
+              Arbor is keeping this in front of the office until a human confirms the next step.
             </div>
           </section>
         ) : null}

@@ -42,7 +42,7 @@ def _smtp_settings() -> dict[str, object]:
         "username": username,
         "password": password,
         "from_email": from_email,
-        "from_name": os.getenv("SMTP_FROM_NAME", "").strip() or "GC Agent",
+        "from_name": os.getenv("SMTP_FROM_NAME", "").strip() or "Arbor",
         "use_ssl": _bool_env("SMTP_USE_SSL", False),
         "use_starttls": _bool_env("SMTP_USE_STARTTLS", True),
     }
@@ -65,7 +65,7 @@ def send_email_message(
     message = EmailMessage()
     message["To"] = destination
     message["From"] = formataddr((str(settings["from_name"]), str(settings["from_email"])))
-    message["Subject"] = subject.strip() or "Your quote from GC Agent"
+    message["Subject"] = subject.strip() or "Your quote from Arbor"
     domain = str(settings["from_email"]).split("@", 1)[1] if "@" in str(settings["from_email"]) else None
     message_id = make_msgid(domain=domain)
     message["Message-ID"] = message_id

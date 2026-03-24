@@ -26,11 +26,11 @@ export function IconRail({ initials }: IconRailProps) {
 
   return (
     <aside className="flex w-[52px] shrink-0 flex-col items-center gap-0.5 border-r border-[var(--line)] bg-[var(--bg)] py-3.5">
-      <Tooltip label="GC Agent">
+      <Tooltip label="Arbor">
         <Link
           to="/today"
           className="mb-[18px] flex h-[28px] w-[28px] items-center justify-center rounded-[7px] bg-[var(--accent)] text-white no-underline"
-          aria-label="GC Agent"
+          aria-label="Arbor"
         >
           <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] fill-none stroke-current" strokeWidth="2.6">
             <path d="M12 18V6m0 0-4 4m4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from gc_agent.api.router import APP_VERSION, open_router, router
 
-app = FastAPI(title="GC Agent API", version=APP_VERSION)
+app = FastAPI(title="Arbor API", version=APP_VERSION)
 
 allowed_origins = [
     origin.strip()

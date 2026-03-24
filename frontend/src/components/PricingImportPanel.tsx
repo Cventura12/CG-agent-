@@ -144,7 +144,7 @@ export function PricingImportPanel({ disabledReason, onImportComplete }: Pricing
       </div>
       <div className="pb vs">
         <div style={{ fontSize: 12, color: "var(--steel)" }}>
-          Upload a contractor price sheet to preview column mapping before GC Agent writes the normalized pricing rows.
+          Upload a contractor price sheet to preview column mapping before Arbor writes the normalized pricing rows.
         </div>
 
         {disabledReason ? (
