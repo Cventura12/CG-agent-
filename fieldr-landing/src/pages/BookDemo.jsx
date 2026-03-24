@@ -11,7 +11,7 @@ const biggestGapOptions = [
 ]
 
 function buildMailto(values) {
-  const subject = encodeURIComponent(`Fieldr demo request - ${values.company || values.name || 'New lead'}`)
+  const subject = encodeURIComponent(`Arbor demo request - ${values.company || values.name || 'New lead'}`)
   const body = encodeURIComponent(
     [
       `Name: ${values.name}`,
@@ -339,7 +339,7 @@ export default function BookDemo() {
         }
       `}</style>
 
-      <main ref={rootRef} className="fieldr-demo" aria-label="Book a Fieldr demo">
+      <main ref={rootRef} className="fieldr-demo" aria-label="Book an Arbor demo">
         <div className="fieldr-demo__inner">
           <div>
             <p className="fieldr-demo__eyebrow" data-demo-reveal="eyebrow">Demo request &middot; Field operations</p>
@@ -350,7 +350,7 @@ export default function BookDemo() {
               data-demo-reveal="headline"
             />
             <p className="fieldr-demo__subhead" data-demo-reveal="subhead">
-              This is a focused product walkthrough, not a sales tour. We&apos;ll map your field-to-office gap, show the queue and quote path, and tell you plainly where Fieldr fits and where it does not yet.
+              This is a focused product walkthrough, not a sales tour. We&apos;ll map your field-to-office gap, show the queue and quote path, and tell you plainly where Arbor fits and where it does not yet.
             </p>
 
             <div className="fieldr-demo__notes">
@@ -362,7 +362,7 @@ export default function BookDemo() {
               <div className="fieldr-demo__note">
                 <div className="fieldr-demo__note-kicker">Best fit</div>
                 <div className="fieldr-demo__note-title">Contractors losing work between the field and the office</div>
-                <div className="fieldr-demo__note-copy">Calls, texts, dictated notes, and uploads are where Fieldr is strongest today.</div>
+                <div className="fieldr-demo__note-copy">Calls, texts, dictated notes, and uploads are where Arbor is strongest today.</div>
               </div>
               <div className="fieldr-demo__note">
                 <div className="fieldr-demo__note-kicker">Output</div>

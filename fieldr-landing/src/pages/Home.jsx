@@ -77,7 +77,7 @@ const exampleRows = [
     copy: 'The extra work gets done. Nobody updates the number. The revenue slips because the office catches it too late or not at all.',
   },
   {
-    label: 'Fieldr action',
+    label: 'Arbor action',
     title: 'The change gets caught. The new line item is prepared. It is ready for approval.',
     copy: 'The change stays tied to the job and shows up for review before the billing window closes.',
   },
@@ -826,11 +826,11 @@ export default function Home() {
             <AnimatedWords
               as="h1"
               className="fieldr-home__headline"
-              text="The field never stops. Neither does Fieldr."
+              text="The field never stops. Neither does Arbor."
               data-home-reveal="headline"
             />
             <p className="fieldr-home__subhead" data-home-reveal="subhead">
-              Fieldr reads calls, texts, voice notes, and uploads as operating signal. It detects what changed, prepares the next decision, and gets a draft ready before revenue slips through. No new app for your crew. No extra workflow.
+              Arbor reads calls, texts, voice notes, and uploads as operating signal. It detects what changed, prepares the next decision, and gets a draft ready before revenue slips through. No new app for your crew. No extra workflow.
             </p>
             <div className="fieldr-home__cta-row" data-home-reveal="cta">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
@@ -875,12 +875,12 @@ export default function Home() {
           <div className="fieldr-home__section-inner fieldr-home__log-grid">
             <div data-home-log-copy>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">What Fieldr caught today</span>
+                <span className="fieldr-home__section-label">What Arbor caught today</span>
                 <div className="fieldr-home__section-rule" aria-hidden="true" />
               </div>
-              <h2 className="fieldr-home__log-headline">What Fieldr caught while you were on site.</h2>
+              <h2 className="fieldr-home__log-headline">What Arbor caught while you were on site.</h2>
               <p className="fieldr-home__log-copy">
-                While you are on site, Fieldr converts field chatter into decisions. It catches the update, isolates what changed, and puts the next move in front of the office before the trail goes cold.
+                While you are on site, Arbor converts field chatter into decisions. It catches the update, isolates what changed, and puts the next move in front of the office before the trail goes cold.
               </p>
             </div>
 
@@ -908,7 +908,7 @@ export default function Home() {
               </div>
               <h2 className="fieldr-home__example-headline">The extra work gets done. The billing never catches up.</h2>
               <p className="fieldr-home__example-body">
-                A contractor does not lose margin because they cannot estimate. They lose it because the field changes faster than the office can keep the record current. Fieldr closes that gap before the revised work disappears into texts, calls, and memory.
+                A contractor does not lose margin because they cannot estimate. They lose it because the field changes faster than the office can keep the record current. Arbor closes that gap before the revised work disappears into texts, calls, and memory.
               </p>
               <div className="fieldr-home__example-foot">
                 <span className="fieldr-home__example-chip">Quote delta prepared</span>
@@ -919,7 +919,7 @@ export default function Home() {
 
             <div className="fieldr-home__example-panel">
               {exampleRows.map((row) => (
-                <div key={row.label} className={`fieldr-home__example-row${row.label === 'Fieldr' ? ' is-fieldr' : ''}`} data-home-example-row>
+                <div key={row.label} className={`fieldr-home__example-row${row.label === 'Arbor action' ? ' is-fieldr' : ''}`} data-home-example-row>
                   <div className="fieldr-home__example-kicker">{row.label}</div>
                   <div>
                     <div className="fieldr-home__example-title">{row.title}</div>
@@ -935,7 +935,7 @@ export default function Home() {
           <div className="fieldr-home__section-inner">
             <h2 className="fieldr-home__final-title" data-home-final>Ready to stop letting changes disappear?</h2>
             <p className="fieldr-home__final-copy" data-home-final>
-              Fieldr catches the field updates that usually slip through the office and turns them into reviewable work before they cost you money.
+              Arbor catches the field updates that usually slip through the office and turns them into reviewable work before they cost you money.
             </p>
             <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__final-button" data-home-final>
               Book a Demo

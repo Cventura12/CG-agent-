@@ -11,12 +11,12 @@ const steps = [
   {
     number: 'STEP 01',
     title: 'Capture',
-    body: 'A call, voice note, text, or document comes in. Fieldr picks it up automatically. Nothing to forward. Nothing to retype.',
+    body: 'A call, voice note, text, or document comes in. Arbor picks it up automatically. Nothing to forward. Nothing to retype.',
   },
   {
     number: 'STEP 02',
     title: 'Understand',
-    body: 'Fieldr reads the update and isolates what matters: scope changes, promised work, missing details, and anything that affects price or follow-through.',
+    body: 'Arbor reads the update and isolates what matters: scope changes, promised work, missing details, and anything that affects price or follow-through.',
   },
   {
     number: 'STEP 03',
@@ -303,18 +303,18 @@ export default function HowItWorks() {
         }
       `}</style>
 
-      <main ref={rootRef} className="fieldr-how" aria-label="Fieldr how it works page">
+      <main ref={rootRef} className="fieldr-how" aria-label="Arbor how it works page">
         <section className="fieldr-how__page-header">
           <div className="fieldr-how__inner">
             <p className="fieldr-how__eyebrow" data-how-reveal="eyebrow">How it works</p>
             <AnimatedWords
               as="h1"
               className="fieldr-how__headline"
-              text="How Fieldr keeps things from slipping through."
+              text="How Arbor keeps things from slipping through."
               data-how-reveal="headline"
             />
             <p className="fieldr-how__subhead" data-how-reveal="subhead">
-              Fieldr works in the background while your crew keeps working. It captures what already comes in, understands what changed, and puts the next decision in front of you before the job record drifts.
+              Arbor works in the background while your crew keeps working. It captures what already comes in, understands what changed, and puts the next decision in front of you before the job record drifts.
             </p>
           </div>
         </section>

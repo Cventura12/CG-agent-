@@ -428,7 +428,7 @@ export default function Product() {
         }
       `}</style>
 
-      <main ref={rootRef} className="fieldr-product" aria-label="Fieldr product page">
+      <main ref={rootRef} className="fieldr-product" aria-label="Arbor product page">
         <section className="fieldr-product__header">
           <div className="fieldr-product__inner fieldr-product__header-grid">
             <div>
@@ -442,7 +442,7 @@ export default function Product() {
                 data-product-reveal="headline"
               />
               <p className="fieldr-product__subhead" data-product-reveal="subhead">
-                Fieldr is not another inbox. It keeps field updates, quote pressure, and follow-through in one place so the owner can see what changed and decide what goes out next.
+                Arbor is not another inbox. It keeps field updates, quote pressure, and follow-through in one place so the owner can see what changed and decide what goes out next.
               </p>
               <div className="fieldr-product__proof" data-product-reveal="proof">
                 {proofPills.map((pill) => (
