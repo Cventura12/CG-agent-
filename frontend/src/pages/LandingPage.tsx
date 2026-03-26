@@ -26,7 +26,7 @@ const WORKFLOW_STEPS = [
   },
   {
     title: "Structure what matters",
-    body: "GC Agent summarizes what happened, flags missing information, surfaces risks, and links work to the right job when possible.",
+    body: "Arbor summarizes what happened, flags missing information, surfaces risks, and links work to the right job when possible.",
   },
   {
     title: "Review before anything goes out",
@@ -95,7 +95,7 @@ export function LandingPage() {
               <div>
                 <p className="eyebrow">Execution-side communication control</p>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                  GC Agent is built for general contractors who need field communication to become office action.
+                  Arbor is built for general contractors who need field communication to become office action.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -114,7 +114,7 @@ export function LandingPage() {
                 Keep control of messy project communication before it costs you money
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                GC Agent turns calls, texts, field notes, uploads, and job updates into tracked actions, quote drafts,
+                Arbor turns calls, texts, field notes, uploads, and job updates into tracked actions, quote drafts,
                 follow-up, and job history for general contractors.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
@@ -188,7 +188,7 @@ export function LandingPage() {
                 ))}
               </div>
               <p className="mt-5 text-[15px] leading-7 text-slate-600">
-                GC Agent helps your team capture what happened, track what changed, and act before it gets lost.
+                Arbor helps your team capture what happened, track what changed, and act before it gets lost.
               </p>
             </div>
           </div>
@@ -214,7 +214,7 @@ export function LandingPage() {
 
         <section id="what-gc-agent-does" className="mt-8">
           <div className="mb-5">
-            <p className="eyebrow">What GC Agent does</p>
+            <p className="eyebrow">What Arbor does</p>
             <h2 className="text-3xl font-bold tracking-[-0.04em] text-slate-950">
               Turn communication into tracked operational action
             </h2>
@@ -265,7 +265,7 @@ export function LandingPage() {
             <div className="surface-card-header">
               <div>
                 <p className="eyebrow">Use cases</p>
-                <h2 className="text-3xl font-bold tracking-[-0.04em] text-slate-950">Where GC Agent helps most</h2>
+                <h2 className="text-3xl font-bold tracking-[-0.04em] text-slate-950">Where Arbor helps most</h2>
               </div>
             </div>
             <div className="surface-card-body">
@@ -304,7 +304,7 @@ export function LandingPage() {
                   Execution-side control, not just intelligence
                 </h3>
                 <p className="mt-3 text-[15px] leading-7 text-slate-600">
-                  GC Agent is not a generic chatbot or a preconstruction review tool. It is an execution-side system
+                  Arbor is not a generic chatbot or a preconstruction review tool. It is an execution-side system
                   that helps contractors keep control of communication, changes, and follow-through while jobs are
                   moving.
                 </p>
@@ -318,7 +318,7 @@ export function LandingPage() {
             <div>
               <p className="eyebrow">Product proof</p>
               <h2 className="text-3xl font-bold tracking-[-0.04em] text-slate-950">
-                What GC Agent already helps teams do
+                What Arbor already helps teams do
               </h2>
             </div>
           </div>
@@ -341,7 +341,7 @@ export function LandingPage() {
                 Don&apos;t lose scope, follow-through, or money in project communication
               </h2>
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-slate-600">
-                Start with the communication you already have. GC Agent helps turn it into action.
+                Start with the communication you already have. Arbor helps turn it into action.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -1,4 +1,4 @@
-﻿"""GC Agent backend package."""
+"""Arbor Agent backend package."""
 
 from __future__ import annotations
 

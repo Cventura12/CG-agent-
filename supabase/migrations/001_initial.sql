@@ -1,4 +1,4 @@
-﻿-- GC Agent initial schema migration.
+-- Arbor Agent initial schema migration.
 -- Defines persistence tables, RLS policies, indexes, and demo seed data.
 
 create extension if not exists pgcrypto;

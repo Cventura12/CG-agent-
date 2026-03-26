@@ -1,6 +1,6 @@
 # Beta Contractor Onboarding
 
-GC Agent turns quick voice notes into a draft quote, a customer-ready PDF, and a live queue of follow-up actions.
+Arbor Agent turns quick voice notes into a draft quote, a customer-ready PDF, and a live queue of follow-up actions.
 
 ## What The App Does
 

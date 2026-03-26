@@ -1,4 +1,4 @@
-"""Transcript ingest orchestration for the normalized GC Agent input surface."""
+"""Transcript ingest orchestration for the normalized Arbor Agent input surface."""
 
 from __future__ import annotations
 

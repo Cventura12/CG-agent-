@@ -387,7 +387,7 @@ def _build_profile_payload(
 
     company_name = (
         str(final_quote.get("company_name") or profile.get("company_name") or "").strip()
-        or "GC Agent Estimating"
+        or "Arbor Estimating"
     )
     preferred_scope_language = _normalize_scope_examples(
         profile.get("preferred_scope_language"),

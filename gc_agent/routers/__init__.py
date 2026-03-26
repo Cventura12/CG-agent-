@@ -1,4 +1,4 @@
-"""API router exports for GC Agent backend."""
+"""API router exports for Arbor Agent backend."""
 
 from gc_agent.routers.auth import router as auth_router
 from gc_agent.routers.insights import router as insights_router

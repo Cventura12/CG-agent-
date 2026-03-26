@@ -1,4 +1,4 @@
-﻿"""LangGraph StateGraph definition for GC Agent."""
+"""LangGraph StateGraph definition for Arbor Agent."""
 
 from __future__ import annotations
 
@@ -225,7 +225,7 @@ def _build_default_checkpointer() -> Any:
 
 
 def build_graph(checkpointer: Any = None) -> CompiledGraph:
-    """Build and compile the unified GC Agent LangGraph with interrupt support."""
+    """Build and compile the unified Arbor Agent LangGraph with interrupt support."""
     from gc_agent.nodes.draft_actions import draft_actions
     from gc_agent.nodes.flag_risks import flag_risks
     from gc_agent.nodes.generate_briefing import generate_briefing

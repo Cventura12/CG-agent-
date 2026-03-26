@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { Loader2, Mic, Square, TriangleAlert } from "lucide-react";
@@ -293,12 +293,12 @@ function followupSummary(followup: QuoteFollowupState | null): string {
     return "No reminder is scheduled for this quote yet.";
   }
   if (followup.status === "pending_destination") {
-    return "Send the quote to the customer first so GC Agent knows where to follow up.";
+    return "Send the quote to the customer first so Arbor Agent knows where to follow up.";
   }
   if (followup.status === "stopped") {
     return "Automatic follow-up is paused for this quote.";
   }
-  return "GC Agent will keep the reminder on the calendar until it is stopped or completed.";
+  return "Arbor Agent will keep the reminder on the calendar until it is stopped or completed.";
 }
 
 function followupStopReason(reason: string | null): string {
@@ -669,7 +669,7 @@ export function QuotePage() {
       ) {
         await shareNavigator.share({
           title: `Quote for ${quote.quote_draft.customer_name || "customer"}`,
-          text: quote.quote_draft.project_address || "GC Agent quote ready to send",
+          text: quote.quote_draft.project_address || "Arbor Agent quote ready to send",
           files: [file],
         });
         return "PDF generated and opened in the native share sheet.";

@@ -1,4 +1,4 @@
-"""Minimal XLSX export for GC Agent quote drafts."""
+"""Minimal XLSX export for Arbor Agent quote drafts."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -776,7 +776,7 @@ export function QuotePage() {
       ) {
         await shareNavigator.share({
           title: `Quote for ${quote.quote_draft.customer_name || "customer"}`,
-          text: quote.quote_draft.project_address || "GC Agent quote ready to send",
+          text: quote.quote_draft.project_address || "Arbor quote ready to send",
           files: [file],
         });
         return "PDF generated and opened in the native share sheet.";

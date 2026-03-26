@@ -1,4 +1,4 @@
-"""Minimal production telemetry for GC Agent node execution."""
+"""Minimal production telemetry for Arbor Agent node execution."""
 
 from __future__ import annotations
 

@@ -1,8 +1,8 @@
-# GC Agent Positioning Memo
+# Arbor Agent Positioning Memo
 
 ## Core Positioning
 
-GC Agent should be framed as software that helps a general contractor keep control of messy project communication and financial follow-through once work is underway.
+Arbor Agent should be framed as software that helps a general contractor keep control of messy project communication and financial follow-through once work is underway.
 
 It should not be framed as:
 
@@ -13,7 +13,7 @@ It should not be framed as:
 
 The sharper description is:
 
-> GC Agent captures messy project communication, detects unresolved changes and commitments, and turns them into tracked actions, documentation, quote drafts, follow-up, and job history.
+> Arbor Agent captures messy project communication, detects unresolved changes and commitments, and turns them into tracked actions, documentation, quote drafts, follow-up, and job history.
 
 ## Product Category
 
@@ -42,7 +42,7 @@ The result is expensive:
 
 ## Product Promise
 
-GC Agent helps a contractor:
+Arbor Agent helps a contractor:
 
 1. capture what happened
 2. detect what changed
@@ -111,7 +111,7 @@ The strongest analytics themes are:
 
 The most honest buyer-facing statement is:
 
-> GC Agent helps your team keep control of calls, texts, field notes, uploads, and updates by turning them into tracked actions, quote work, follow-up, and job history.
+> Arbor Agent helps your team keep control of calls, texts, field notes, uploads, and updates by turning them into tracked actions, quote work, follow-up, and job history.
 
 ## Internal Decision Filter
 
@@ -127,4 +127,4 @@ If the answer is no, the feature is probably not core to current positioning.
 
 ## One-Line Product Summary
 
-GC Agent turns project communication into tracked operational action.
+Arbor Agent turns project communication into tracked operational action.

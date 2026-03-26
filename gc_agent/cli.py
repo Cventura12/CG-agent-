@@ -1,4 +1,4 @@
-"""CLI entry points for local GC Agent loop testing."""
+"""CLI entry points for local Arbor Agent loop testing."""
 
 from __future__ import annotations
 

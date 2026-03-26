@@ -1,4 +1,4 @@
-"""Public beta voice-session API for the Fieldr workspace."""
+"""Public beta voice-session API for the Arbor workspace."""
 
 from __future__ import annotations
 

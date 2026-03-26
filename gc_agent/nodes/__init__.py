@@ -1,4 +1,4 @@
-"""Lazy node exports for GC Agent graph execution."""
+"""Lazy node exports for Arbor Agent graph execution."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""FastAPI application entry point for GC Agent backend."""
+"""FastAPI application entry point for Arbor Agent backend."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ _APP: Optional[FastAPI] = None
 
 
 class Settings(BaseSettings):
-    """Environment-backed runtime settings for GC Agent."""
+    """Environment-backed runtime settings for Arbor Agent."""
 
     model_config = SettingsConfigDict(
         env_file=".env",

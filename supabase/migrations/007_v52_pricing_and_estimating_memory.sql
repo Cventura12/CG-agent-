@@ -1,4 +1,4 @@
--- GC Agent v5.2 additive estimating persistence.
+-- Arbor Agent v5.2 additive estimating persistence.
 -- Adds explicit contractor price_list and estimating_memory tables
 -- without replacing the existing contractor_profile / job_memory design.
 

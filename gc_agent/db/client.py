@@ -1,4 +1,4 @@
-﻿"""Supabase client singleton configuration for GC Agent."""
+"""Supabase client singleton configuration for Arbor Agent."""
 
 from __future__ import annotations
 

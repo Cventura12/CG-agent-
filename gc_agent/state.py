@@ -1,4 +1,4 @@
-﻿"""Pydantic state and domain models for GC Agent."""
+"""Pydantic state and domain models for Arbor Agent."""
 
 from __future__ import annotations
 

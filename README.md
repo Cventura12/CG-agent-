@@ -1,6 +1,6 @@
-# GC Agent
+# Arbor Agent
 
-GC Agent is a FastAPI + React system for WhatsApp-first contractor updates, draft queue review, and morning briefings.
+Arbor Agent is a FastAPI + React system for WhatsApp-first contractor updates, draft queue review, and morning briefings.
 
 ## One-command local dev setup
 

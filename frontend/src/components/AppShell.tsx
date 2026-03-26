@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="border-b border-white/8 px-4 py-4">
               <Link to="/" className="flex items-center gap-3 no-underline">
                 <div>
-                  <div className="text-[16px] font-semibold tracking-[-0.05em] text-white">GC Agent</div>
+                  <div className="text-[16px] font-semibold tracking-[-0.05em] text-white">Arbor Agent</div>
                   <div className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-white/32">
                     Field runtime
                   </div>
@@ -271,7 +271,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <header className="sticky top-0 z-20 flex h-[54px] items-center justify-between border-b border-white/8 bg-[linear-gradient(180deg,rgba(4,8,15,0.96),rgba(7,12,21,0.84))] px-4 backdrop-blur-[20px] sm:px-6 lg:px-8">
             <div className="hidden items-center gap-3 md:flex">
               <div className="flex items-center gap-3">
-                <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/30">GC Agent runtime</div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/30">Arbor runtime</div>
                 <div className="h-[3px] w-20 overflow-hidden rounded-full bg-white/[0.08]">
                   <div className="gc-scan-bar h-full w-[42%] rounded-full bg-[linear-gradient(90deg,rgba(232,98,42,0.2),#e8622a,rgba(232,98,42,0.2))]" />
                 </div>

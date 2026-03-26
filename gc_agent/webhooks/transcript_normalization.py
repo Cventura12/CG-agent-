@@ -1,4 +1,4 @@
-"""Provider-specific transcript webhook normalization into GC Agent input contracts."""
+"""Provider-specific transcript webhook normalization into Arbor Agent input contracts."""
 
 from __future__ import annotations
 

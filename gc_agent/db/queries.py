@@ -1,4 +1,4 @@
-﻿"""Database query helpers for GC Agent persistence operations."""
+"""Database query helpers for Arbor Agent persistence operations."""
 
 from __future__ import annotations
 

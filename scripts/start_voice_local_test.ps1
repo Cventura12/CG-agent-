@@ -11,7 +11,7 @@ $backendErr = Join-Path $logDir "backend.err.log"
 $ngrokOut = Join-Path $logDir "ngrok.out.log"
 $ngrokErr = Join-Path $logDir "ngrok.err.log"
 
-Write-Host "Starting GC Agent backend on http://127.0.0.1:8000 ..." -ForegroundColor Cyan
+Write-Host "Starting Arbor Agent backend on http://127.0.0.1:8000 ..." -ForegroundColor Cyan
 $backend = Start-Process `
   -FilePath python `
   -ArgumentList "-m","uvicorn","gc_agent.main:app","--host","127.0.0.1","--port","8000" `

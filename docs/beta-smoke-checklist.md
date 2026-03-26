@@ -1,4 +1,4 @@
-# GC Agent Beta Smoke Checklist
+# Arbor Agent Beta Smoke Checklist
 
 ## Core product
 - Typed quote flow works end to end

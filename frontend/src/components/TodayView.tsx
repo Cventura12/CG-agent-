@@ -110,7 +110,7 @@ function stepDescription(index: number): { title: string; description: string } 
   if (index === 0) {
     return {
       title: "Connect a number",
-      description: "Route calls or forward voicemails to GC Agent",
+      description: "Route calls or forward voicemails to Arbor Agent",
     };
   }
   if (index === 1) {
@@ -168,7 +168,7 @@ export function TodayView({
               <ChevronUp className="h-[12px] w-[12px] text-white" strokeWidth={2.3} />
             </div>
             <div className="text-[13px] font-medium tracking-[-0.1px] text-[var(--ink)]">
-              GC Agent
+              Arbor Agent
             </div>
           </div>
         </div>
@@ -328,7 +328,7 @@ export function TodayView({
                   type="button"
                   className="text-[11px] font-medium text-[var(--accent-text)]"
                 >
-                  View queue →
+                  View queue Ã¢â€ â€™
                 </button>
               </div>
 
@@ -427,7 +427,7 @@ export function TodayView({
                     type="button"
                     className="w-full rounded-[6px] bg-[var(--accent-light)] px-[13px] py-[8px] text-[12px] font-medium text-[var(--accent-text)] transition hover:opacity-90"
                   >
-                    Connect phone number →
+                    Connect phone number Ã¢â€ â€™
                   </button>
                 </div>
               </section>
