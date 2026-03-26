@@ -1,6 +1,6 @@
-# Twilio WhatsApp Production Setup
+﻿# Twilio WhatsApp Production Setup
 
-This guide moves GC Agent from the Twilio WhatsApp sandbox to a real WhatsApp Business number for beta GCs.
+This guide moves Arbor Agent from the Twilio WhatsApp sandbox to a real WhatsApp Business number for beta GCs.
 
 ## 1. Set up a production WhatsApp Business sender in Twilio
 
@@ -9,9 +9,9 @@ This guide moves GC Agent from the Twilio WhatsApp sandbox to a real WhatsApp Bu
 3. Start WhatsApp sender onboarding (not Sandbox):
    - Connect or create a Meta Business Manager account.
    - Complete Meta business verification if prompted.
-   - Register the production phone number you want to use for GC Agent.
+   - Register the production phone number you want to use for Arbor Agent.
 4. Configure the WhatsApp Business Profile:
-   - Display name (example: `GC Agent`)
+   - Display name (example: `Arbor Agent`)
    - Business category
    - Business description
    - Logo/profile image
@@ -19,7 +19,9 @@ This guide moves GC Agent from the Twilio WhatsApp sandbox to a real WhatsApp Bu
 6. Configure incoming webhooks on the approved sender:
    - `When a message comes in` -> `POST https://<backend-domain>/webhook/whatsapp`
    - `Status callback URL` -> `POST https://<backend-domain>/webhook/whatsapp/status`
-7. Validate backend reachability:
+7. Set backend callback env for outbound quote/follow-up delivery tracking:
+   - `TWILIO_STATUS_CALLBACK_URL=https://<backend-domain>/webhook/twilio/status`
+8. Validate backend reachability:
    - `GET https://<backend-domain>/webhook/whatsapp/health` should return `{"status":"ok"}`.
 
 ## 2. Ngrok local testing flow
@@ -37,8 +39,10 @@ ngrok http 8000
 4. In Twilio sender webhook settings:
    - `When a message comes in` -> `https://abc123.ngrok-free.app/webhook/whatsapp`
    - `Status callback URL` -> `https://abc123.ngrok-free.app/webhook/whatsapp/status`
-5. Send a WhatsApp message to the Twilio production number.
-6. Verify delivery and processing:
+5. In backend env:
+   - `TWILIO_STATUS_CALLBACK_URL=https://abc123.ngrok-free.app/webhook/twilio/status`
+6. Send a WhatsApp message to the Twilio production number.
+7. Verify delivery and processing:
    - Twilio Console `Monitor -> Logs -> Errors` and `Debugger`
    - Backend logs for `/webhook/whatsapp` request and response
    - Optional health check: `https://abc123.ngrok-free.app/webhook/whatsapp/health`
@@ -65,6 +69,8 @@ Set these before production rollout.
   - Source: Twilio console account dashboard.
 - `TWILIO_WHATSAPP_FROM`
   - Source: Approved Twilio WhatsApp sender (format: `whatsapp:+1...`).
+- `TWILIO_STATUS_CALLBACK_URL`
+  - Source: public backend URL + `/webhook/twilio/status`.
 - `CLERK_SECRET_KEY`
   - Source: Clerk dashboard -> API keys (secret key).
 - `DEEPGRAM_API_KEY`
@@ -92,13 +98,15 @@ Set these before production rollout.
 1. GC installs no app; they just save the WhatsApp Business number.
 2. GC opens the web app URL and signs in using phone OTP (Clerk).
 3. Web app calls `POST /api/v1/auth/register` with the GC phone number.
-4. GC sends a first WhatsApp message to the GC Agent number.
+4. GC sends a first WhatsApp message to the Arbor Agent number.
 5. GC receives confirmation that updates are now accepted and processed.
 
 ### Unregistered number behavior
 
-If a phone number sends WhatsApp before registering, GC Agent responds:
+If a phone number sends WhatsApp before registering, Arbor Agent responds:
 
-`Hi! To use GC Agent, sign up at [web app URL]. Once registered, send updates to this number anytime.`
+`Hi! To use Arbor Agent, sign up at [web app URL]. Once registered, send updates to this number anytime.`
 
 LangGraph processing is skipped until the number is registered.
+
+

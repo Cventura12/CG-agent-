@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 
@@ -44,7 +44,7 @@ async def test_quote_upload_pdf_routes_through_storage_and_persists_reference(
             trace_id="trace-upload-pdf-1",
             uploaded_files=[dict(item) for item in uploaded_files or []],
             quote_draft={
-                "company_name": "GC Agent",
+                "company_name": "Arbor Agent",
                 "customer_name": "Taylor",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Replace roof system per uploaded scope.",
@@ -117,7 +117,7 @@ async def test_quote_upload_image_routes_through_storage(
             trace_id="trace-upload-img-1",
             uploaded_files=[dict(item) for item in uploaded_files or []],
             quote_draft={
-                "company_name": "GC Agent",
+                "company_name": "Arbor Agent",
                 "project_address": "72 Pine Street",
                 "scope_of_work": "Repair flashing and ridge cap based on uploaded photo.",
                 "total_price": 2800.0,
@@ -171,3 +171,9 @@ async def test_quote_upload_rejects_invalid_type(monkeypatch: pytest.MonkeyPatch
 
     assert response.status_code == 422
     assert response.json()["detail"] == "Only PDF, JPG, and PNG uploads are supported"
+    response = await client.post(
+        
+    )
+
+
+

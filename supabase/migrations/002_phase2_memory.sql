@@ -1,4 +1,4 @@
--- GC Agent Phase 2 persistence additions.
+﻿-- Arbor Agent Phase 2 persistence additions.
 -- Adds pgvector-backed memory storage without rewriting the existing schema.
 
 create extension if not exists vector;
@@ -74,3 +74,4 @@ create index if not exists idx_job_memory_job_id
 create index if not exists idx_job_memory_embedding_cosine
     on public.job_memory
     using ivfflat (embedding vector_cosine_ops);
+

@@ -1,4 +1,4 @@
-"""Retrieve contractor memory context before extracting a new estimate scope."""
+﻿"""Retrieve contractor memory context before extracting a new estimate scope."""
 
 from __future__ import annotations
 
@@ -88,7 +88,6 @@ async def _call_claude(system: str, user: str, max_tokens: int = 900) -> str:
             if attempt >= 3:
                 raise
             await asyncio.sleep(2)
-
 
 def _strip_markdown_fences(raw: str) -> str:
     """Strip optional markdown fences from model JSON."""
@@ -558,3 +557,5 @@ async def recall_context(state: AgentState) -> dict[str, object]:
 
 
 __all__ = ["recall_context", "_call_claude", "_embed_text"]
+
+

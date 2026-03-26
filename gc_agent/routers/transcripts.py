@@ -1,4 +1,4 @@
-"""Transcript API endpoints for internal Clerk-authenticated transcript workflows."""
+﻿"""Transcript API endpoints for internal Clerk-authenticated transcript workflows."""
 
 from __future__ import annotations
 
@@ -147,7 +147,7 @@ async def mark_transcript_reviewed(
     if result is None:
         return _error(404, "transcript_id not found")
 
-    return _success({"transcript_id": transcript_id, "review_state": "reviewed"})
+    return _success(result)
 
 
 @router.post("/transcripts/{transcript_id}/discard", response_model=None)
@@ -168,7 +168,7 @@ async def discard_transcript(
     if result is None:
         return _error(404, "transcript_id not found")
 
-    return _success({"transcript_id": transcript_id, "review_state": "discarded"})
+    return _success(result)
 
 
 @router.post("/transcripts/{transcript_id}/log-update", response_model=None)
@@ -200,3 +200,4 @@ __all__ = [
     "discard_transcript",
     "log_transcript_update",
 ]
+

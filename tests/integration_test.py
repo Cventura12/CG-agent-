@@ -1,4 +1,4 @@
-"""Day 14 full integration test: real Supabase + scripted 2-day GC simulation."""
+﻿"""Day 14 full integration test: real Supabase + scripted 2-day GC simulation."""
 
 from __future__ import annotations
 
@@ -503,7 +503,7 @@ async def test_full_gc_integration_simulation(monkeypatch: pytest.MonkeyPatch) -
             and not failures
         )
 
-        print("INTEGRATION TEST — GC AGENT")
+        print("INTEGRATION TEST â€” Arbor Agent")
         print(f"Updates processed: {updates_processed}/{expected_updates}")
         print(f"Drafts generated: {len(all_generated_drafts)}")
         print(
@@ -518,3 +518,5 @@ async def test_full_gc_integration_simulation(monkeypatch: pytest.MonkeyPatch) -
         assert not failures, "\n".join(failures)
     finally:
         await _cleanup_gc(gc_id)
+print("Cleaned up test GC and related data.")
+print("Integration test complete.0")
