@@ -50,6 +50,14 @@ function buildSourceBreakdown(queueItems: QueueItem[]): Array<{ source: InputSou
   }));
 }
 
+function calculateFoundMoney(queueItems: QueueItem[]): number {
+  return queueItems
+    .filter((item) => item.status === "approved")
+    .flatMap((item) => item.extractedActions)
+    .filter((action) => action.approved && (action.type === "change_order" || action.type === "quote_item"))
+    .reduce((sum, action) => sum + (action.estimatedValue ?? 0), 0);
+}
+
 function mergeActivity(jobs: ReturnType<typeof useAppStore.getState>["jobs"]): JobActivity[] {
   return [...jobs.flatMap((job) => job.activityLog)].sort(
     (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
@@ -62,6 +70,7 @@ function AnalyticsViewContent({ periods, queueItems, jobs }: { periods: Analytic
   const chartData = useMemo(() => buildChartData(activePeriod), [activePeriod]);
   const sourceData = useMemo(() => buildSourceBreakdown(queueItems), [queueItems]);
   const recentActivity = useMemo(() => mergeActivity(jobs).slice(0, 10), [jobs]);
+  const foundMoney = useMemo(() => calculateFoundMoney(queueItems), [queueItems]);
 
   return (
     <div className="scrollbar-none h-full overflow-y-auto px-3 py-4 sm:px-5 sm:py-5">
@@ -85,6 +94,7 @@ function AnalyticsViewContent({ periods, queueItems, jobs }: { periods: Analytic
       <div className="grid gap-[10px] sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard label="Total quoted" value={formatCompactCurrency(activePeriod.totalValueQuoted)} />
         <MetricCard label="Total won" value={formatCompactCurrency(activePeriod.totalValueWon)} tone="green" />
+        <MetricCard label="Found money" value={formatCompactCurrency(foundMoney)} tone="green" />
         <MetricCard label="Conversion rate" value={`${activePeriod.conversionRate}%`} tone={toneForConversion(activePeriod.conversionRate)} />
         <MetricCard label="Avg response time" value={formatHoursMinutes(activePeriod.avgResponseTimeHours)} />
         <MetricCard label="Quotes sent" value={String(activePeriod.quotesCreated)} />

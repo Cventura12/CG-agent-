@@ -132,11 +132,20 @@ export type BackendWorkspaceArtifacts = {
   errors?: string[];
 };
 
+type BackendConfirmation = {
+  status?: "sent" | "skipped" | "failed";
+  channel?: "sms" | "whatsapp";
+  to?: string;
+  error?: string;
+  reason?: string;
+};
+
 type BackendDraftApprovalPayload = {
   trace_id?: string;
   draft?: BackendDraft;
   send_result?: Record<string, unknown>;
   workspace_artifacts?: BackendWorkspaceArtifacts;
+  confirmation?: BackendConfirmation | null;
 };
 
 type PublicDraftApprovalResponse = BackendDraftApprovalPayload;
@@ -165,6 +174,10 @@ export interface WorkspaceQueueApprovalResult {
   generatedQuoteId?: string;
   generatedFollowUpIds?: string[];
   backendArtifactErrors?: string[];
+  confirmationStatus?: "sent" | "skipped" | "failed";
+  confirmationChannel?: "sms" | "whatsapp";
+  confirmationTo?: string;
+  confirmationError?: string;
 }
 
 function hasBetaQueueCredentials(): boolean {
@@ -577,7 +590,31 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
         },
       }
     );
-    const workspaceArtifacts = normalizeWorkspaceArtifacts(response.data.workspace_artifacts);
+      const workspaceArtifacts = normalizeWorkspaceArtifacts(response.data.workspace_artifacts);
+      const confirmation = response.data.confirmation ?? undefined;
+      return {
+        itemId: item.id,
+        backendKind: "draft",
+        status: "approved",
+        approvedAt,
+        activeJobId: workspaceArtifacts?.active_job_id?.trim() || undefined,
+        generatedQuoteId: workspaceArtifacts?.quote?.id?.trim() || undefined,
+        generatedFollowUpIds: (workspaceArtifacts?.followups ?? [])
+          .map((followUp) => followUp.id?.trim() || "")
+          .filter(Boolean),
+        workspaceArtifacts,
+        backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
+        confirmationStatus: confirmation?.status,
+        confirmationChannel: confirmation?.channel,
+        confirmationTo: confirmation?.to,
+        confirmationError: confirmation?.error ?? confirmation?.reason,
+      };
+    }
+
+    const response = await apiClient.post<InternalDraftApprovalResponse>(`/queue/${encodeURIComponent(item.id)}/approve`);
+    const payload = normalizeEnvelope(response.data);
+    const workspaceArtifacts = normalizeWorkspaceArtifacts(payload.workspace_artifacts);
+    const confirmation = payload.confirmation ?? undefined;
     return {
       itemId: item.id,
       backendKind: "draft",
@@ -590,26 +627,12 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
         .filter(Boolean),
       workspaceArtifacts,
       backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
+      confirmationStatus: confirmation?.status,
+      confirmationChannel: confirmation?.channel,
+      confirmationTo: confirmation?.to,
+      confirmationError: confirmation?.error ?? confirmation?.reason,
     };
   }
-
-  const response = await apiClient.post<InternalDraftApprovalResponse>(`/queue/${encodeURIComponent(item.id)}/approve`);
-  const payload = normalizeEnvelope(response.data);
-  const workspaceArtifacts = normalizeWorkspaceArtifacts(payload.workspace_artifacts);
-  return {
-    itemId: item.id,
-    backendKind: "draft",
-    status: "approved",
-    approvedAt,
-    activeJobId: workspaceArtifacts?.active_job_id?.trim() || undefined,
-    generatedQuoteId: workspaceArtifacts?.quote?.id?.trim() || undefined,
-    generatedFollowUpIds: (workspaceArtifacts?.followups ?? [])
-      .map((followUp) => followUp.id?.trim() || "")
-      .filter(Boolean),
-    workspaceArtifacts,
-    backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
-  };
-}
 
 export async function dismissWorkspaceQueueItem(item: QueueItem): Promise<void> {
   if (!item.backendLinked) {

@@ -5,6 +5,7 @@ from __future__ import annotations
 from importlib import import_module
 import logging
 import asyncio
+import os
 from typing import Any
 from uuid import uuid4
 
@@ -24,6 +25,7 @@ from gc_agent.state import AgentState, Draft
 from gc_agent.telemetry import write_agent_trace
 from gc_agent.tools.upload_storage import is_allowed_upload, upload_quote_source_file
 from gc_agent.workspace_review import build_workspace_review_artifacts
+from gc_agent.webhooks.twilio import send_sms_message, send_whatsapp_message
 
 open_router = APIRouter()
 router = APIRouter(dependencies=[Depends(require_api_key)])
@@ -78,6 +80,21 @@ async def _mark_transcript_reviewed(*args: object, **kwargs: object):
 async def _discard_transcript(*args: object, **kwargs: object):
     transcript_module = import_module("gc_agent.call_transcripts")
     return await transcript_module.discard_transcript(*args, **kwargs)
+
+
+def _confirmation_enabled() -> bool:
+    return os.getenv("ARBOR_CONFIRMATION_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+
+
+def _confirmation_channel() -> str:
+    channel = os.getenv("ARBOR_CONFIRMATION_CHANNEL", "sms").strip().lower()
+    return channel if channel in {"sms", "whatsapp"} else "sms"
+
+
+def _build_confirmation_message(draft: Draft) -> str:
+    summary = draft.title or "Update"
+    job_label = draft.job_name or "the job"
+    return f"Confirming for {job_label}: {summary}. Reply YES if correct."
 
 
 async def _log_transcript_as_update(*args: object, **kwargs: object):
@@ -1406,11 +1423,48 @@ async def approve_queue_item(
         contractor_id=payload.contractor_id,
         send_result=send_result,
     )
+    confirmation: dict[str, Any] | None = None
+    if _confirmation_enabled():
+        caller_phone = ""
+        if updated.transcript and updated.transcript.caller_phone:
+            caller_phone = updated.transcript.caller_phone.strip()
+        if caller_phone:
+            message = _build_confirmation_message(updated)
+            channel = _confirmation_channel()
+            try:
+                if channel == "whatsapp":
+                    sid = await send_whatsapp_message(caller_phone, message)
+                else:
+                    sid = await send_sms_message(caller_phone, message)
+                confirmation = {
+                    "status": "sent",
+                    "channel": channel,
+                    "to": caller_phone,
+                    "sid": sid,
+                }
+            except Exception as exc:
+                confirmation = {
+                    "status": "failed",
+                    "channel": channel,
+                    "to": caller_phone,
+                    "error": str(exc)[:300],
+                }
+        else:
+            confirmation = {
+                "status": "skipped",
+                "reason": "missing_caller_phone",
+            }
+    else:
+        confirmation = {
+            "status": "skipped",
+            "reason": "disabled",
+        }
     return {
         "trace_id": updated.trace_id,
         "draft": _serialize_draft(updated),
         "send_result": send_result,
         "workspace_artifacts": workspace_artifacts,
+        "confirmation": confirmation,
     }
 
 

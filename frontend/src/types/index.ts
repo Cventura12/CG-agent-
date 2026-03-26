@@ -68,6 +68,10 @@ export interface QueueItem {
   relatedQueueItemIds?: string[];
   linkedQuoteId?: string;
   backendArtifactErrors?: string[];
+  confirmationStatus?: "sent" | "skipped" | "failed";
+  confirmationChannel?: "sms" | "whatsapp";
+  confirmationTo?: string;
+  confirmationError?: string;
 }
 
 export interface QuoteLineItem {

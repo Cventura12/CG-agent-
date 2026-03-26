@@ -36,6 +36,9 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
   const generatedFollowUpCount = item.generatedFollowUpIds?.length ?? 0;
   const isTranscriptItem = item.backendKind === "transcript";
   const hasBackendArtifactErrors = (item.backendArtifactErrors?.length ?? 0) > 0;
+  const lowConfidence = typeof item.confidenceScore === "number" && item.confidenceScore < 0.72;
+  const hasEstimatedValue = item.extractedActions.some((action) => typeof action.estimatedValue === "number");
+  const showAmountUncertain = lowConfidence && hasEstimatedValue;
 
   return (
     <div className="flex h-full w-full shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:w-[380px] lg:w-[340px]">
@@ -71,6 +74,32 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
             <div className="mt-2 text-[11px] text-[var(--t2)]">
               Arbor is keeping this in front of the office until a human confirms the next step.
             </div>
+          </section>
+        ) : null}
+
+        {showAmountUncertain ? (
+          <section className="mt-3 rounded-lg border border-[var(--amber-b)] bg-[var(--amber-b)] p-3">
+            <SectionLabel>Confidence check</SectionLabel>
+            <div className="mt-2 text-[12px] leading-relaxed text-[var(--t1)]">
+              Extracted amount uncertain — please verify against the audio before sending.
+            </div>
+            {typeof item.confidenceScore === "number" ? (
+              <div className="mt-2 text-[11px] text-[var(--amber)]">
+                Confidence {Math.round(item.confidenceScore * 100)}%
+              </div>
+            ) : null}
+          </section>
+        ) : lowConfidence ? (
+          <section className="mt-3 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] p-3">
+            <SectionLabel>Confidence check</SectionLabel>
+            <div className="mt-2 text-[12px] leading-relaxed text-[var(--t2)]">
+              Low-confidence capture — verify the details before approving.
+            </div>
+            {typeof item.confidenceScore === "number" ? (
+              <div className="mt-2 text-[11px] text-[var(--t3)]">
+                Confidence {Math.round(item.confidenceScore * 100)}%
+              </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -161,6 +190,15 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
                   <span>Open job follow-through</span>
                   <span className="font-mono text-[10px] text-[var(--amber)]">{generatedFollowUpCount} follow-up{generatedFollowUpCount === 1 ? "" : "s"}</span>
                 </Link>
+              ) : null}
+              {item.confirmationStatus ? (
+                <div className="rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[11px] text-[var(--t2)]">
+                  {item.confirmationStatus === "sent"
+                    ? `Confirmation sent to ${item.confirmationTo ?? "field contact"}${item.confirmationChannel ? ` via ${item.confirmationChannel}` : ""}.`
+                    : item.confirmationStatus === "failed"
+                      ? `Confirmation failed${item.confirmationError ? `: ${item.confirmationError}` : "."}`
+                      : "Confirmation skipped."}
+                </div>
               ) : null}
               {item.approvedAt ? <div className="font-mono text-[10px] text-[var(--t3)]">Approved {formatTimestamp(item.approvedAt)}</div> : null}
             </div>

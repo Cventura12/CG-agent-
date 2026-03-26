@@ -736,18 +736,22 @@ function applyQueueApprovalResults(
       firstJobId = resolvedJobId;
     }
 
-    return {
-      ...item,
-      jobId: resolvedJobId,
-      jobName: resolvedJobName,
-      status: result.status,
-      approvedAt: result.approvedAt,
-      generatedQuoteId: result.generatedQuoteId ?? backendQuote?.id,
-      generatedFollowUpIds: result.generatedFollowUpIds ?? backendFollowUps.map((followUp) => followUp.id),
-      backendArtifactErrors: result.backendArtifactErrors ?? [],
-      extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
-    };
-  });
+      return {
+        ...item,
+        jobId: resolvedJobId,
+        jobName: resolvedJobName,
+        status: result.status,
+        approvedAt: result.approvedAt,
+        generatedQuoteId: result.generatedQuoteId ?? backendQuote?.id,
+        generatedFollowUpIds: result.generatedFollowUpIds ?? backendFollowUps.map((followUp) => followUp.id),
+        backendArtifactErrors: result.backendArtifactErrors ?? [],
+        confirmationStatus: result.confirmationStatus,
+        confirmationChannel: result.confirmationChannel,
+        confirmationTo: result.confirmationTo,
+        confirmationError: result.confirmationError,
+        extractedActions: item.extractedActions.map((action) => ({ ...action, approved: true })),
+      };
+    });
 
   const summaryParts = [
     `Approved ${processedCount} queue item${processedCount === 1 ? "" : "s"}`,
