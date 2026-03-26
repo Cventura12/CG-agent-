@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -67,7 +67,7 @@ describe("QuotePage spreadsheet export", () => {
         quote_id: "quote-export-1",
         trace_id: "trace-export-1",
         quote_draft: {
-          company_name: "GC Agent",
+          company_name: "Arbor Agent",
           customer_name: "Taylor Brooks",
           project_address: "14 Oak Lane",
           scope_of_work: "Replace roof shingles and underlayment.",
@@ -125,3 +125,5 @@ describe("QuotePage spreadsheet export", () => {
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
   });
 });
+
+

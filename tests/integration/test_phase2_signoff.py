@@ -1,4 +1,4 @@
-"""Day 15 Phase 2 integration sign-off tests."""
+﻿"""Day 15 Phase 2 integration sign-off tests."""
 
 from __future__ import annotations
 
@@ -384,7 +384,7 @@ async def test_phase2_routes_both_paths_and_resumes_after_restart(
         quote_attempts["count"] += 1
         return {
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "customer_name": "Taylor",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": f"Provide roof replacement at 14 Oak Lane. {state.cleaned_input}",
@@ -507,3 +507,4 @@ async def test_phase2_memory_loop_improves_quote_quality(
     assert summary["learned_average"] > summary["baseline_average"]
     assert all(score >= 4 for score in summary["learned_scores"])
     assert all("the project site" in scope.lower() for scope in summary["learned_scope_samples"])
+

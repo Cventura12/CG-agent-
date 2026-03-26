@@ -1,4 +1,4 @@
-"""CLI checkpointing tests for the Day 9 estimate path."""
+﻿"""CLI checkpointing tests for the Day 9 estimate path."""
 
 from __future__ import annotations
 
@@ -94,7 +94,7 @@ async def test_run_single_estimate_reuses_checkpointed_session(monkeypatch: pyte
         call_counts["quote"] += 1
         return {
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "scope_of_work": "Replace shingles at 123 Main St",
                 "total_price": 1200,
                 "exclusions": ["Decking replacement if required"],
@@ -125,3 +125,4 @@ async def test_run_single_estimate_reuses_checkpointed_session(monkeypatch: pyte
         "calculate": 1,
         "quote": 1,
     }
+

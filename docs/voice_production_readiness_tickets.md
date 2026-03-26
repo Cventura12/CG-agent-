@@ -1,8 +1,8 @@
-# Fieldr Voice Production Readiness Tickets
+﻿# Arbor Voice Production Readiness Tickets
 
 Last updated: 2026-03-18
 
-This backlog is the focused engineering path to move Fieldr voice from useful capture infrastructure to a truly production-ready capability.
+This backlog is the focused engineering path to move Arbor voice from useful capture infrastructure to a truly production-ready capability.
 
 ## P0-1: End-To-End Voice Smoke Validation
 
@@ -95,7 +95,7 @@ Acceptance criteria:
 Status: `Not Started`
 
 Goal:
-Make it obvious what Fieldr heard, what it extracted, and what it turned into work.
+Make it obvious what Arbor heard, what it extracted, and what it turned into work.
 
 Primary files:
 
@@ -134,7 +134,7 @@ Acceptance criteria:
 Status: `Not Started`
 
 Goal:
-Define and implement a real live-call state model if Fieldr is going to become a true voice agent.
+Define and implement a real live-call state model if Arbor is going to become a true voice agent.
 
 Primary files:
 
@@ -186,3 +186,4 @@ Acceptance criteria:
 7. `P2-1` Live Call Control Model
 8. `P2-2` Human Escalation And Transfer
 9. `P2-3` Real-Time Voice Agent Loop
+

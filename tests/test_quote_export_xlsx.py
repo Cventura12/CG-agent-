@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import io
 import zipfile
@@ -37,7 +37,7 @@ async def test_quote_export_xlsx_returns_workbook_from_final_quote(
             "trace_id": "trace-export-1",
             "approval_status": "edited",
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "customer_name": "Taylor Brooks",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Original scope",
@@ -46,7 +46,7 @@ async def test_quote_export_xlsx_returns_workbook_from_final_quote(
                 "exclusions": [],
             },
             "final_quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "customer_name": "Taylor Brooks",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Edited scope ready for workbook export",
@@ -84,4 +84,5 @@ async def test_quote_export_xlsx_returns_workbook_from_final_quote(
     assert "Architectural shingles" in sheet_xml
     assert "Decking replacement beyond 6 sheets" in sheet_xml
     assert "14900.0" in sheet_xml
+
 

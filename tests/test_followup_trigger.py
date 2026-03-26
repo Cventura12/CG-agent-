@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from importlib import import_module
@@ -106,7 +106,7 @@ def _install_quote_delivery_runtime(
             "trace_id": "trace-runtime-1",
             "approval_status": approval_status,
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "project_address": "500 Oak Meadow",
                 "scope_of_work": "Replace the hail-damaged roofing system at 500 Oak Meadow.",
                 "total_price": 1450.0,
@@ -430,3 +430,4 @@ async def test_process_due_followups_stops_when_quote_discarded(
     assert send_calls == []
     assert open_items[0]["stop_reason"] == "quote_discarded"
     assert open_items[0]["status"] == "resolved"
+

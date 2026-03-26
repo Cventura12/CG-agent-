@@ -1,10 +1,10 @@
-# Fieldr Voice Capability Internal Memo
+﻿# Arbor Voice Capability Internal Memo
 
 Last updated: 2026-03-18
 
 ## Summary
 
-Fieldr's current voice capability is strongest as an async capture and review system, not as a fully autonomous live phone agent.
+Arbor's current voice capability is strongest as an async capture and review system, not as a fully autonomous live phone agent.
 
 The product can credibly capture:
 
@@ -23,7 +23,7 @@ It can then route that information into:
 
 That is real product value.
 
-What we should not claim yet is that Fieldr is a fully production-ready live conversational AI receptionist or a fully autonomous phone rep.
+What we should not claim yet is that Arbor is a fully production-ready live conversational AI receptionist or a fully autonomous phone rep.
 
 ## What Is Working
 
@@ -46,7 +46,7 @@ Relevant files:
 
 ### 2. Transcript parsing into operational output
 
-Fieldr can parse transcripts into structured outputs such as:
+Arbor can parse transcripts into structured outputs such as:
 
 - classification
 - urgency
@@ -66,7 +66,7 @@ The strongest current voice story is:
 
 1. inbound call or voice note arrives
 2. transcript is captured or audio is transcribed
-3. Fieldr extracts what changed
+3. Arbor extracts what changed
 4. the result lands in queue or transcript review
 5. the contractor approves the next action
 6. approved items become draft quotes, logged updates, or tracked unresolved work
@@ -99,11 +99,11 @@ We still need more confidence in:
 
 Current safe claim:
 
-- Fieldr captures calls and voice notes and turns them into reviewable operational work.
+- Arbor captures calls and voice notes and turns them into reviewable operational work.
 
 Unsafe claim right now:
 
-- Fieldr can fully run live contractor phone conversations end to end with production reliability.
+- Arbor can fully run live contractor phone conversations end to end with production reliability.
 
 ## Recommended External Positioning
 
@@ -135,8 +135,9 @@ It is not yet enough to overstate the product as a polished autonomous voice age
 
 ## Recommendation
 
-For now, treat Fieldr voice as:
+For now, treat Arbor voice as:
 
 `voice-to-operations capture with human review`
 
 That is the most accurate and defensible framing for customers, demos, and roadmap decisions.
+

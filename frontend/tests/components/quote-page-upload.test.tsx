@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -11,7 +11,7 @@ const { submitQuoteUploadMock } = vi.hoisted(() => ({
     quote_id: "quote-upload-1",
     trace_id: "trace-upload-1",
     quote_draft: {
-      company_name: "GC Agent",
+      company_name: "Arbor Agent",
       customer_name: "Taylor",
       project_address: "14 Oak Lane",
       scope_of_work: "Use uploaded scope and typed notes.",
@@ -145,3 +145,5 @@ describe("QuotePage upload intake", () => {
     expect(screen.getByText("14 Oak Lane")).toBeInTheDocument();
   });
 });
+
+

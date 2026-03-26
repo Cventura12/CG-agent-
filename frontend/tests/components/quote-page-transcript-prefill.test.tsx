@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -11,7 +11,7 @@ const { submitQuoteMock, fetchTranscriptQuotePrefillMock } = vi.hoisted(() => ({
     quote_id: "quote-transcript-1",
     trace_id: "trace-quote-transcript-1",
     quote_draft: {
-      company_name: "GC Agent",
+      company_name: "Arbor Agent",
       customer_name: "Taylor Brooks",
       project_address: "101 Main St",
       scope_of_work: "Prepare an exterior paint estimate.",
@@ -160,3 +160,5 @@ describe("QuotePage transcript prefill", () => {
     expect(await screen.findByText("Quote Draft")).toBeInTheDocument();
   });
 });
+
+

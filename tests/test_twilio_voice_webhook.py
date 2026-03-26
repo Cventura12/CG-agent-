@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
@@ -72,7 +72,7 @@ async def test_twilio_voice_start_returns_gather_prompt(monkeypatch: pytest.Monk
 
     assert response.status_code == 200
     assert "<Gather" in response.text
-    assert "Fieldr here. Tell me what changed on site or what needs to be quoted." in response.text
+    assert "Arbor here. Tell me what changed on site or what needs to be quoted." in response.text
 
 
 @pytest.mark.asyncio
@@ -167,7 +167,7 @@ async def test_twilio_voice_turn_routes_ready_call_into_transcript_pipeline(
     assert captured["payload"].intent == "transcript"
     assert captured["payload"].call_id == "CA123"
     assert captured["payload"].metadata["voice_goal"] == "issue_report"
-    assert captured["insert_kwargs"]["summary"] == "Roofing · Field issue at Johnson site: We need to swap the flashing and add $320 today before the crew closes the roof."
+    assert captured["insert_kwargs"]["summary"] == "Roofing Â· Field issue at Johnson site: We need to swap the flashing and add $320 today before the crew closes the roof."
     assert captured["insert_kwargs"]["metadata"]["review_state"] == "pending"
     assert "Caller: This is Taylor at Johnson site." in captured["payload"].raw_text
     assert "Caller: We need to swap the flashing and add $320 today before the crew closes the roof." in captured["payload"].raw_text
@@ -244,3 +244,4 @@ async def test_twilio_voice_turn_transfers_and_keeps_review_record_when_handoff_
     assert captured["insert_kwargs"]["metadata"]["review_state"] == "pending"
     assert captured["update_args"]["transcript_id"] == "ct-live-fallback"
     assert captured["update_args"]["kwargs"]["metadata"]["processing_error"] == "live_voice_handoff_failed"
+

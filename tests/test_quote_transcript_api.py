@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 
@@ -41,7 +41,7 @@ async def test_quote_route_links_transcript_and_prefills_customer_name(
             active_job_id="",
             trace_id="trace-quote-from-transcript",
             quote_draft={
-                "company_name": "GC Agent",
+                "company_name": "Arbor Agent",
                 "scope_of_work": "Prepare an exterior paint estimate.",
                 "total_price": 9800.0,
                 "exclusions": [],
@@ -100,3 +100,4 @@ async def test_quote_route_links_transcript_and_prefills_customer_name(
     assert transcript_updates[0]["job_id"] == "job-9"
     assert transcript_updates[0]["quote_id"] == payload["quote_id"]
     assert transcript_updates[0]["metadata"]["quote_prefill_used"] is True
+

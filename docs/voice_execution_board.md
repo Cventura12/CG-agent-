@@ -1,4 +1,4 @@
-# Fieldr Voice Execution Board
+﻿# Arbor Voice Execution Board
 
 Last updated: 2026-03-18
 
@@ -53,7 +53,7 @@ Files:
 - [call_transcripts.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/call_transcripts.py)
 - [state.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/state.py)
 
-2. Operator audit trail for what Fieldr heard, extracted, and drafted
+2. Operator audit trail for what Arbor heard, extracted, and drafted
 Files:
 - [queries.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/db/queries.py)
 - [jobs.py](/c:/Users/caleb/OneDrive/Desktop/hello/gc_agent/routers/jobs.py)
@@ -80,7 +80,7 @@ Definition of done:
 
 ## P2
 
-Decide whether Fieldr is going to become a real live voice agent and build the missing runtime accordingly.
+Decide whether Arbor is going to become a real live voice agent and build the missing runtime accordingly.
 
 Tickets:
 
@@ -114,10 +114,11 @@ Definition of done:
 
 ## Current Positioning Rule
 
-Until P0 and most of P1 are complete, Fieldr voice should be positioned as:
+Until P0 and most of P1 are complete, Arbor voice should be positioned as:
 
 `voice capture and transcript-driven operational review`
 
 Not:
 
 `fully autonomous live contractor phone agent`
+

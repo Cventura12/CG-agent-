@@ -1,10 +1,10 @@
-# Fieldr 10/10 Execution Plan
+﻿# Arbor 10/10 Execution Plan
 
 Last updated: 2026-03-21
 
 ## What 10/10 Actually Means
 
-For Fieldr, 10/10 does not mean:
+For Arbor, 10/10 does not mean:
 
 - more pages
 - more animations
@@ -21,7 +21,7 @@ It means:
 
 The standard is:
 
-> A contractor can rely on Fieldr daily without wondering whether the system missed the important thing.
+> A contractor can rely on Arbor daily without wondering whether the system missed the important thing.
 
 ## The 10/10 Product Standard
 
@@ -30,8 +30,8 @@ The standard is:
 The flagship flow should feel effortless:
 
 1. field update comes in
-2. Fieldr catches it
-3. Fieldr extracts what changed
+2. Arbor catches it
+3. Arbor extracts what changed
 4. the review item appears with context
 5. a draft quote or follow-up is already prepared
 6. the owner approves it
@@ -95,7 +95,7 @@ The product should prove value inside the workflow.
 
 ## Current Reality
 
-Fieldr is not far away in concept.
+Arbor is not far away in concept.
 It is still far away in reliability and proof.
 
 Current rough state:
@@ -194,7 +194,7 @@ This should become the cleanest flow in the product.
 
 Target:
 
-- live voice is not just “working”
+- live voice is not just â€œworkingâ€
 - live voice is clearly better than voicemail chaos
 
 The product should turn a messy call into:
@@ -218,7 +218,7 @@ Actual operating truth.
 
 Target:
 
-- the owner can point to exactly what Fieldr caught and why it mattered
+- the owner can point to exactly what Arbor caught and why it mattered
 
 That is how the product becomes worth paying for.
 
@@ -241,7 +241,7 @@ We are getting close when all of this is true:
 - a contractor can trust the job record
 - voice calls turn into usable work every time
 - failures are visible instead of hidden
-- the office can always answer “what changed?”
+- the office can always answer â€œwhat changed?â€
 - the owner can see protected revenue, not just activity
 
 ## Immediate Next Priorities
@@ -258,3 +258,4 @@ The product is 10/10 when a contractor says:
 > We stopped losing changes between the field and the office.
 
 That is the bar.
+

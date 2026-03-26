@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 
@@ -28,7 +28,7 @@ async def test_quote_response_includes_high_confidence(
             gc_id="gc-demo",
             active_job_id="job-high-1",
             quote_draft={
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "customer_name": "Taylor",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Replace shingles",
@@ -76,7 +76,7 @@ async def test_quote_response_includes_low_confidence_when_missing_inputs(
             gc_id="gc-demo",
             active_job_id="job-low-1",
             quote_draft={
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "customer_name": "Taylor",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Replace shingles",
@@ -111,3 +111,4 @@ async def test_quote_response_includes_low_confidence_when_missing_inputs(
     assert payload["estimate_confidence"]["level"] == "low"
     assert payload["estimate_confidence"]["score"] < 60
     assert len(payload["estimate_confidence"]["missing_fields"]) == 3
+

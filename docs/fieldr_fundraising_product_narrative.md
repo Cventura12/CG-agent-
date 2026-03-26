@@ -1,4 +1,4 @@
-# Fieldr Fundraising Product Narrative
+﻿# Arbor Fundraising Product Narrative
 
 Last updated: 2026-03-21
 
@@ -27,11 +27,11 @@ That means:
 - follow-up depends on memory
 - the office is often operating on an older version of the job
 
-Fieldr is built to close that gap.
+Arbor is built to close that gap.
 
 ## The Product
 
-Fieldr is an agentic operations system for field contractors.
+Arbor is an agentic operations system for field contractors.
 
 It watches inbound field communication, isolates what changed, surfaces it for review, and prepares the next operational step before revenue slips through.
 
@@ -81,7 +81,7 @@ When a contractor misses a change, stalls follow-up, or forgets what was promise
 - customer trust drops
 - owner attention gets wasted on reconstruction instead of decisions
 
-Fieldr is designed to recover that lost operational value.
+Arbor is designed to recover that lost operational value.
 
 ## The Product Wedge
 
@@ -89,13 +89,13 @@ The most compelling wedge is:
 
 > field change -> review -> draft quote or follow-up -> approval -> logged back to the job
 
-That is where Fieldr becomes undeniable.
+That is where Arbor becomes undeniable.
 
-Instead of trying to be everything a contractor uses, Fieldr is focusing first on the most expensive communication gap in the business.
+Instead of trying to be everything a contractor uses, Arbor is focusing first on the most expensive communication gap in the business.
 
 ## What Makes It Agentic
 
-Fieldr is not just displaying data.
+Arbor is not just displaying data.
 
 It is:
 
@@ -108,14 +108,14 @@ It is:
 
 The human stays in control of customer-facing actions, which is exactly right for this market.
 
-That makes Fieldr meaningfully agentic while remaining trustworthy.
+That makes Arbor meaningfully agentic while remaining trustworthy.
 
 ## Why Voice Matters
 
 Voice is one of the strongest long-term product advantages.
 
 Contractors already operate through calls and voice-driven updates.
-If Fieldr can reliably turn those conversations into reviewable operational work, it becomes much harder to replace.
+If Arbor can reliably turn those conversations into reviewable operational work, it becomes much harder to replace.
 
 The current voice direction is strong because it is attached to real workflow value:
 
@@ -125,7 +125,7 @@ The current voice direction is strong because it is attached to real workflow va
 - transfer and fallback
 - operator replay and review
 
-That is a stronger wedge than generic “AI answering the phone.”
+That is a stronger wedge than generic â€œAI answering the phone.â€
 
 ## Who This Is For
 
@@ -140,7 +140,7 @@ This is especially compelling for contractors who are already winning work but l
 
 ## Why Customers Will Pay
 
-Customers will not pay because Fieldr is intelligent.
+Customers will not pay because Arbor is intelligent.
 
 They will pay because it helps them:
 
@@ -150,7 +150,7 @@ They will pay because it helps them:
 - avoid relying on memory
 - maintain a cleaner job record
 
-The more clearly Fieldr proves protected revenue and reduced slippage, the stronger the business becomes.
+The more clearly Arbor proves protected revenue and reduced slippage, the stronger the business becomes.
 
 ## Why This Can Win
 
@@ -161,17 +161,17 @@ Most contractor software categories are already crowded:
 - estimating
 - project management
 
-Fieldr is different because it sits in the operational blind spot those systems do not solve well:
+Arbor is different because it sits in the operational blind spot those systems do not solve well:
 
 the moving, messy, communication-heavy layer between the field and the office.
 
 That is where money disappears.
 
-If Fieldr becomes the best system for catching and operationalizing job changes, it earns a durable place in the stack.
+If Arbor becomes the best system for catching and operationalizing job changes, it earns a durable place in the stack.
 
 ## What Needs To Be True Next
 
-To become a breakout product, Fieldr needs to prove three things:
+To become a breakout product, Arbor needs to prove three things:
 
 1. it can reliably close the field-to-office loop
 2. it can produce trustworthy outcomes from messy communication
@@ -181,10 +181,11 @@ That is the next milestone for the company.
 
 ## Short Investor Summary
 
-Fieldr is building the agentic execution layer for field contractors.
+Arbor is building the agentic execution layer for field contractors.
 
 It turns calls, texts, voice notes, and uploads into reviewable operational work before important job changes disappear.
 
 The initial wedge is missed scope, quote drift, and follow-through failure.
 
-If Fieldr becomes the system contractors trust to catch those changes before revenue slips, it can own a painful and under-served layer of the construction workflow.
+If Arbor becomes the system contractors trust to catch those changes before revenue slips, it can own a painful and under-served layer of the construction workflow.
+

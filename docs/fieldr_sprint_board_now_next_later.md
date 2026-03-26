@@ -1,4 +1,4 @@
-# Fieldr Sprint Board: Now / Next / Later
+﻿# Arbor Sprint Board: Now / Next / Later
 
 Last updated: 2026-03-21
 
@@ -71,7 +71,7 @@ Success looks like:
 
 Success looks like:
 
-- the owner can see what Fieldr caught
+- the owner can see what Arbor caught
 - protected revenue is visible
 - follow-up slippage prevented is visible
 
@@ -97,10 +97,11 @@ This stays important, but it should build on a dependable operational foundation
 
 ## Rule
 
-If a task does not make Fieldr:
+If a task does not make Arbor:
 
 - more trustworthy
 - more operationally useful
 - more likely to prevent missed billing or follow-through
 
 it should not outrank the current Now list.
+

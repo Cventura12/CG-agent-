@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 from typing import Any
@@ -32,7 +32,7 @@ async def test_quote_send_whatsapp_logs_delivery(monkeypatch: pytest.MonkeyPatch
             "trace_id": "trace-send-1",
             "approval_status": "approved",
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Replace roof shingles and underlayment.",
                 "total_price": 14350.0,
@@ -72,7 +72,7 @@ async def test_quote_send_whatsapp_logs_delivery(monkeypatch: pytest.MonkeyPatch
     assert payload["delivery_id"] == "qdl-1"
     assert len(send_calls) == 1
     assert send_calls[0][0] == "+14235551234"
-    assert "GC Agent Roofing" in send_calls[0][1]
+    assert "Arbor Roofing" in send_calls[0][1]
     assert len(delivery_logs) == 1
     assert delivery_logs[0]["delivery_status"] == "sent"
     assert delivery_logs[0]["provider_message_id"] == "SM123"
@@ -97,7 +97,7 @@ async def test_quote_send_email_logs_delivery_and_uses_pdf_attachment(
             "trace_id": "trace-email-1",
             "approval_status": "edited",
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Original scope",
                 "total_price": 14350.0,
@@ -105,7 +105,7 @@ async def test_quote_send_email_logs_delivery_and_uses_pdf_attachment(
                 "exclusions": [],
             },
             "final_quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Edited scope ready for customer",
                 "total_price": 14900.0,
@@ -218,7 +218,7 @@ async def test_quote_send_blocks_unreviewed_quote(monkeypatch: pytest.MonkeyPatc
             "trace_id": "trace-send-blocked",
             "approval_status": "generated",
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Replace roof shingles and underlayment.",
                 "total_price": 14350.0,
@@ -404,3 +404,4 @@ async def test_quote_followup_stop_route_returns_stopped_state(monkeypatch: pyte
     assert payload["reason"] == "manual_stop"
     assert payload["followup"]["status"] == "stopped"
     assert payload["followup"]["stop_reason"] == "manual_stop"
+

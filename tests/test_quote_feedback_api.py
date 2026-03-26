@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 from typing import Any
@@ -35,7 +35,7 @@ async def test_quote_approve_persists_feedback_and_updates_memory(
             "job_id": "job-11",
             "trace_id": "trace-11",
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "scope_of_work": "Replace shingles on Oak Street",
                 "total_price": 12000.0,
                 "line_items": [{"item": "shingles", "quantity": 30}],
@@ -123,7 +123,7 @@ async def test_quote_edit_persists_delta_and_updates_memory(
             "job_id": "job-22",
             "trace_id": "trace-22",
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "scope_of_work": "Replace shingles",
                 "total_price": 15000.0,
                 "line_items": [{"item": "shingles", "quantity": 30}],
@@ -244,3 +244,4 @@ async def test_quote_discard_persists_feedback_without_memory_update(
     assert len(finalized) == 1
     assert finalized[0]["approval_status"] == "discarded"
     assert finalized[0]["feedback_note"] == "Customer paused project"
+

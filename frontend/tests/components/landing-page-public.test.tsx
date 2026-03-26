@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -27,10 +27,12 @@ describe("App public landing page", () => {
       )
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/GC Agent turns calls, texts, field notes, uploads, and job updates into tracked actions/i)
+      screen.getByText(/Arbor Agent turns calls, texts, field notes, uploads, and job updates into tracked actions/i)
     ).toBeInTheDocument();
     const ctas = screen.getAllByRole("link", { name: "Create Your First Quote" });
     expect(ctas.length).toBeGreaterThan(0);
     expect(ctas[0]).toHaveAttribute("href", "/onboarding");
   });
 });
+
+

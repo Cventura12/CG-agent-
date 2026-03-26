@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 
@@ -141,7 +141,7 @@ async def test_run_single_input_routes_quote_request_to_v5_path(
         del state
         return {
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "scope_of_work": "Replace shingles at 14 Oak Lane",
                 "total_price": 12450,
                 "exclusions": ["Decking replacement if hidden damage is found"],
@@ -163,3 +163,4 @@ async def test_run_single_input_routes_quote_request_to_v5_path(
     assert state.rendered_quote == "QUOTE READY"
     assert state.quote_draft["total_price"] == 12450
     assert state.drafts_created == []
+

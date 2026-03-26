@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 
@@ -32,7 +32,7 @@ async def test_post_quote_returns_quote_draft(monkeypatch: pytest.MonkeyPatch) -
             raw_input=raw_input,
             active_job_id="job-api-quote-1",
             quote_draft={
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "customer_name": "Taylor",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Replace shingles at 14 Oak Lane.",
@@ -170,3 +170,4 @@ async def test_post_queue_approve_updates_status_and_triggers_send(monkeypatch: 
     assert payload["send_result"]["status"] == "queued-for-send"
     assert updated_statuses == [("draft-123", "approved")]
     assert send_calls == ["draft-123"]
+

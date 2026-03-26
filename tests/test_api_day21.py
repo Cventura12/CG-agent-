@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 
@@ -44,7 +44,7 @@ async def test_quote_pdf_endpoint_returns_rendered_pdf(monkeypatch: pytest.Monke
             mode="estimate",
             active_job_id="job-pdf-1",
             quote_draft={
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "customer_name": "Taylor",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Replace shingles at 14 Oak Lane.",
@@ -158,7 +158,7 @@ async def test_quote_pdf_falls_back_to_original_when_final_quote_is_malformed(
             "gc_id": "gc-demo",
             "trace_id": "trace-bad-final",
             "quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "project_address": "14 Oak Lane",
                 "scope_of_work": "Original scope",
                 "total_price": 14250.0,
@@ -166,7 +166,7 @@ async def test_quote_pdf_falls_back_to_original_when_final_quote_is_malformed(
                 "exclusions": [],
             },
             "final_quote_draft": {
-                "company_name": "GC Agent Roofing",
+                "company_name": "Arbor Roofing",
                 "line_items": "bad-shape",
             },
         }
@@ -220,3 +220,4 @@ async def test_quote_pdf_endpoint_rejects_wrong_contractor(monkeypatch: pytest.M
 
     assert response.status_code == 403
     assert response.json()["detail"] == "quote does not belong to contractor"
+

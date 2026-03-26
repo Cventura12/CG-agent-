@@ -1,10 +1,10 @@
-# Fieldr Prioritized Engineering Breakdown
+﻿# Arbor Prioritized Engineering Breakdown
 
 Last updated: 2026-03-21
 
 ## Goal
 
-Move Fieldr from a strong agent-shaped product into a dependable pilot operating system for contractors.
+Move Arbor from a strong agent-shaped product into a dependable pilot operating system for contractors.
 
 The correct sequence is:
 
@@ -146,7 +146,7 @@ Problem:
 
 Goal:
 
-- operators should immediately understand what the caller wanted, what Fieldr extracted, and what happens next
+- operators should immediately understand what the caller wanted, what Arbor extracted, and what happens next
 
 Files:
 
@@ -250,10 +250,11 @@ Definition of done:
 
 ## One-Line Rule
 
-Until P0 and most of P1 are complete, Fieldr should be optimized for:
+Until P0 and most of P1 are complete, Arbor should be optimized for:
 
 > trustworthy human-reviewed operational capture
 
 not:
 
 > broad autonomous contractor automation
+

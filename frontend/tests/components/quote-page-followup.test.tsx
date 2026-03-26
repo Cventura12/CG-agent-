@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -94,7 +94,7 @@ describe("QuotePage follow-up card", () => {
         quote_id: "quote-1",
         trace_id: "trace-1",
         quote_draft: {
-          company_name: "GC Agent",
+          company_name: "Arbor Agent",
           customer_name: "Taylor",
           project_address: "14 Oak Lane",
           scope_of_work: "Replace roof shingles and underlayment.",
@@ -143,3 +143,5 @@ describe("QuotePage follow-up card", () => {
     expect(stopQuoteFollowupMock).toHaveBeenCalledTimes(1);
   });
 });
+
+

@@ -1,14 +1,14 @@
-# Fieldr Founder Global Memo
+﻿# Arbor Founder Global Memo
 
 Last updated: 2026-03-21
 
 ## Executive Summary
 
-Fieldr is now a real product direction, not a concept mockup.
+Arbor is now a real product direction, not a concept mockup.
 
 The strongest version of the company is:
 
-> Fieldr catches the job changes and follow-through that usually disappear between the field and the office.
+> Arbor catches the job changes and follow-through that usually disappear between the field and the office.
 
 That is a real, expensive, recurring contractor problem.
 
@@ -22,7 +22,7 @@ The current state of the product is promising but uneven:
 
 The most important truth is:
 
-> Fieldr is ahead in product direction and behind in production-grade reliability.
+> Arbor is ahead in product direction and behind in production-grade reliability.
 
 That is not a fatal problem. It just means the next phase should be about tightening the main operating loop, not widening the surface area.
 
@@ -45,7 +45,7 @@ That is not a fatal problem. It just means the next phase should be about tighte
 
 ### 1. The problem is real and sharp
 
-Fieldr is not trying to solve generic "contractor software."
+Arbor is not trying to solve generic "contractor software."
 
 It is pointed at a much narrower, more painful problem:
 
@@ -104,8 +104,8 @@ That is much stronger than a generic dashboard because it matches the actual ope
 The most important product loop is:
 
 1. field update comes in
-2. Fieldr catches it
-3. Fieldr extracts what changed
+2. Arbor catches it
+3. Arbor extracts what changed
 4. it becomes a review item
 5. it becomes a draft quote or follow-up
 6. the contractor approves it
@@ -152,11 +152,11 @@ That is where the product can feel truly operational instead of just organized.
 
 The strongest honest statement is:
 
-> Fieldr turns calls, texts, voice notes, and uploads into reviewable operational work before important changes disappear.
+> Arbor turns calls, texts, voice notes, and uploads into reviewable operational work before important changes disappear.
 
 The strongest unsafe overstatement would be:
 
-> Fieldr is a fully autonomous contractor operating system.
+> Arbor is a fully autonomous contractor operating system.
 
 That is too early.
 
@@ -166,7 +166,7 @@ The biggest product risk is not design.
 
 It is trust.
 
-If Fieldr misses the wrong thing, duplicates work, creates ambiguity, or leaves unclear state, the product will feel more risky than helpful.
+If Arbor misses the wrong thing, duplicates work, creates ambiguity, or leaves unclear state, the product will feel more risky than helpful.
 
 That means:
 
@@ -222,7 +222,7 @@ If the answer is no, it should probably wait.
 
 ## Bottom Line
 
-Fieldr is:
+Arbor is:
 
 - useful
 - differentiated
@@ -236,3 +236,4 @@ It is not yet:
 - fully proven on ROI
 
 That is the gap to close next.
+
