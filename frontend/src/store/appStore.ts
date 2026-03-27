@@ -48,6 +48,7 @@ interface AppStore {
   updateQuoteStatus: (id: string, status: Quote["status"]) => void;
   createQuoteDraft: (input: QuoteDraftInput) => string | null;
   requestVoiceTransfer: (id: string) => Promise<void>;
+  logOnboardingActivity: (jobId: string, description: string, value?: number) => void;
 }
 
 function normalizeLookupKey(value: string): string {
@@ -1047,7 +1048,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         jobs,
       };
     }),
-  createQuoteDraft: (input) => {
+    createQuoteDraft: (input) => {
     const trimmedNotes = input.notes.trim();
     if (!trimmedNotes) {
       return null;
@@ -1147,6 +1148,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
       };
     });
 
-    return nextQuoteId;
-  },
-}));
+      return nextQuoteId;
+    },
+    logOnboardingActivity: (jobId, description, value) =>
+      set((state) => {
+        const timestamp = new Date().toISOString();
+        const entry: JobActivity = {
+          id: buildStoreId("activity", description),
+          type: "note",
+          description,
+          timestamp,
+          value,
+        };
+        return {
+          jobs: state.jobs.map((job) =>
+            job.id === jobId
+              ? {
+                  ...job,
+                  lastActivityAt: timestamp,
+                  activityLog: [entry, ...job.activityLog],
+                }
+              : job
+          ),
+        };
+      }),
+  }));

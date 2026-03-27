@@ -58,6 +58,7 @@ export function ZeroDragOnboarding() {
   const setActiveView = useAppStore((state) => state.setActiveView);
   const setSelectedQueueItem = useAppStore((state) => state.setSelectedQueueItem);
   const setActiveJob = useAppStore((state) => state.setActiveJob);
+  const logOnboardingActivity = useAppStore((state) => state.logOnboardingActivity);
   const voiceSessions = useAppStore((state) => state.voiceSessions);
   const jobs = useAppStore((state) => state.jobs);
 
@@ -91,11 +92,15 @@ export function ZeroDragOnboarding() {
       setGhostItemId(ghostItem.id);
       if (ghostItem.jobId) {
         setJobId(ghostItem.jobId);
+        logOnboardingActivity(ghostItem.jobId, "Ghost call captured from field line.", 600);
       }
     }
     if (step === 2 && ghostItem?.status === "approved") {
       setStep(3);
       setFlashDraft(true);
+      if (ghostItem.jobId) {
+        logOnboardingActivity(ghostItem.jobId, "Draft created from ghost call approval.", 600);
+      }
       const timer = window.setTimeout(() => setFlashDraft(false), 1800);
       return () => window.clearTimeout(timer);
     }
