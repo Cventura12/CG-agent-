@@ -201,6 +201,21 @@ export function ZeroDragOnboarding() {
         </div>
       )}
 
+      {step === 2 && !ghostItem ? (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[11px] text-[var(--t2)]">
+          <span className="inline-flex h-2 w-2 rounded-full bg-[var(--green)] animate-pulse" />
+          Listening for the ghost call… the transcript will appear here.
+        </div>
+      ) : null}
+
+      {step === 2 && ghostItem?.rawTranscriptSnippet ? (
+        <div className="mt-3 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] p-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.7px] text-[var(--t3)]">Transcript preview</div>
+          <div className="mt-2 text-[12px] leading-relaxed text-[var(--t1)]">{ghostItem.rawTranscriptSnippet}</div>
+          <div className="mt-2 text-[11px] text-[var(--t3)]">Detected amount: $600 · Confidence 88%</div>
+        </div>
+      ) : null}
+
       {flashDraft ? (
         <div className="mt-3 rounded-lg border border-[var(--green)] bg-[var(--green-b)] px-3 py-2 text-[12px] text-[var(--t1)]">
           Draft created — review ready.

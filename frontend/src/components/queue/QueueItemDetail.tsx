@@ -39,6 +39,8 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
   const lowConfidence = typeof item.confidenceScore === "number" && item.confidenceScore < 0.72;
   const hasEstimatedValue = item.extractedActions.some((action) => typeof action.estimatedValue === "number");
   const showAmountUncertain = lowConfidence && hasEstimatedValue;
+  const approvedAt = item.approvedAt ? new Date(item.approvedAt).getTime() : null;
+  const justApproved = approvedAt ? Date.now() - approvedAt < 90_000 : false;
 
   return (
     <div className="flex h-full w-full shrink-0 flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:w-[380px] lg:w-[340px]">
@@ -169,13 +171,22 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
 
         {item.generatedQuoteId || generatedFollowUpCount > 0 ? (
           <section className="border-t border-[var(--line)] pt-4">
-            <SectionLabel>Generated from review</SectionLabel>
+            <div className="flex items-center justify-between">
+              <SectionLabel>Generated from review</SectionLabel>
+              {justApproved ? (
+                <span className="rounded-full border border-[var(--green)] bg-[var(--green-b)] px-2 py-[2px] text-[10px] font-medium text-[var(--green)]">
+                  Draft created
+                </span>
+              ) : null}
+            </div>
             <div className="mt-3 space-y-2">
               {item.generatedQuoteId ? (
                 <Link
                   to={`/quotes/${item.generatedQuoteId}`}
                   onClick={onClose}
-                  className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
+                  className={`flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)] ${
+                    justApproved ? "shadow-[0_0_0_1px_rgba(90,148,105,0.4)]" : ""
+                  }`}
                 >
                   <span>Open draft quote</span>
                   <span className="font-mono text-[10px] text-[var(--accent-2)]">Quote ready</span>
