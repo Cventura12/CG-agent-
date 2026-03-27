@@ -4,6 +4,8 @@ import { useAppStore } from "../../store/appStore";
 import type { QueueItem } from "../../types";
 
 const STORAGE_KEY = "arbor_onboarding_complete";
+const CALL_STORAGE_KEY = "arbor_onboarding_call_started";
+const DEMO_LINE = (import.meta.env.VITE_ARBOR_DEMO_LINE as string | undefined)?.trim() ?? "";
 
 type Step = 0 | 1 | 2 | 3;
 
@@ -24,8 +26,8 @@ const steps: StepCopy[] = [
   {
     eyebrow: "Step 2 · Ghost call",
     title: "Record a 20‑second mock change order.",
-    body: "Say: “Add 4 recessed lights at the Smith job, add $600.” Watch the transcript land with the $600 already extracted.",
-    primaryLabel: "Record mock change",
+    body: "Call the Arbor demo line and say: “Add 4 recessed lights at the Smith job, add $600.” The transcript will appear with the $600 already extracted.",
+    primaryLabel: "I made the call",
   },
   {
     eyebrow: "Step 3 · Queue flip",
@@ -41,30 +43,63 @@ const steps: StepCopy[] = [
   },
 ];
 
-function resolveMockQueue(queueItems: QueueItem[], id: string | null) {
-  return id ? queueItems.find((item) => item.id === id) ?? null : null;
+function resolveGhostQueue(queueItems: QueueItem[], since: number | null) {
+  if (!since) return null;
+  const match = queueItems.find((item) => {
+    if (!item.createdAt) return false;
+    const createdAt = new Date(item.createdAt).getTime();
+    return item.source === "CALL" && createdAt >= since;
+  });
+  return match ?? null;
 }
 
 export function ZeroDragOnboarding() {
   const queueItems = useAppStore((state) => state.queueItems);
-  const seedGhostCall = useAppStore((state) => state.seedGhostCallQueueItem);
   const setActiveView = useAppStore((state) => state.setActiveView);
   const setSelectedQueueItem = useAppStore((state) => state.setSelectedQueueItem);
   const setActiveJob = useAppStore((state) => state.setActiveJob);
+  const voiceSessions = useAppStore((state) => state.voiceSessions);
+  const jobs = useAppStore((state) => state.jobs);
 
   const [step, setStep] = useState<Step>(0);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [ghostItemId, setGhostItemId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [visible, setVisible] = useState(() => !localStorage.getItem(STORAGE_KEY));
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(() => {
+    const raw = localStorage.getItem(CALL_STORAGE_KEY);
+    return raw ? Number(raw) : null;
+  });
+  const [flashDraft, setFlashDraft] = useState(false);
 
   const activeStep = steps[step]!;
-  const ghostItem = useMemo(() => resolveMockQueue(queueItems, ghostItemId), [queueItems, ghostItemId]);
+  const ghostItem = useMemo(() => resolveGhostQueue(queueItems, callStartedAt), [queueItems, callStartedAt]);
+  const hasRealData = useMemo(() => {
+    const realQueue = queueItems.some((item) => !item.description.toLowerCase().includes("mock"));
+    const realJobs = jobs.some((job) => !job.tags?.includes("onboarding"));
+    return realQueue || realJobs || voiceSessions.length > 0;
+  }, [queueItems, jobs, voiceSessions]);
 
   useEffect(() => {
+    if (hasRealData) {
+      finishOnboarding();
+    }
+  }, [hasRealData]);
+
+  useEffect(() => {
+    if (step === 2 && ghostItem?.id) {
+      setGhostItemId(ghostItem.id);
+      if (ghostItem.jobId) {
+        setJobId(ghostItem.jobId);
+      }
+    }
     if (step === 2 && ghostItem?.status === "approved") {
       setStep(3);
+      setFlashDraft(true);
+      const timer = window.setTimeout(() => setFlashDraft(false), 1800);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [step, ghostItem]);
 
   if (!visible) {
@@ -78,11 +113,9 @@ export function ZeroDragOnboarding() {
     }
 
     if (step === 1) {
-      const result = seedGhostCall(phoneNumber);
-      if (result) {
-        setGhostItemId(result.queueItemId);
-        setJobId(result.jobId);
-      }
+      const now = Date.now();
+      setCallStartedAt(now);
+      localStorage.setItem(CALL_STORAGE_KEY, String(now));
       setStep(2);
       return;
     }
@@ -96,9 +129,7 @@ export function ZeroDragOnboarding() {
     }
 
     if (step === 3) {
-      if (jobId) {
-        setActiveJob(jobId);
-      }
+      if (jobId) setActiveJob(jobId);
       setActiveView("jobs");
       finishOnboarding();
     }
@@ -152,15 +183,29 @@ export function ZeroDragOnboarding() {
             {activeStep.primaryLabel}
           </button>
           {step === 1 ? (
-            <div className="text-[11px] text-[var(--t3)]">Arbor simulates a transcript so you can see the agent loop instantly.</div>
+            <div className="text-[11px] text-[var(--t3)]">
+              {DEMO_LINE ? (
+                <>
+                  Call <a className="text-[var(--accent-2)] underline" href={`tel:${DEMO_LINE}`}>{DEMO_LINE}</a> and leave the mock change order.
+                </>
+              ) : (
+                "Call your Arbor line and leave the mock change order."
+              )}
+            </div>
           ) : null}
           {step === 2 && ghostItem?.status !== "approved" ? (
             <div className="text-[11px] text-[var(--amber)]">
-              Approve the mock item in Queue to complete this step.
+              Approve the new call item in Queue to complete this step.
             </div>
           ) : null}
         </div>
       )}
+
+      {flashDraft ? (
+        <div className="mt-3 rounded-lg border border-[var(--green)] bg-[var(--green-b)] px-3 py-2 text-[12px] text-[var(--t1)]">
+          Draft created — review ready.
+        </div>
+      ) : null}
     </div>
   );
 }
