@@ -48,6 +48,7 @@ interface AppStore {
   updateQuoteStatus: (id: string, status: Quote["status"]) => void;
   createQuoteDraft: (input: QuoteDraftInput) => string | null;
   requestVoiceTransfer: (id: string) => Promise<void>;
+  seedGhostCallQueueItem: (phoneNumber: string) => { queueItemId: string; jobId: string } | null;
 }
 
 function normalizeLookupKey(value: string): string {
@@ -66,6 +67,23 @@ function slugify(value: string): string {
 
 function buildStoreId(prefix: string, seed: string): string {
   return `${prefix}-${slugify(seed)}-${Date.now().toString(36).slice(-6)}`;
+}
+
+function buildGhostCallItem(phoneNumber: string) {
+  const jobName = "Smith job";
+  const jobId = buildStoreId("job", jobName);
+  const queueItemId = buildStoreId("queue", "mock-change-order");
+  const description =
+    "Sub called in: add 4 recessed lights at the Smith job, add $600 before the next quote goes out.";
+
+  return {
+    queueItemId,
+    jobId,
+    jobName,
+    description,
+    phoneNumber: phoneNumber.trim(),
+    transcript: "Hey, we are doing four extra recessed lights at the Smith job, add $600.",
+  };
 }
 
 function estimateLineValue(fragment: string, index: number): number {
@@ -914,8 +932,70 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setActiveJob: (activeJobId) => set({ activeJobId }),
   setActiveView: (activeView) => set({ activeView }),
   setSelectedQueueItem: (selectedQueueItemId) => set({ selectedQueueItemId }),
-  setSelectedQuote: (selectedQuoteId) => set({ selectedQuoteId }),
-  requestVoiceTransfer: async (id) => {
+    setSelectedQuote: (selectedQuoteId) => set({ selectedQuoteId }),
+    seedGhostCallQueueItem: (phoneNumber) => {
+      const seed = buildGhostCallItem(phoneNumber);
+      if (!seed) return null;
+
+      let alreadyExists = false;
+      set((state) => {
+        alreadyExists = state.queueItems.some((item) => item.title === "Mock change order" || item.id === seed.queueItemId);
+        if (alreadyExists) {
+          return state;
+        }
+
+        const newJob: Job = {
+          id: seed.jobId,
+          name: seed.jobName,
+          customerName: "Smith",
+          customerContact: "(555) 013-8890",
+          address: "1187 Northgate Dr",
+          status: "active",
+          totalQuoted: 0,
+          totalApproved: 0,
+          openQueueItems: 1,
+          quotes: [],
+          followUps: [],
+          tags: ["onboarding"],
+          createdAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          notes: "Onboarding mock job for Arbor demo flow.",
+          activityLog: [],
+        };
+
+        const queueItem: QueueItem = {
+          id: seed.queueItemId,
+          title: "Mock change order",
+          description: seed.description,
+          source: "CALL",
+          jobId: seed.jobId,
+          jobName: seed.jobName,
+          urgent: true,
+          status: "pending",
+          extractedActions: [
+            {
+              id: buildStoreId("action", "recessed-lights"),
+              type: "change_order",
+              description: "Add 4 recessed lights to Smith job",
+              estimatedValue: 600,
+              approved: false,
+            },
+          ],
+          rawTranscriptSnippet: seed.transcript,
+          createdAt: new Date().toISOString(),
+          confidenceScore: 0.88,
+        };
+
+        return {
+          jobs: state.jobs.some((job) => job.id === seed.jobId) ? state.jobs : [newJob, ...state.jobs],
+          queueItems: [queueItem, ...state.queueItems],
+          agentStatus: appendAgentLog(state.agentStatus, "Onboarding mock change order captured", new Date().toISOString()),
+        };
+      });
+
+      return alreadyExists ? null : { queueItemId: seed.queueItemId, jobId: seed.jobId };
+    },
+    requestVoiceTransfer: async (id) => {
     const timestamp = new Date().toISOString();
     let selectedLabel = "";
 

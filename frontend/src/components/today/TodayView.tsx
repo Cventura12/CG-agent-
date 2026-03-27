@@ -10,6 +10,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { InputSourceIcon } from "../ui/InputSourceIcon";
 import { VoiceSessionList } from "../voice/VoiceSessionList";
+import { ZeroDragOnboarding } from "../onboarding/ZeroDragOnboarding";
 import { AgentFeedEmpty } from "./AgentFeedEmpty";
 import { FeedAside } from "./FeedAside";
 import { StatRow } from "./StatRow";
@@ -70,9 +71,10 @@ function TodayViewContent({
           </div>
         ) : null}
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="scrollbar-none min-h-0 overflow-y-auto p-3 sm:p-5">
-            <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4} className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_260px]">
+            <div className="scrollbar-none min-h-0 overflow-y-auto p-3 sm:p-5">
+              <ZeroDragOnboarding />
+              <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4} className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
               <div className="flex flex-col gap-3 border-b border-[var(--line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
                   <div className="text-[13px] font-medium text-[var(--t1)]">Agent feed</div>
