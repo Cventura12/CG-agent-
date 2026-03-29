@@ -7,6 +7,24 @@ const STORAGE_KEY = "arbor_onboarding_complete";
 const CALL_STORAGE_KEY = "arbor_onboarding_call_started";
 const DEMO_LINE = (import.meta.env.VITE_ARBOR_DEMO_LINE as string | undefined)?.trim() ?? "";
 
+function safeLocalStorageGet(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key: string, value: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // ignore storage failures
+  }
+}
+
 type Step = 0 | 1 | 2 | 3;
 
 type StepCopy = {
@@ -66,9 +84,9 @@ export function ZeroDragOnboarding() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [ghostItemId, setGhostItemId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [visible, setVisible] = useState(() => !localStorage.getItem(STORAGE_KEY));
+  const [visible, setVisible] = useState(() => !safeLocalStorageGet(STORAGE_KEY));
   const [callStartedAt, setCallStartedAt] = useState<number | null>(() => {
-    const raw = localStorage.getItem(CALL_STORAGE_KEY);
+    const raw = safeLocalStorageGet(CALL_STORAGE_KEY);
     return raw ? Number(raw) : null;
   });
   const [flashDraft, setFlashDraft] = useState(false);
@@ -120,7 +138,7 @@ export function ZeroDragOnboarding() {
     if (step === 1) {
       const now = Date.now();
       setCallStartedAt(now);
-      localStorage.setItem(CALL_STORAGE_KEY, String(now));
+      safeLocalStorageSet(CALL_STORAGE_KEY, String(now));
       setStep(2);
       return;
     }
@@ -141,7 +159,7 @@ export function ZeroDragOnboarding() {
   };
 
   const finishOnboarding = () => {
-    localStorage.setItem(STORAGE_KEY, "1");
+    safeLocalStorageSet(STORAGE_KEY, "1");
     setVisible(false);
   };
 
