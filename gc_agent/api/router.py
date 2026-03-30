@@ -19,6 +19,7 @@ from gc_agent.db.queries import DatabaseError
 from gc_agent.email_delivery import send_email_message
 from gc_agent.nodes.followup_trigger import ensure_quote_followup, stop_quote_followup
 from gc_agent.nodes.send_and_track import send_and_track
+from gc_agent.responsibilities import responsibilities_catalog
 from gc_agent.spreadsheet_export import build_quote_xlsx
 from gc_agent.nodes.update_memory import build_prompt_tuning_signals, update_memory
 from gc_agent.state import AgentState, Draft
@@ -1264,6 +1265,15 @@ async def get_queue(
     }
 
 
+@router.get("/responsibilities")
+async def get_responsibilities() -> dict[str, Any]:
+    """Return canonical GC responsibility definitions."""
+    return {
+        "items": [item.model_dump(mode="json") for item in responsibilities_catalog()],
+        "count": len(responsibilities_catalog()),
+    }
+
+
 @router.get("/transcripts/inbox")
 async def get_transcript_inbox(
     contractor_id: str = Query(..., min_length=1),
@@ -1659,6 +1669,7 @@ __all__ = [
     "get_briefing",
     "get_jobs",
     "get_queue",
+    "get_responsibilities",
     "get_quote_delivery",
     "get_quote_followup",
     "get_quote_pdf",

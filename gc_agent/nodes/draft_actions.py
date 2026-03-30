@@ -8,6 +8,7 @@ import re
 from uuid import uuid4
 
 from gc_agent.db import queries
+from gc_agent.responsibilities import classify_responsibilities
 from gc_agent.state import AgentState, Draft, Job
 
 LOGGER = logging.getLogger(__name__)
@@ -141,6 +142,18 @@ async def draft_actions(state: AgentState) -> dict[str, object]:
                 why=str(draft_spec.get("why", "")).strip() or "Generated from latest update.",
                 status=draft_status,
                 trace_id=state.trace_id,
+                responsibility_tags=classify_responsibilities(
+                    text=" ".join(
+                        value
+                        for value in [
+                            str(draft_spec.get("title", "")).strip(),
+                            content,
+                            str(draft_spec.get("why", "")).strip(),
+                        ]
+                        if value
+                    ),
+                    draft_type=draft_type,
+                ),
             )
             created_drafts.append(draft)
             LOGGER.debug("Draft created title=%s type=%s", draft.title, draft.type)

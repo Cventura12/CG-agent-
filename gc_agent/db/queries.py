@@ -9,6 +9,7 @@ from typing import Any, Optional
 from uuid import uuid4
 
 from gc_agent.db.client import get_client
+from gc_agent.responsibilities import classify_responsibilities
 from gc_agent.state import (
     CallTranscriptRecord,
     Draft,
@@ -215,11 +216,27 @@ def _build_job(row: dict[str, Any]) -> Job:
 def _build_draft(row: dict[str, Any]) -> Draft:
     """Convert draft_queue row with nested job relation into a Draft model."""
     job_name = _extract_job_name(row.get("jobs")) or "Unknown Job"
+    existing_tags = _string_list(row.get("responsibility_tags"))
+    draft_type = str(row.get("type", "follow-up")).strip()
+    content_text = " ".join(
+        value
+        for value in [
+            str(row.get("title", "")).strip(),
+            str(row.get("content", "")).strip(),
+            str(row.get("why", "")).strip(),
+        ]
+        if value
+    )
+    computed_tags = (
+        existing_tags
+        if existing_tags
+        else classify_responsibilities(text=content_text, draft_type=draft_type)
+    )
     payload = {
         "id": str(row.get("id", "")),
         "job_id": str(row.get("job_id", "")),
         "job_name": job_name,
-        "type": row.get("type", "follow-up"),
+        "type": draft_type or "follow-up",
         "title": str(row.get("title", "")),
         "original_content": str(row.get("original_content", "")).strip() or None,
         "content": str(row.get("content", "")),
@@ -230,6 +247,7 @@ def _build_draft(row: dict[str, Any]) -> Draft:
         "approval_recorded_at": row.get("approval_recorded_at"),
         "created_at": row.get("created_at") or _utcnow_iso(),
         "trace_id": str(row.get("trace_id", "")).strip(),
+        "responsibility_tags": computed_tags,
     }
     return Draft.model_validate(payload)
 
@@ -369,6 +387,10 @@ def _build_draft_transcript_context(row: dict[str, Any]) -> DraftTranscriptConte
     else:
         caller_label = caller_name or caller_phone or source_label
 
+    responsibility_tags = classify_responsibilities(
+        text=f"{str(row.get('summary', '')).strip()} {str(row.get('transcript_text', '')).strip()}",
+        classification=_normalize_transcript_classification(row.get("classification")),
+    )
     payload = {
         "transcript_id": str(row.get("id", "")).strip(),
         "source": source,
@@ -390,6 +412,7 @@ def _build_draft_transcript_context(row: dict[str, Any]) -> DraftTranscriptConte
         "recording_url": str(row.get("recording_url", "")).strip(),
         "started_at": str(row.get("started_at", "")).strip() or None,
         "duration_seconds": _optional_int(row.get("duration_seconds")),
+        "responsibility_tags": responsibility_tags,
     }
     return DraftTranscriptContext.model_validate(payload)
 
@@ -398,6 +421,10 @@ def _build_transcript_inbox_item(row: dict[str, Any]) -> TranscriptInboxItem:
     """Build one queue-inbox transcript payload from a persisted transcript record."""
     context = _build_draft_transcript_context(row)
     metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    responsibility_tags = classify_responsibilities(
+        text=f"{context.summary} {context.transcript_text}",
+        classification=context.classification,
+    )
     payload = {
         "transcript_id": context.transcript_id,
         "trace_id": str(row.get("trace_id", "")).strip(),
@@ -421,6 +448,7 @@ def _build_transcript_inbox_item(row: dict[str, Any]) -> TranscriptInboxItem:
         "duration_seconds": context.duration_seconds,
         "match_source": str(metadata.get("match_source", "unlinked")).strip() or "unlinked",
         "review_state": _normalize_transcript_review_state(metadata.get("review_state")),
+        "responsibility_tags": responsibility_tags,
     }
     return TranscriptInboxItem.model_validate(payload)
 
@@ -863,6 +891,7 @@ async def insert_drafts(drafts: list[Draft], gc_id: str) -> None:
             "status": draft.status,
             "created_at": draft.created_at.isoformat(),
             "trace_id": draft.trace_id.strip() or None,
+            "responsibility_tags": list(draft.responsibility_tags),
         }
         for draft in drafts
     ]
@@ -875,7 +904,10 @@ async def insert_drafts(drafts: list[Draft], gc_id: str) -> None:
     except DatabaseError as exc:
         if not _is_missing_column_error(exc):
             raise
-        legacy_payload = [{k: v for k, v in row.items() if k != "trace_id"} for row in payload]
+        legacy_payload = [
+            {k: v for k, v in row.items() if k not in {"trace_id", "responsibility_tags"}}
+            for row in payload
+        ]
 
         def _legacy_query() -> None:
             client.table("draft_queue").upsert(legacy_payload, on_conflict="id").execute()
@@ -900,7 +932,7 @@ async def get_queued_drafts(gc_id: str) -> list[Draft]:
 
     extended_columns = (
         "id,job_id,type,title,content,why,status,was_edited,approval_status,"
-        "approval_recorded_at,original_content,created_at,trace_id,jobs(name)"
+        "approval_recorded_at,original_content,created_at,trace_id,responsibility_tags,jobs(name)"
     )
     legacy_columns = "id,job_id,type,title,content,why,status,created_at,jobs(name)"
     try:
@@ -933,7 +965,7 @@ async def get_pending_drafts(gc_id: str) -> list[Draft]:
 
     extended_columns = (
         "id,job_id,type,title,content,why,status,was_edited,approval_status,"
-        "approval_recorded_at,original_content,created_at,trace_id,jobs(name)"
+        "approval_recorded_at,original_content,created_at,trace_id,responsibility_tags,jobs(name)"
     )
     legacy_columns = "id,job_id,type,title,content,why,status,created_at,jobs(name)"
     try:
@@ -1040,7 +1072,7 @@ async def get_draft_record(draft_id: str) -> Optional[dict[str, Any]]:
 
     extended_columns = (
         "id,job_id,gc_id,type,title,content,why,status,was_edited,approval_status,"
-        "approval_recorded_at,original_content,created_at,actioned_at,trace_id,jobs(name)"
+        "approval_recorded_at,original_content,created_at,actioned_at,trace_id,responsibility_tags,jobs(name)"
     )
     legacy_columns = "id,job_id,gc_id,type,title,content,why,status,created_at,actioned_at,jobs(name)"
     try:
@@ -1139,7 +1171,7 @@ async def get_actioned_drafts(gc_id: str, limit: int = 50) -> list[Draft]:
 
     extended_columns = (
         "id,job_id,type,title,content,why,status,was_edited,approval_status,"
-        "approval_recorded_at,original_content,created_at,actioned_at,trace_id,jobs(name)"
+        "approval_recorded_at,original_content,created_at,actioned_at,trace_id,responsibility_tags,jobs(name)"
     )
     legacy_columns = "id,job_id,type,title,content,why,status,created_at,actioned_at,jobs(name)"
     try:
@@ -1173,7 +1205,7 @@ async def get_approved_with_edit_drafts(gc_id: str, limit: int = 50) -> list[Dra
 
     extended_columns = (
         "id,job_id,type,title,original_content,content,why,status,was_edited,approval_status,"
-        "approval_recorded_at,created_at,actioned_at,trace_id,jobs(name)"
+        "approval_recorded_at,created_at,actioned_at,trace_id,responsibility_tags,jobs(name)"
     )
     try:
         rows = await _run_db("get_approved_with_edit_drafts", lambda: _query(extended_columns))

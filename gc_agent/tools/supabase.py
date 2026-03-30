@@ -66,6 +66,7 @@ class DraftQueueRow(TypedDict):
     why: str
     status: str
     trace_id: NotRequired[str | None]
+    responsibility_tags: NotRequired[list[str]]
     created_at: NotRequired[str]
     actioned_at: NotRequired[str | None]
 

@@ -17,6 +17,7 @@ from gc_agent.nodes.draft_actions import draft_actions
 from gc_agent.nodes.flag_risks import flag_risks
 from gc_agent.nodes.parse_call_transcript import parse_call_transcript
 from gc_agent.nodes.parse_update import parse_update
+from gc_agent.responsibilities import classify_responsibilities
 from gc_agent.state import (
     AgentState,
     CallTranscriptAnalysis,
@@ -113,6 +114,11 @@ def _build_review_draft(
         ),
         status="queued",
         trace_id=state.trace_id,
+        responsibility_tags=classify_responsibilities(
+            text=f"{analysis.summary} {state.raw_input}",
+            draft_type="transcript-review",
+            classification=analysis.classification,
+        ),
     )
 
 

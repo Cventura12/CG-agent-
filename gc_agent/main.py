@@ -37,6 +37,7 @@ from gc_agent.routers.insights import router as insights_router
 from gc_agent.routers.jobs import router as jobs_router
 from gc_agent.routers.pricing import router as pricing_router
 from gc_agent.routers.queue import router as queue_router
+from gc_agent.routers.responsibilities import router as responsibilities_router
 from gc_agent.routers.transcripts import router as transcripts_router
 from gc_agent.routers.voice import router as voice_router
 from gc_agent.webhooks.twilio import (
@@ -636,6 +637,7 @@ app.include_router(insights_router, prefix="/api/v1")
 app.include_router(queue_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")
 app.include_router(pricing_router, prefix="/api/v1")
+app.include_router(responsibilities_router, prefix="/api/v1")
 app.include_router(transcripts_router, prefix="/api/v1")
 app.include_router(voice_router, prefix="/api/v1")
 app.include_router(public_open_router, prefix="/public", tags=["public"])

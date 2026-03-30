@@ -86,6 +86,7 @@ class Draft(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     trace_id: str = ""
     transcript: Optional["DraftTranscriptContext"] = None
+    responsibility_tags: list["ResponsibilityTag"] = Field(default_factory=list)
 
 
 class ParsedIntent(BaseModel):
@@ -110,6 +111,14 @@ TranscriptClassification = Literal[
 ]
 
 TranscriptUrgency = Literal["low", "normal", "high"]
+ResponsibilityTag = Literal[
+    "project_management",
+    "communication",
+    "budgeting",
+    "subcontractor_management",
+    "permits_and_compliance",
+    "safety_management",
+]
 VoiceConversationGoal = Literal["quote_request", "job_update", "issue_report", "follow_up", "general"]
 VoiceSessionStatus = Literal[
     "active",
@@ -208,6 +217,7 @@ class DraftTranscriptContext(BaseModel):
     recording_url: str = ""
     started_at: str | None = None
     duration_seconds: int | None = None
+    responsibility_tags: list[ResponsibilityTag] = Field(default_factory=list)
 
 
 class TranscriptInboxItem(BaseModel):
@@ -235,6 +245,15 @@ class TranscriptInboxItem(BaseModel):
     duration_seconds: int | None = None
     match_source: str = "unlinked"
     review_state: Literal["pending", "reviewed", "discarded", "logged_update"] = "pending"
+    responsibility_tags: list[ResponsibilityTag] = Field(default_factory=list)
+
+
+class ResponsibilityDefinition(BaseModel):
+    """Canonical GC responsibility definition for routing tags."""
+
+    tag: ResponsibilityTag
+    label: str
+    description: str
 
 
 class TranscriptQuotePrefill(BaseModel):
@@ -416,6 +435,8 @@ __all__ = [
     "TranscriptInboxItem",
     "TranscriptQuotePrefill",
     "TranscriptIngestResult",
+    "ResponsibilityDefinition",
+    "ResponsibilityTag",
     "VoiceTurn",
     "VoiceMissingSlot",
     "VoiceSessionPlan",
