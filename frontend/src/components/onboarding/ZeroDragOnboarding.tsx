@@ -5,7 +5,6 @@ import type { QueueItem } from "../../types";
 
 const STORAGE_KEY = "arbor_onboarding_complete";
 const CALL_STORAGE_KEY = "arbor_onboarding_call_started";
-const DEMO_LINE = (import.meta.env.VITE_ARBOR_DEMO_LINE as string | undefined)?.trim() ?? "";
 
 function safeLocalStorageGet(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -36,27 +35,27 @@ type StepCopy = {
 
 const steps: StepCopy[] = [
   {
-    eyebrow: "Step 1 · The hookup",
+    eyebrow: "Step 1 - The hookup",
     title: "Connect the number your field already uses.",
     body: "No workflow change. Arbor just listens for the updates you currently miss.",
     primaryLabel: "Connect number",
   },
   {
-    eyebrow: "Step 2 · Ghost call",
-    title: "Record a 20‑second mock change order.",
-    body: "Call the Arbor demo line and say: “Add 4 recessed lights at the Smith job, add $600.” The transcript will appear with the $600 already extracted.",
+    eyebrow: "Step 2 - Ghost call",
+    title: "Record a 20-second mock change order.",
+    body: "Call the Arbor demo line and say: \"Add 4 recessed lights at the Smith job, add $600.\" The transcript will appear with the $600 already extracted.",
     primaryLabel: "I made the call",
   },
   {
-    eyebrow: "Step 3 · Queue flip",
+    eyebrow: "Step 3 - Queue flip",
     title: "Approve it once. See the draft appear instantly.",
-    body: "Arbor moves the approved change into a draft quote or follow‑up without the office typing a word.",
+    body: "Arbor moves the approved change into a draft quote or follow-up without the office typing a word.",
     primaryLabel: "Open queue",
   },
   {
-    eyebrow: "Step 4 · Memory sync",
+    eyebrow: "Step 4 - Memory sync",
     title: "The job record updates itself.",
-    body: "Your history shows the $600 entry — office, quote, and job file stay in sync.",
+    body: "Your history shows the $600 entry - office, quote, and job file stay in sync.",
     primaryLabel: "Open job history",
   },
 ];
@@ -79,6 +78,7 @@ export function ZeroDragOnboarding() {
   const logOnboardingActivity = useAppStore((state) => state.logOnboardingActivity);
   const voiceSessions = useAppStore((state) => state.voiceSessions);
   const jobs = useAppStore((state) => state.jobs);
+  const demoLine = (import.meta.env.VITE_ARBOR_DEMO_LINE as string | undefined)?.trim() ?? "";
 
   const [step, setStep] = useState<Step>(0);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -207,9 +207,9 @@ export function ZeroDragOnboarding() {
           </button>
           {step === 1 ? (
             <div className="text-[11px] text-[var(--t3)]">
-              {DEMO_LINE ? (
+              {demoLine ? (
                 <>
-                  Call <a className="text-[var(--accent-2)] underline" href={`tel:${DEMO_LINE}`}>{DEMO_LINE}</a> and leave the mock change order.
+                  Call <a className="text-[var(--accent-2)] underline" href={`tel:${demoLine}`}>{demoLine}</a> and leave the mock change order.
                 </>
               ) : (
                 "Call your Arbor line and leave the mock change order."
@@ -227,7 +227,7 @@ export function ZeroDragOnboarding() {
       {step === 2 && !ghostItem ? (
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[11px] text-[var(--t2)]">
           <span className="inline-flex h-2 w-2 rounded-full bg-[var(--green)] animate-pulse" />
-          Listening for the ghost call… the transcript will appear here.
+          Listening for the ghost call... the transcript will appear here.
         </div>
       ) : null}
 
@@ -235,13 +235,13 @@ export function ZeroDragOnboarding() {
         <div className="mt-3 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] p-3">
           <div className="font-mono text-[10px] uppercase tracking-[0.7px] text-[var(--t3)]">Transcript preview</div>
           <div className="mt-2 text-[12px] leading-relaxed text-[var(--t1)]">{ghostItem.rawTranscriptSnippet}</div>
-          <div className="mt-2 text-[11px] text-[var(--t3)]">Detected amount: $600 · Confidence 88%</div>
+          <div className="mt-2 text-[11px] text-[var(--t3)]">Detected amount: $600 - Confidence 88%</div>
         </div>
       ) : null}
 
       {flashDraft ? (
         <div className="mt-3 rounded-lg border border-[var(--green)] bg-[var(--green-b)] px-3 py-2 text-[12px] text-[var(--t1)]">
-          Draft created — review ready.
+          Draft created - review ready.
         </div>
       ) : null}
     </div>
