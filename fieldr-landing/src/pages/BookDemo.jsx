@@ -342,7 +342,7 @@ export default function BookDemo() {
       <main ref={rootRef} className="fieldr-demo" aria-label="Book an Arbor demo">
         <div className="fieldr-demo__inner">
           <div>
-            <p className="fieldr-demo__eyebrow" data-demo-reveal="eyebrow">Demo request &middot; Field operations</p>
+            <p className="fieldr-demo__eyebrow" data-demo-reveal="eyebrow">Demo request &middot; General contractors</p>
             <AnimatedWords
               as="h1"
               className="fieldr-demo__headline"

@@ -939,7 +939,7 @@ export default function Home() {
                 </span>
               ))}
             </div>
-            <div className="fieldr-home__meta" data-home-reveal="meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
+            <div className="fieldr-home__meta" data-home-reveal="meta">Early access &middot; Chattanooga, TN &middot; Built for general contractors</div>
           </div>
         </section>
 
