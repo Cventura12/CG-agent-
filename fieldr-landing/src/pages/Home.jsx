@@ -83,6 +83,41 @@ const exampleRows = [
   },
 ]
 
+const gcResponsibilities = [
+  {
+    title: 'Project management',
+    copy: 'Plans, coordinates, and supervises the full build from start to finish so the job stays on schedule.',
+  },
+  {
+    title: 'Communication hub',
+    copy: 'Keeps clients, architects, subs, and suppliers aligned when changes hit.',
+  },
+  {
+    title: 'Budget control',
+    copy: 'Estimates, tracks costs, and protects margin against scope drift.',
+  },
+  {
+    title: 'Subcontractor oversight',
+    copy: 'Hires specialists and ensures quality and accountability on site.',
+  },
+  {
+    title: 'Permits and compliance',
+    copy: 'Secures approvals and keeps the job aligned with code.',
+  },
+  {
+    title: 'Safety management',
+    copy: 'Enforces safety standards and keeps crews protected.',
+  },
+]
+
+const gcSkills = [
+  'Scheduling and coordination',
+  'Cost estimation and financial control',
+  'Stakeholder communication',
+  'Risk and safety management',
+  'Documentation and compliance',
+]
+
 export default function Home() {
   const rootRef = useRef(null)
 
@@ -174,6 +209,19 @@ export default function Home() {
       gsap.from('[data-home-growth]', {
         scrollTrigger: {
           trigger: '.fieldr-home__growth',
+          start: 'top 84%',
+          once: true,
+        },
+        y: 20,
+        opacity: 0,
+        duration: 0.46,
+        stagger: 0.08,
+        ease: 'power2.out',
+      })
+
+      gsap.from('[data-home-gc]', {
+        scrollTrigger: {
+          trigger: '.fieldr-home__gc',
           start: 'top 84%',
           once: true,
         },
@@ -740,6 +788,87 @@ export default function Home() {
           color: var(--body);
         }
 
+        .fieldr-home__gc {
+          border-top: 1px solid var(--rule);
+          border-bottom: 1px solid var(--rule2);
+          background: linear-gradient(180deg, rgba(21,19,16,0.96) 0%, rgba(16,14,12,0.98) 100%);
+        }
+
+        .fieldr-home__gc-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+          gap: 48px;
+          align-items: start;
+        }
+
+        .fieldr-home__gc-title {
+          margin: 14px 0 0;
+          font-family: var(--serif);
+          font-size: 36px;
+          line-height: 1.2;
+          font-style: italic;
+          color: var(--bright);
+        }
+
+        .fieldr-home__gc-body {
+          margin-top: 16px;
+          max-width: 520px;
+          font-size: 15px;
+          line-height: 1.74;
+          font-weight: 300;
+          color: var(--body);
+        }
+
+        .fieldr-home__gc-panel {
+          border: 1px solid var(--rule2);
+          border-radius: 10px;
+          background: linear-gradient(180deg, rgba(24,22,19,0.98) 0%, rgba(18,16,14,1) 100%);
+          box-shadow: 0 24px 54px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+
+        .fieldr-home__gc-row {
+          padding: 18px 22px;
+          border-top: 1px solid var(--rule2);
+        }
+
+        .fieldr-home__gc-row:first-child {
+          border-top: 0;
+        }
+
+        .fieldr-home__gc-row-title {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--bright);
+        }
+
+        .fieldr-home__gc-row-copy {
+          margin-top: 6px;
+          font-size: 12px;
+          line-height: 1.7;
+          font-weight: 300;
+          color: var(--body);
+        }
+
+        .fieldr-home__gc-skills {
+          margin-top: 18px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .fieldr-home__gc-skill {
+          border: 1px solid var(--rule2);
+          border-radius: 999px;
+          padding: 7px 11px;
+          background: rgba(22,20,18,0.88);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--body);
+        }
+
         .fieldr-home__final-cta {
           padding: 80px 40px 96px;
           border-top: 1px solid var(--rule);
@@ -805,7 +934,8 @@ export default function Home() {
           .fieldr-home__problem-grid,
           .fieldr-home__log-grid,
           .fieldr-home__example-grid,
-          .fieldr-home__growth-grid {
+          .fieldr-home__growth-grid,
+          .fieldr-home__gc-grid {
             grid-template-columns: 1fr;
           }
 
@@ -893,6 +1023,10 @@ export default function Home() {
             padding: 16px 18px;
           }
 
+          .fieldr-home__gc-row {
+            padding: 16px 18px;
+          }
+
           .fieldr-home__final-cta {
             padding: 72px 20px 88px;
           }
@@ -971,6 +1105,35 @@ export default function Home() {
                   The tools, the field work, and the final decisions. Arbor never replaces crews. It removes the work that keeps them from doing their work.
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="fieldr-home__section fieldr-home__gc">
+          <div className="fieldr-home__section-inner fieldr-home__gc-grid">
+            <div>
+              <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
+                <span className="fieldr-home__section-label">General contractor scope</span>
+                <div className="fieldr-home__section-rule" aria-hidden="true" />
+              </div>
+              <h2 className="fieldr-home__gc-title" data-home-gc>What a general contractor is responsible for.</h2>
+              <p className="fieldr-home__gc-body" data-home-gc>
+                The GC owns delivery. That means coordinating subs, budget, permits, and schedule while being the single point of truth for the client.
+              </p>
+              <div className="fieldr-home__gc-skills" data-home-gc>
+                {gcSkills.map((skill) => (
+                  <span key={skill} className="fieldr-home__gc-skill">{skill}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="fieldr-home__gc-panel" data-home-gc>
+              {gcResponsibilities.map((item) => (
+                <div key={item.title} className="fieldr-home__gc-row">
+                  <div className="fieldr-home__gc-row-title">{item.title}</div>
+                  <div className="fieldr-home__gc-row-copy">{item.copy}</div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
