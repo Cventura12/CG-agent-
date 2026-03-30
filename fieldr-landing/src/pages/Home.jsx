@@ -171,6 +171,19 @@ export default function Home() {
         ease: 'power2.out',
       })
 
+      gsap.from('[data-home-growth]', {
+        scrollTrigger: {
+          trigger: '.fieldr-home__growth',
+          start: 'top 84%',
+          once: true,
+        },
+        y: 20,
+        opacity: 0,
+        duration: 0.46,
+        stagger: 0.08,
+        ease: 'power2.out',
+      })
+
       gsap.from('[data-home-final]', {
         scrollTrigger: {
           trigger: '.fieldr-home__final-cta',
@@ -354,6 +367,79 @@ export default function Home() {
 
         .fieldr-home__section {
           padding: 100px 40px;
+        }
+
+        .fieldr-home__growth {
+          position: relative;
+          border-top: 1px solid var(--rule);
+          border-bottom: 1px solid var(--rule2);
+          background: linear-gradient(180deg, rgba(20,18,16,0.94) 0%, rgba(14,12,10,0.98) 100%);
+        }
+
+        .fieldr-home__growth::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 10% 30%, rgba(184,83,46,0.08), transparent 42%);
+          pointer-events: none;
+        }
+
+        .fieldr-home__growth-grid {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+          gap: 48px;
+          align-items: start;
+        }
+
+        .fieldr-home__growth-title {
+          margin: 14px 0 0;
+          font-family: var(--serif);
+          font-size: 38px;
+          line-height: 1.2;
+          font-style: italic;
+          color: var(--bright);
+        }
+
+        .fieldr-home__growth-body {
+          margin-top: 16px;
+          max-width: 520px;
+          font-size: 15px;
+          line-height: 1.74;
+          font-weight: 300;
+          color: var(--body);
+        }
+
+        .fieldr-home__growth-list {
+          border: 1px solid var(--rule2);
+          border-radius: 10px;
+          background: linear-gradient(180deg, rgba(24,22,19,0.98) 0%, rgba(18,16,14,1) 100%);
+          box-shadow: 0 24px 54px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+
+        .fieldr-home__growth-item {
+          padding: 18px 22px;
+          border-top: 1px solid var(--rule2);
+        }
+
+        .fieldr-home__growth-item:first-child {
+          border-top: 0;
+        }
+
+        .fieldr-home__growth-item-title {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--bright);
+        }
+
+        .fieldr-home__growth-item-copy {
+          margin-top: 6px;
+          font-size: 12px;
+          line-height: 1.7;
+          font-weight: 300;
+          color: var(--body);
         }
 
         .fieldr-home__section-inner {
@@ -718,7 +804,8 @@ export default function Home() {
         @media (max-width: 960px) {
           .fieldr-home__problem-grid,
           .fieldr-home__log-grid,
-          .fieldr-home__example-grid {
+          .fieldr-home__example-grid,
+          .fieldr-home__growth-grid {
             grid-template-columns: 1fr;
           }
 
@@ -802,6 +889,10 @@ export default function Home() {
             padding: 18px 16px;
           }
 
+          .fieldr-home__growth-item {
+            padding: 16px 18px;
+          }
+
           .fieldr-home__final-cta {
             padding: 72px 20px 88px;
           }
@@ -849,6 +940,38 @@ export default function Home() {
               ))}
             </div>
             <div className="fieldr-home__meta" data-home-reveal="meta">Early access &middot; Chattanooga, TN &middot; Built for field contractors</div>
+          </div>
+        </section>
+
+        <section className="fieldr-home__section fieldr-home__growth">
+          <div className="fieldr-home__section-inner fieldr-home__growth-grid">
+            <div>
+              <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
+                <span className="fieldr-home__section-label">Labor gap, admin overload</span>
+                <div className="fieldr-home__section-rule" aria-hidden="true" />
+              </div>
+              <h2 className="fieldr-home__growth-title" data-home-growth>
+                The labor gap is real. The admin gap is bigger.
+              </h2>
+              <p className="fieldr-home__growth-body" data-home-growth>
+                Skilled trades are booked out. The time left in the day disappears into calls, coordination, and follow-ups. Arbor removes the admin drag so the work stays in the field where it belongs.
+              </p>
+            </div>
+
+            <div className="fieldr-home__growth-list" data-home-growth>
+              <div className="fieldr-home__growth-item">
+                <div className="fieldr-home__growth-item-title">What Arbor handles</div>
+                <div className="fieldr-home__growth-item-copy">
+                  Answers inbound calls and messages, extracts scope changes and pricing signals, queues decisions for approval, drafts quotes and follow-ups, and keeps the job record synced.
+                </div>
+              </div>
+              <div className="fieldr-home__growth-item">
+                <div className="fieldr-home__growth-item-title">What your team keeps</div>
+                <div className="fieldr-home__growth-item-copy">
+                  The tools, the field work, and the final decisions. Arbor never replaces crews. It removes the work that keeps them from doing their work.
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
