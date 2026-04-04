@@ -22,6 +22,7 @@ load_dotenv()
 LOGGER = logging.getLogger(__name__)
 MODEL_NAME = "claude-sonnet-4-20250514"
 _ANTHROPIC_CLIENT: Optional[AsyncAnthropic] = None
+LOW_CONFIDENCE_THRESHOLD = 0.6
 _PRICE_SIGNAL_KEYS = (
     "tear_off_per_square",
     "laminated_shingles_per_square",
@@ -86,6 +87,22 @@ async def _call_claude(system: str, user: str, max_tokens: int = 1200) -> str:
             if attempt >= 3:
                 raise
             await asyncio.sleep(2)
+
+
+def _infer_confidence(state: AgentState) -> float:
+    """Infer a numeric confidence score from current state fields."""
+    raw_confidence = state.job_scope.get("extraction_confidence")
+    if isinstance(raw_confidence, (int, float)):
+        return max(0.0, min(float(raw_confidence), 1.0))
+    if isinstance(raw_confidence, str):
+        normalized = raw_confidence.strip().lower()
+        if normalized == "high":
+            return 0.9
+        if normalized == "medium":
+            return 0.7
+        if normalized == "low":
+            return 0.45
+    return 0.75
 
 
 def _strip_markdown_fences(raw: str) -> str:
@@ -336,7 +353,7 @@ def _infer_trade_type(state: AgentState) -> str:
     trade = str(state.job_scope.get("trade_type") or "").strip().lower()
     if trade:
         return trade
-    return "roofing"
+    return "general"
 
 
 def _infer_material_type(state: AgentState) -> str:
@@ -357,7 +374,7 @@ def _infer_material_type(state: AgentState) -> str:
         return "low_slope"
     if "repair" in combined or "patch" in combined:
         return "repair"
-    return "shingle"
+    return "general"
 
 
 def _estimate_labor_hours_per_unit(state: AgentState) -> float:
@@ -423,7 +440,9 @@ def _build_memory_row(
     state: AgentState,
     original_quote: dict[str, object],
     final_quote: dict[str, object],
-    embedding: list[float],
+    embedding: list[float] | None,
+    embedding_status: str,
+    confidence_score: float,
     change_summary: str,
 ) -> dict[str, object]:
     """Build the job_memory insert payload."""
@@ -453,6 +472,9 @@ def _build_memory_row(
             "scope_language": reusable_scope_language or scope_text,
             "change_summary": change_summary,
             "prompt_tuning_signals": prompt_tuning_signals,
+            "embedding_status": embedding_status,
+            "confidence_score": round(confidence_score, 3),
+            "low_confidence_flag": confidence_score < LOW_CONFIDENCE_THRESHOLD,
         },
     }
 
@@ -575,7 +597,11 @@ async def update_memory(state: AgentState) -> dict[str, object]:
         change_summary,
     )
 
-    if os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip():
+    confidence_score = _infer_confidence(state)
+    if (
+        confidence_score >= LOW_CONFIDENCE_THRESHOLD
+        and (os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip())
+    ):
         try:
             raw_response = await _call_claude(
                 system=prompts.UPDATE_MEMORY_SYSTEM,
@@ -590,13 +616,30 @@ async def update_memory(state: AgentState) -> dict[str, object]:
         except Exception as exc:
             LOGGER.warning("update_memory model summary fallback used: %s", exc)
             errors.append(f"update_memory summary failed: {exc}")
+    elif confidence_score < LOW_CONFIDENCE_THRESHOLD:
+        LOGGER.info(
+            "update_memory: skipping model refinement due to low confidence (%.2f)",
+            confidence_score,
+        )
 
-    embedding = await _embed_text(str(final_quote.get("scope_of_work") or ""))
+    embedding_status = "pending"
+    embedding: list[float] | None
+    try:
+        embedding = await _embed_text(str(final_quote.get("scope_of_work") or ""))
+        embedding_status = "ok" if embedding else "pending"
+        if not embedding:
+            LOGGER.warning("update_memory embedding returned empty list")
+    except Exception as exc:
+        LOGGER.warning("update_memory embedding failed: %s", exc)
+        embedding = None
+        embedding_status = "failed"
     memory_row = _build_memory_row(
         state,
         original_quote,
         final_quote,
         embedding,
+        embedding_status,
+        confidence_score,
         change_summary,
     )
 

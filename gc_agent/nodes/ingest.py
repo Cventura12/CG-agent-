@@ -454,8 +454,15 @@ async def ingest(state: AgentState) -> dict[str, object]:
     thread_style = _looks_like_thread_style(cleaned_input)
     detected_mode = "query" if _is_query_message(cleaned_input) else "update"
 
-    if detected_mode == "query":
-        errors.append("query mode not yet implemented")
+    if state.mode == "query":
+        cleaned_input = raw_input.strip()
+        return {
+            "mode": "query",
+            "raw_input": cleaned_input,
+            "cleaned_input": cleaned_input,
+            "thread_style": False,
+            "errors": errors,
+        }
 
     LOGGER.debug(
         "ingest input_type=%s detected_mode=%s thread_style=%s",
@@ -467,6 +474,7 @@ async def ingest(state: AgentState) -> dict[str, object]:
     return {
         "mode": detected_mode,
         "raw_input": cleaned_input,
+        "cleaned_input": cleaned_input,
         "thread_style": thread_style,
         "errors": errors,
     }

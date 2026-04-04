@@ -20,6 +20,7 @@ _NODE_MODULES = {
     "flag_risks": "gc_agent.nodes.flag_risks",
     "draft_actions": "gc_agent.nodes.draft_actions",
     "generate_briefing": "gc_agent.nodes.generate_briefing",
+    "query_handler": "gc_agent.nodes.query_handler",
 }
 
 __all__ = list(_NODE_MODULES)

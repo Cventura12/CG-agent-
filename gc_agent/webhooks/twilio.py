@@ -7,6 +7,8 @@ import base64
 import json
 import logging
 import os
+import difflib
+from datetime import datetime, timezone
 from collections import Counter
 from importlib import import_module
 from typing import Any, Optional
@@ -57,6 +59,8 @@ router = APIRouter(tags=["twilio"])
 
 _SUPABASE_CLIENT: Optional[Client] = None
 _TWILIO_CLIENT: Optional[TwilioClient] = None
+
+_JOB_MATCH_THRESHOLD = 0.72
 
 
 def _get_status_callback_url(explicit_url: str = "") -> str:
@@ -158,6 +162,125 @@ def _normalize_lookup_number(phone_number: str) -> str:
     if cleaned.startswith("whatsapp:"):
         cleaned = cleaned.replace("whatsapp:", "", 1).strip()
     return cleaned
+
+
+def _is_affirmative(text: str) -> bool:
+    cleaned = text.strip().lower()
+    return cleaned in {"yes", "yeah", "yep", "yup", "correct", "that's right", "right", "affirmative"}
+
+
+def _is_negative(text: str) -> bool:
+    cleaned = text.strip().lower()
+    return cleaned in {"no", "nope", "nah", "not that", "negative"}
+
+
+def _job_confirm_prompt(job_name: str) -> str:
+    cleaned = job_name.strip() or "that job"
+    return f"I have this as the {cleaned} job. Is that correct?"
+
+
+def _job_reference_score(reference: str, candidate: str) -> float:
+    if not reference or not candidate:
+        return 0.0
+    ref = reference.lower()
+    cand = candidate.lower()
+    ratio = difflib.SequenceMatcher(None, ref, cand).ratio()
+    ref_tokens = {token for token in ref.split() if token}
+    cand_tokens = {token for token in cand.split() if token}
+    if not ref_tokens or not cand_tokens:
+        return ratio
+    overlap = len(ref_tokens & cand_tokens) / max(len(ref_tokens), 1)
+    return max(ratio, overlap)
+
+
+async def _match_job_reference(gc_id: str, reference: str) -> tuple[str, str, float]:
+    """Return best matching job_id, job_name, score for a spoken job reference."""
+    if not reference.strip():
+        return "", "", 0.0
+
+    jobs = await queries.get_active_jobs(gc_id)
+    best_id = ""
+    best_name = ""
+    best_score = 0.0
+
+    for job in jobs:
+        name = str(getattr(job, "name", "") or "").strip()
+        address = str(getattr(job, "address", "") or "").strip()
+        customer = str(getattr(job, "customer_name", "") or "").strip()
+
+        score = max(
+            _job_reference_score(reference, name),
+            _job_reference_score(reference, address),
+            _job_reference_score(reference, customer),
+        )
+        if score > best_score:
+            best_score = score
+            best_id = str(getattr(job, "id", "")).strip()
+            best_name = name or address or customer
+
+    return best_id, best_name, best_score
+
+
+async def _apply_job_match_confirmation(
+    session: Any,
+    plan: Any,
+    last_caller_text: str,
+) -> tuple[Any, Any, bool]:
+    """Apply job-match confirmation logic and optionally adjust plan."""
+    metadata = dict(session.metadata or {})
+    candidate_id = str(metadata.get("job_match_candidate_id", "")).strip()
+    confirmed = bool(metadata.get("job_match_confirmed"))
+
+    if candidate_id and not confirmed:
+        if _is_affirmative(last_caller_text):
+            metadata["job_match_confirmed"] = True
+            metadata["job_match_job_id"] = candidate_id
+            metadata["job_match_confirmed_at"] = datetime.now(timezone.utc).isoformat()
+            candidate_name = str(metadata.get("job_match_candidate_name", "")).strip()
+            extracted_fields = dict(session.extracted_fields)
+            if candidate_name:
+                extracted_fields["job_reference"] = candidate_name
+            session = update_voice_session(
+                session.id,
+                {
+                    "metadata": metadata,
+                    "extracted_fields": extracted_fields,
+                },
+            )
+            return session, None, True
+        if _is_negative(last_caller_text):
+            metadata.pop("job_match_candidate_id", None)
+            metadata.pop("job_match_candidate_name", None)
+            metadata.pop("job_match_candidate_score", None)
+            metadata["job_match_rejected"] = True
+            session = update_voice_session(session.id, {"metadata": metadata})
+            return session, None, False
+
+    if not candidate_id and not confirmed:
+        job_reference = str(plan.extracted_fields.get("job_reference", "")).strip()
+        if job_reference:
+            match_id, match_name, match_score = await _match_job_reference(session.gc_id, job_reference)
+            if match_id and match_score >= _JOB_MATCH_THRESHOLD:
+                metadata.update(
+                    {
+                        "job_match_candidate_id": match_id,
+                        "job_match_candidate_name": match_name,
+                        "job_match_candidate_score": round(match_score, 3),
+                        "job_match_prompted": True,
+                    }
+                )
+                session = update_voice_session(session.id, {"metadata": metadata})
+                confirmation_prompt = _job_confirm_prompt(match_name)
+                plan = plan.model_copy(
+                    update={
+                        "status": "awaiting_caller",
+                        "next_prompt": confirmation_prompt,
+                        "ready_for_review": False,
+                    }
+                )
+                return session, plan, False
+
+    return session, None, False
 
 
 def _get_twilio_client() -> TwilioClient:
@@ -786,6 +909,7 @@ async def _handoff_live_voice_session(session, plan) -> tuple[object, str, str, 
         external_id=session.call_id or session.id,
         from_number=session.from_number,
         gc_id=session.gc_id,
+        job_id=str(session.metadata.get("job_match_job_id", "")).strip(),
         call_id=session.call_id or session.id,
         provider=session.provider or "twilio-live",
         caller_name=session.caller_name or plan.extracted_fields.get("caller_name", ""),
@@ -802,6 +926,10 @@ async def _handoff_live_voice_session(session, plan) -> tuple[object, str, str, 
             "webhook_provider": "twilio",
             "runtime_mode": session.runtime_mode,
             "transfer_state": session.transfer_state,
+            "job_match_job_id": str(session.metadata.get("job_match_job_id", "")).strip(),
+            "job_match_candidate_name": str(session.metadata.get("job_match_candidate_name", "")).strip(),
+            "job_match_candidate_score": session.metadata.get("job_match_candidate_score"),
+            "job_match_confirmed": bool(session.metadata.get("job_match_confirmed")),
         },
     )
 
@@ -1266,6 +1394,17 @@ async def twilio_voice_turn(request: Request) -> Response:
     session = append_voice_turn(session.id, speaker="caller", text=speech_result, confidence=confidence)
     plan = plan_voice_session(session)
     session = apply_voice_plan(session.id, plan)
+    session, adjusted_plan, needs_recompute = await _apply_job_match_confirmation(
+        session,
+        plan,
+        speech_result,
+    )
+    if needs_recompute:
+        plan = plan_voice_session(session)
+        session = apply_voice_plan(session.id, plan)
+    elif adjusted_plan is not None:
+        plan = adjusted_plan
+        session = apply_voice_plan(session.id, plan)
     if plan.escalate_to_human:
         session = update_voice_session(
             session.id,
@@ -1487,6 +1626,17 @@ async def twilio_voice_stream(websocket: WebSocket, session_id: str) -> None:
             )
             plan = plan_voice_session(session)
             session = apply_voice_plan(session.id, plan)
+            session, adjusted_plan, needs_recompute = await _apply_job_match_confirmation(
+                session,
+                plan,
+                cleaned,
+            )
+            if needs_recompute:
+                plan = plan_voice_session(session)
+                session = apply_voice_plan(session.id, plan)
+            elif adjusted_plan is not None:
+                plan = adjusted_plan
+                session = apply_voice_plan(session.id, plan)
             await _persist_voice_session(session)
 
             if plan.ready_for_review or plan.escalate_to_human:

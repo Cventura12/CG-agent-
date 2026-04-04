@@ -176,6 +176,8 @@ def route_by_mode(state: AgentState) -> str:
         return "briefing"
     if mode == "estimate":
         return "estimate"
+    if mode == "query":
+        return "query"
     return "update"
 
 
@@ -231,6 +233,7 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
     from gc_agent.nodes.generate_briefing import generate_briefing
     from gc_agent.nodes.ingest import ingest
     from gc_agent.nodes.parse_update import parse_update
+    from gc_agent.nodes.query_handler import handle_query
     from gc_agent.nodes.update_state import update_state
 
     workflow = StateGraph(AgentState)
@@ -269,6 +272,7 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
         "generate_briefing",
         trace_node_execution("generate_briefing", generate_briefing),
     )
+    workflow.add_node("query_handler", trace_node_execution("query_handler", handle_query))
 
     workflow.add_edge(START, "ingest")
     workflow.add_conditional_edges(
@@ -278,6 +282,7 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
             "estimate": "recall_context",
             "update": "parse_update",
             "briefing": "generate_briefing",
+            "query": "query_handler",
         },
     )
 
@@ -301,6 +306,7 @@ def build_graph(checkpointer: Any = None) -> CompiledGraph:
     workflow.add_edge("flag_risks", "draft_actions")
     workflow.add_edge("draft_actions", END)
     workflow.add_edge("generate_briefing", END)
+    workflow.add_edge("query_handler", END)
 
     if checkpointer is not None:
         active_checkpointer = checkpointer
@@ -401,6 +407,46 @@ async def run_update(
         return initial_state
 
 
+async def run_query(
+    raw_input: str,
+    gc_id: str,
+    from_number: str = "",
+    input_type: str = "chat",
+    trace_id: str = "",
+) -> AgentState:
+    """Run the query path for a new GC question and return final state."""
+    thread_id = _daily_thread_id(gc_id)
+    initial_state = AgentState(
+        input_type=cast(Any, input_type),
+        raw_input=raw_input,
+        from_number=from_number,
+        mode="query",
+        gc_id=gc_id,
+        jobs=[],
+        thread_id=thread_id,
+        trace_id=trace_id.strip() or uuid4().hex,
+    )
+
+    try:
+        initial_state.jobs = await _resolve_jobs(gc_id)
+        log_ingress_trace(
+            initial_state,
+            input_surface=input_type,
+            payload={
+                "raw_input": raw_input,
+                "from_number": from_number,
+                "mode": "query",
+            },
+        )
+        config = {"configurable": {"thread_id": thread_id}}
+        result = await get_graph().ainvoke(initial_state, config=config)
+        return _state_from_graph_result(result, initial_state)
+    except Exception as exc:
+        LOGGER.exception("run_query failed for gc_id=%s", gc_id)
+        initial_state.errors.append(str(exc))
+        return initial_state
+
+
 async def run_briefing(gc_id: str, trace_id: str = "") -> str:
     """Run briefing mode for a GC and return the generated briefing text."""
     thread_id = f"{gc_id}-briefing-{date.today().isoformat()}"
@@ -491,6 +537,7 @@ __all__ = [
     "get_graph",
     "get_checkpoint_state",
     "run_update",
+    "run_query",
     "run_briefing",
     "get_thread_state",
 ]

@@ -407,6 +407,12 @@ class AgentState(BaseModel):
     drafts_created: list[Draft] = Field(default_factory=list)
     rendered_quote: str = ""
     briefing_output: str = ""
+    query_response: str = ""
+    query_response_draft: str = ""
+    query_queued: bool = False
+    query_queue_id: str = ""
+    query_classification: dict[str, Any] = Field(default_factory=dict)
+    query_retrieved: dict[str, Any] = Field(default_factory=dict)
     errors: list[str] = Field(default_factory=list)
     thread_id: str = ""
     trace_id: str = ""

@@ -332,6 +332,15 @@ def _extract_job_reference(turns: Iterable[str]) -> str:
             candidate = match.group(1).strip(" .,!?:;")
             if len(candidate) >= 4:
                 return candidate
+        match = re.search(
+            r"\b([A-Za-z0-9#&'./-]+(?:\s+[A-Za-z0-9#&'./-]+){0,4})\s+job\b",
+            text,
+            re.IGNORECASE,
+        )
+        if match:
+            candidate = match.group(1).strip(" .,!?:;")
+            if len(candidate) >= 4:
+                return candidate
     return ""
 
 
@@ -525,7 +534,7 @@ def _slot_prompt_and_reason(
     if slot_name == "job_reference":
         return (
             "The call still needs a job, site, or customer reference.",
-            "What job, site, or customer is this tied to?",
+            "Which job are you calling about?",
         )
 
     if slot_name == "scope_summary":

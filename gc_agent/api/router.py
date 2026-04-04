@@ -50,6 +50,9 @@ class _GraphProxy:
     async def run_update(self, *args: Any, **kwargs: Any) -> Any:
         return await self._resolve().run_update(*args, **kwargs)
 
+    async def run_query(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._resolve().run_query(*args, **kwargs)
+
     async def run_briefing(self, *args: Any, **kwargs: Any) -> Any:
         return await self._resolve().run_briefing(*args, **kwargs)
 
@@ -121,6 +124,13 @@ class ApproveDraftRequest(BaseModel):
 
 class UpdateRequest(BaseModel):
     """Request body for routing a job update into the v4 path."""
+
+    input: str = Field(min_length=1)
+    contractor_id: str = Field(min_length=1)
+
+
+class QueryRequest(BaseModel):
+    """Request body for routing a GC question into query mode."""
 
     input: str = Field(min_length=1)
     contractor_id: str = Field(min_length=1)
@@ -1498,6 +1508,34 @@ async def post_update(payload: UpdateRequest) -> dict[str, Any]:
         "trace_id": state.trace_id,
         "draft_actions": [_serialize_draft(draft) for draft in state.drafts_created],
         "risk_flags": state.risk_flags,
+        "errors": state.errors,
+    }
+
+
+@router.post("/query")
+async def post_query(payload: QueryRequest) -> dict[str, Any]:
+    """Run the query path and return the response or queued status."""
+    try:
+        state = await graph.run_query(
+            raw_input=payload.input,
+            gc_id=payload.contractor_id,
+            from_number=f"api:{payload.contractor_id}",
+            input_type="chat",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"query processing failed: {exc}",
+        ) from exc
+
+    return {
+        "trace_id": state.trace_id,
+        "query_response": state.query_response,
+        "query_response_draft": state.query_response_draft,
+        "query_queued": state.query_queued,
+        "query_queue_id": state.query_queue_id,
+        "classification": state.query_classification,
+        "retrieved": state.query_retrieved,
         "errors": state.errors,
     }
 
