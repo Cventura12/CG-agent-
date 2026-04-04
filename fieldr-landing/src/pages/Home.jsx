@@ -964,7 +964,7 @@ export default function Home() {
         }
       `}</style>
 
-      <main ref={rootRef} className="fieldr-home">
+      <main ref={rootRef} className="fieldr-home" data-build="2026-04-04">
         <section className="fieldr-home__hero">
           <span className="fieldr-home__hero-line" aria-hidden="true" />
           <div className="fieldr-home__hero-inner">
