@@ -7,9 +7,47 @@ import { SmartLink } from '../components/SmartLink'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const problemStats = [
-  { value: '3.4h', label: 'Lost daily to admin' },
-  { value: '$0', label: 'Billed for that time' },
+const marginLeakCards = [
+  {
+    tag: 'Signal loss',
+    title: 'Field updates get buried',
+    body: 'A sub calls in a change. An owner texts a revision. By the time the office surfaces it, the job has moved on and the margin is already gone.',
+    cost: 'Costs: delayed response, missed change orders',
+    tone: 'signal',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    ),
+  },
+  {
+    tag: 'Billing gap',
+    title: 'The extra work never gets billed',
+    body: 'You know what changed on site. Getting that into a revised number before the window closes is where revenue disappears job after job.',
+    cost: 'Costs: unbilled scope, margin erosion',
+    tone: 'billing',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M5 12h14" />
+        <path d="M13 6l6 6-6 6" />
+      </svg>
+    ),
+  },
+  {
+    tag: 'Record drift',
+    title: 'What was promised gets forgotten',
+    body: 'Quotes go quiet. Paperwork gets missed. Follow-through lives in memory until the wrong detail costs you money or credibility.',
+    cost: 'Costs: disputes, credibility, rework',
+    tone: 'record',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="6" y="4" width="12" height="16" rx="2" />
+        <path d="M9 8h6" />
+        <path d="M9 12h6" />
+      </svg>
+    ),
+  },
 ]
 
 const agentLogEntries = [
@@ -91,9 +129,9 @@ export default function Home() {
         .from('[data-home-reveal="readout"]', { y: 10, opacity: 0, duration: 0.32 }, '-=0.18')
         .from('[data-home-reveal="meta"]', { y: 10, opacity: 0, duration: 0.32 }, '-=0.2')
 
-      gsap.from('[data-home-problem-copy]', {
+      gsap.from('[data-home-leak-head]', {
         scrollTrigger: {
-          trigger: '.fieldr-home__problem-grid',
+          trigger: '.fieldr-home__leak-grid',
           start: 'top 82%',
           once: true,
         },
@@ -103,9 +141,9 @@ export default function Home() {
         ease: 'power2.out',
       })
 
-      gsap.from('[data-home-problem-card]', {
+      gsap.from('[data-home-leak-card]', {
         scrollTrigger: {
-          trigger: '.fieldr-home__problem-panel',
+          trigger: '.fieldr-home__leak-cards',
           start: 'top 84%',
           once: true,
         },
@@ -113,6 +151,18 @@ export default function Home() {
         opacity: 0,
         duration: 0.48,
         stagger: 0.12,
+        ease: 'power2.out',
+      })
+
+      gsap.from('[data-home-leak-bar]', {
+        scrollTrigger: {
+          trigger: '.fieldr-home__leak-bar',
+          start: 'top 88%',
+          once: true,
+        },
+        y: 16,
+        opacity: 0,
+        duration: 0.4,
         ease: 'power2.out',
       })
 
@@ -425,42 +475,45 @@ export default function Home() {
           background: linear-gradient(90deg, var(--rule2), transparent 92%);
         }
 
-        .fieldr-home__problem-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 64px;
-          align-items: start;
+        .fieldr-home__leak-section {
+          padding: 80px 48px;
+        }
+
+        .fieldr-home__leak-grid {
           max-width: 1100px;
           margin: 0 auto;
         }
 
-        .fieldr-home__problem-copy {
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-        }
-
-        .fieldr-home__problem-eyebrow {
+        .fieldr-home__leak-eyebrow {
           display: flex;
           align-items: center;
           gap: 14px;
         }
 
-        .fieldr-home__problem-eyebrow span {
+        .fieldr-home__leak-eyebrow span {
           font-family: var(--mono);
           font-size: 10px;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.18em;
           text-transform: uppercase;
           color: #c1522a;
         }
 
-        .fieldr-home__problem-rule {
+        .fieldr-home__leak-rule {
           flex: 1;
           height: 1px;
           background: linear-gradient(90deg, rgba(193,82,42,0.4), transparent);
         }
 
-        .fieldr-home__problem-headline {
+        .fieldr-home__leak-head {
+          margin-top: 32px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 48px;
+          margin-bottom: 48px;
+        }
+
+        .fieldr-home__leak-title {
           margin: 0;
           font-family: var(--serif);
           font-size: clamp(38px, 5vw, 52px);
@@ -470,143 +523,150 @@ export default function Home() {
           letter-spacing: -0.02em;
         }
 
-        .fieldr-home__problem-body {
+        .fieldr-home__leak-subhead {
           margin: 0;
-          max-width: 380px;
-          font-size: 14px;
-          line-height: 1.7;
+          max-width: 280px;
+          text-align: right;
+          font-size: 13px;
+          line-height: 1.65;
           font-weight: 300;
-          color: rgba(242,232,217,0.5);
+          color: rgba(242,232,217,0.4);
         }
 
-        .fieldr-home__problem-stats {
-          display: flex;
-          gap: 24px;
-          flex-wrap: wrap;
-        }
-
-        .fieldr-home__problem-stat {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .fieldr-home__problem-stat-value {
-          font-family: var(--serif);
-          font-size: 36px;
-          font-weight: 700;
-          color: #c1522a;
-        }
-
-        .fieldr-home__problem-stat-label {
-          font-family: var(--mono);
-          font-size: 10px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(242,232,217,0.35);
-        }
-
-        .fieldr-home__problem-panel {
-          border: 0.5px solid rgba(255,255,255,0.1);
+        .fieldr-home__leak-cards {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1px;
+          background: rgba(255,255,255,0.07);
           border-radius: 12px;
           overflow: hidden;
-          background: rgba(16,13,11,0.6);
-          box-shadow: 0 22px 50px rgba(0,0,0,0.2);
+          margin-bottom: 32px;
         }
 
-        .fieldr-home__problem-card {
-          position: relative;
-          padding: 24px 26px;
+        .fieldr-home__leak-card {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 16px;
+          padding: 32px 28px;
+          min-height: 100%;
         }
 
-        .fieldr-home__problem-card + .fieldr-home__problem-card {
-          border-top: 0.5px solid rgba(255,255,255,0.08);
+        .fieldr-home__leak-card.is-signal {
+          background: #1c1812;
         }
 
-        .fieldr-home__problem-card.is-arbor {
-          background: rgba(193,82,42,0.06);
+        .fieldr-home__leak-card.is-billing {
+          background: rgba(193,82,42,0.1);
         }
 
-        .fieldr-home__problem-tag {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
+        .fieldr-home__leak-card.is-record {
+          background: #1a1714;
+        }
+
+        .fieldr-home__leak-tag {
           font-family: var(--mono);
           font-size: 9px;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.18em;
           text-transform: uppercase;
           color: #c1522a;
         }
 
-        .fieldr-home__problem-tag.is-team {
-          color: rgba(255,255,255,0.3);
+        .fieldr-home__leak-card-title {
+          margin: 0;
+          font-size: 17px;
+          font-weight: 500;
+          color: #f2e8d9;
         }
 
-        .fieldr-home__problem-tag svg {
+        .fieldr-home__leak-card-body {
+          margin: 0;
+          flex: 1;
+          font-size: 13px;
+          line-height: 1.7;
+          font-weight: 300;
+          color: rgba(242,232,217,0.55);
+        }
+
+        .fieldr-home__leak-cost {
+          margin-top: auto;
+          padding-top: 14px;
+          border-top: 0.5px solid rgba(193,82,42,0.15);
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(193,82,42,0.6);
+        }
+
+        .fieldr-home__leak-cost svg {
           width: 12px;
           height: 12px;
           flex: 0 0 auto;
         }
 
-        .fieldr-home__problem-title {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 500;
-          color: #f2e8d9;
-        }
-
-        .fieldr-home__problem-copytext {
-          margin: 0;
-          font-size: 13px;
-          line-height: 1.7;
-          font-weight: 300;
-          color: rgba(242,232,217,0.6);
-        }
-
-        .fieldr-home__problem-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: grid;
-          gap: 8px;
-          font-family: var(--mono);
-          font-size: 12px;
-          color: rgba(242,232,217,0.45);
-        }
-
-        .fieldr-home__problem-list li {
+        .fieldr-home__leak-bar {
           display: flex;
           align-items: center;
-          gap: 10px;
+          justify-content: space-between;
+          gap: 20px;
+          padding: 20px 28px;
+          border: 0.5px solid rgba(255,255,255,0.08);
+          border-radius: 8px;
+          background: rgba(193,82,42,0.05);
+          text-decoration: none;
         }
 
-        .fieldr-home__problem-list li::before {
-          content: '';
+        .fieldr-home__leak-bar-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-family: var(--mono);
+          font-size: 11px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(242,232,217,0.5);
+        }
+
+        .fieldr-home__leak-bar-left strong {
+          color: #c1522a;
+          font-weight: 600;
+        }
+
+        .fieldr-home__leak-pulse {
           width: 6px;
           height: 6px;
           border-radius: 999px;
-          background: #c1522a;
-          opacity: 0.9;
+          background: var(--moss-lt);
+          box-shadow: 0 0 0 5px var(--moss-bg);
+          animation: fieldrPulse 2s ease-in-out infinite;
         }
 
-        .fieldr-home__problem-list.is-team li::before {
-          background: rgba(255,255,255,0.25);
+        .fieldr-home__leak-bar-right {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(242,232,217,0.3);
+          white-space: nowrap;
         }
 
-        .fieldr-home__problem-glyph {
-          position: absolute;
-          top: 16px;
-          right: 18px;
-          opacity: 0.12;
+        .fieldr-home__leak-bar-right span {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
         }
 
-        .fieldr-home__problem-glyph svg {
-          width: 20px;
-          height: 20px;
-          stroke-width: 1px;
+        .fieldr-home__leak-bar-right i {
+          display: inline-block;
+          width: 36px;
+          height: 1px;
+          background: rgba(242,232,217,0.2);
         }
 
         .fieldr-home__log-section {
@@ -870,7 +930,7 @@ export default function Home() {
         }
 
         @media (max-width: 960px) {
-          .fieldr-home__problem-grid,
+          .fieldr-home__leak-cards,
           .fieldr-home__log-grid,
           .fieldr-home__example-grid {
             grid-template-columns: 1fr;
@@ -924,8 +984,23 @@ export default function Home() {
             gap: 10px;
           }
 
-          .fieldr-home__problem-card {
-            padding: 20px 20px;
+          .fieldr-home__leak-section {
+            padding: 72px 20px;
+          }
+
+          .fieldr-home__leak-head {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .fieldr-home__leak-subhead {
+            text-align: left;
+            max-width: 100%;
+          }
+
+          .fieldr-home__leak-bar {
+            flex-direction: column;
+            align-items: flex-start;
           }
 
           .fieldr-home__log-entry {
@@ -1002,76 +1077,52 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="fieldr-home__section">
-          <div className="fieldr-home__section-inner">
-            <div className="fieldr-home__problem-grid">
-              <div className="fieldr-home__problem-copy" data-home-problem-copy>
-                <div className="fieldr-home__problem-eyebrow">
-                  <span>Labor gap · Admin overload</span>
-                  <div className="fieldr-home__problem-rule" aria-hidden="true" />
-                </div>
-                <h2 className="fieldr-home__problem-headline">The labor gap is real. The admin gap is bigger.</h2>
-                <p className="fieldr-home__problem-body">
-                  Skilled trades are booked out. The time left in the day disappears into calls, coordination, and follow-ups. Arbor removes the admin drag so the work stays in the field where it belongs.
-                </p>
-                <div className="fieldr-home__problem-stats">
-                  {problemStats.map((stat) => (
-                    <div key={stat.label} className="fieldr-home__problem-stat">
-                      <span className="fieldr-home__problem-stat-value">{stat.value}</span>
-                      <span className="fieldr-home__problem-stat-label">{stat.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="fieldr-home__problem-panel" data-home-problem-panel>
-                <article className="fieldr-home__problem-card is-arbor" data-home-problem-card>
-                  <div className="fieldr-home__problem-glyph" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#c1522a">
-                      <rect x="3" y="3" width="6" height="6" />
-                      <rect x="15" y="3" width="6" height="6" />
-                      <rect x="3" y="15" width="6" height="6" />
-                      <rect x="15" y="15" width="6" height="6" />
-                    </svg>
-                  </div>
-                  <div className="fieldr-home__problem-tag">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 7v5l3 2" />
-                    </svg>
-                    Arbor handles
-                  </div>
-                  <h3 className="fieldr-home__problem-title">What Arbor takes off your plate</h3>
-                  <p className="fieldr-home__problem-copytext">
-                    Reads inbound calls, texts, and voice notes. Extracts scope changes and pricing signals. Queues decisions for your approval.
-                  </p>
-                  <ul className="fieldr-home__problem-list">
-                    <li>Draft quotes and follow-ups</li>
-                    <li>Scope change detection</li>
-                    <li>Job record sync</li>
-                  </ul>
-                </article>
-
-                <article className="fieldr-home__problem-card" data-home-problem-card>
-                  <div className="fieldr-home__problem-glyph" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="rgba(242,232,217,0.4)">
-                      <path d="M12 3l9 9-9 9-9-9z" />
-                      <path d="M12 7l5 5-5 5-5-5z" />
-                    </svg>
-                  </div>
-                  <div className="fieldr-home__problem-tag is-team">Your team keeps</div>
-                  <h3 className="fieldr-home__problem-title">What stays with your crew</h3>
-                  <p className="fieldr-home__problem-copytext">
-                    The tools, the field work, and the final call. Arbor never replaces crews - it removes what keeps them from doing their work.
-                  </p>
-                  <ul className="fieldr-home__problem-list is-team">
-                    <li>All final decisions</li>
-                    <li>Crew relationships</li>
-                    <li>Field execution</li>
-                  </ul>
-                </article>
-              </div>
+        <section className="fieldr-home__leak-section">
+          <div className="fieldr-home__leak-grid">
+            <div className="fieldr-home__leak-eyebrow">
+              <span>Where margin leaks</span>
+              <div className="fieldr-home__leak-rule" aria-hidden="true" />
             </div>
+
+            <div className="fieldr-home__leak-head" data-home-leak-head>
+              <h2 className="fieldr-home__leak-title">Three places revenue disappears on every job.</h2>
+              <p className="fieldr-home__leak-subhead">
+                None of them require a bad crew. Just the wrong tool handling the wrong moment.
+              </p>
+            </div>
+
+            <div className="fieldr-home__leak-cards">
+              {marginLeakCards.map((card) => (
+                <article
+                  key={card.tag}
+                  className={`fieldr-home__leak-card${card.tone === 'signal' ? ' is-signal' : ''}${card.tone === 'billing' ? ' is-billing' : ''}${card.tone === 'record' ? ' is-record' : ''}`}
+                  data-home-leak-card
+                >
+                  <div className="fieldr-home__leak-tag">{card.tag}</div>
+                  <h3 className="fieldr-home__leak-card-title">{card.title}</h3>
+                  <p className="fieldr-home__leak-card-body">{card.body}</p>
+                  <div className="fieldr-home__leak-cost">
+                    {card.icon}
+                    {card.cost}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <SmartLink to="#how-it-works" className="fieldr-home__leak-bar" data-home-leak-bar>
+              <div className="fieldr-home__leak-bar-left">
+                <span className="fieldr-home__leak-pulse" aria-hidden="true" />
+                <span>
+                  Arbor closes <strong>all three gaps</strong> — see how it works
+                </span>
+              </div>
+              <div className="fieldr-home__leak-bar-right">
+                <span>
+                  How it works <i aria-hidden="true" />
+                  →
+                </span>
+              </div>
+            </SmartLink>
           </div>
         </section>
 
