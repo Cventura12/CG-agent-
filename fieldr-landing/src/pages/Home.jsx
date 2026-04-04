@@ -93,20 +93,25 @@ const heroSignals = [
 const exampleRows = [
   {
     label: 'Signal',
-    title: 'A tech texts: "Need two extra outlets in conference room."',
-    copy: 'Short, real, and easy to miss.',
+    title: '"Need two extra outlets in the conference room."',
+    copy: 'A real field text. Short, easy to miss, easy to forget.',
+    tone: 'signal',
   },
   {
-    label: 'Failure mode',
-    title: 'It stays in messages and the quote never moves.',
-    copy: 'The extra work gets done. The billing does not.',
+    label: 'Without Arbor',
+    title: 'It stays in messages. The quote never gets revised.',
+    copy: 'The work gets done. Nobody updates the number. Revenue slips.',
+    tone: 'without',
   },
   {
     label: 'Arbor action',
-    title: 'The change gets caught and queued for approval.',
-    copy: 'The job record updates before money slips away.',
+    title: 'Change caught. Line item prepared. Queued for your approval.',
+    copy: 'Tied to the job record before the billing window closes.',
+    tone: 'arbor',
   },
 ]
+
+const examplePills = ['Quote delta', 'Approval required', 'Job record updated']
 
 export default function Home() {
   const rootRef = useRef(null)
@@ -770,101 +775,155 @@ export default function Home() {
           color: var(--body);
         }
 
+        .fieldr-home__example-section {
+          padding: 72px 52px;
+          background: #161310;
+        }
+
         .fieldr-home__example-grid {
           display: grid;
-          grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
-          gap: 48px;
-          align-items: start;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+          gap: 72px;
+          align-items: center;
+          max-width: 1060px;
+          margin: 0 auto;
+        }
+
+        .fieldr-home__example-eyebrow {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .fieldr-home__example-eyebrow span {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #c1522a;
+        }
+
+        .fieldr-home__example-rule {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, rgba(193,82,42,0.35), transparent);
         }
 
         .fieldr-home__example-headline {
-          margin: 14px 0 0;
+          margin: 18px 0 0;
           font-family: var(--serif);
-          font-size: 38px;
-          line-height: 1.18;
+          font-size: 40px;
+          line-height: 1.2;
           font-style: italic;
-          color: var(--bright);
-          text-wrap: balance;
+          font-weight: 900;
+          color: #efe5d4;
+          letter-spacing: -0.02em;
         }
 
         .fieldr-home__example-body {
-          margin-top: 18px;
-          max-width: 440px;
-          font-size: 15px;
-          line-height: 1.74;
+          margin-top: 16px;
+          max-width: 430px;
+          font-size: 13.5px;
+          line-height: 1.75;
           font-weight: 300;
-          color: var(--body);
+          color: rgba(239,229,212,0.45);
         }
 
         .fieldr-home__example-panel {
-          border: 1px solid var(--rule2);
-          border-radius: 8px;
-          background: linear-gradient(180deg, rgba(24,22,19,0.98) 0%, rgba(18,16,14,1) 100%);
-          box-shadow: 0 24px 56px rgba(0,0,0,0.18);
+          border: 0.5px solid rgba(255,255,255,0.08);
+          border-radius: 14px;
           overflow: hidden;
         }
 
         .fieldr-home__example-row {
-          display: grid;
-          grid-template-columns: 104px minmax(0, 1fr);
-          gap: 18px;
-          padding: 18px 20px;
-          border-top: 1px solid var(--rule2);
-          transition: background 200ms ease, transform 200ms ease;
+          display: flex;
+          align-items: stretch;
+          border-top: 0.5px solid rgba(255,255,255,0.06);
         }
 
         .fieldr-home__example-row:first-child {
           border-top: 0;
         }
 
-        .fieldr-home__example-row.is-fieldr {
-          background: rgba(184,83,46,0.07);
+        .fieldr-home__example-row.is-arbor {
+          background: rgba(193,82,42,0.07);
+          border-top: 0.5px solid rgba(193,82,42,0.18);
         }
 
-        .fieldr-home__example-row:hover {
-          background: rgba(255,255,255,0.018);
-          transform: translateX(4px);
+        .fieldr-home__example-accent {
+          width: 7px;
+          flex: 0 0 7px;
+        }
+
+        .fieldr-home__example-accent.is-signal {
+          background: rgba(255,255,255,0.06);
+        }
+
+        .fieldr-home__example-accent.is-without {
+          background: rgba(193,82,42,0.3);
+        }
+
+        .fieldr-home__example-accent.is-arbor {
+          background: #c1522a;
+        }
+
+        .fieldr-home__example-content {
+          flex: 1;
+          padding: 22px 24px;
         }
 
         .fieldr-home__example-kicker {
           font-family: var(--mono);
           font-size: 9px;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.16em;
           text-transform: uppercase;
-          color: var(--sienna-lt);
+          color: rgba(239,229,212,0.25);
+        }
+
+        .fieldr-home__example-kicker.is-without {
+          color: rgba(193,82,42,0.5);
+        }
+
+        .fieldr-home__example-kicker.is-arbor {
+          color: #c1522a;
         }
 
         .fieldr-home__example-title {
-          font-size: 14px;
+          margin-top: 8px;
+          font-size: 13.5px;
           font-weight: 500;
-          color: var(--bright);
+          color: #efe5d4;
         }
 
         .fieldr-home__example-copy {
           margin-top: 6px;
           font-size: 12px;
-          line-height: 1.7;
+          line-height: 1.65;
           font-weight: 300;
-          color: var(--body);
+          color: rgba(239,229,212,0.38);
         }
 
-        .fieldr-home__example-foot {
-          margin-top: 16px;
+        .fieldr-home__example-row.is-arbor .fieldr-home__example-copy {
+          color: rgba(239,229,212,0.55);
+        }
+
+        .fieldr-home__example-pills {
+          margin-top: 12px;
           display: flex;
           flex-wrap: wrap;
-          gap: 10px;
+          gap: 6px;
         }
 
-        .fieldr-home__example-chip {
-          border: 1px solid var(--rule2);
-          border-radius: 999px;
-          padding: 7px 11px;
-          background: rgba(22,20,18,0.88);
+        .fieldr-home__example-pill {
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: var(--body);
+          padding: 3px 9px;
+          border-radius: 100px;
+          background: rgba(193,82,42,0.14);
+          border: 0.5px solid rgba(193,82,42,0.28);
+          color: rgba(193,82,42,0.85);
         }
 
         .fieldr-home__final-cta {
@@ -1002,6 +1061,14 @@ export default function Home() {
             align-items: flex-start;
           }
 
+          .fieldr-home__example-section {
+            padding: 64px 20px;
+          }
+
+          .fieldr-home__example-headline {
+            font-size: 34px;
+          }
+
           .fieldr-home__log-entry {
             grid-template-columns: 72px 8px minmax(0, 1fr);
             gap: 12px;
@@ -1016,8 +1083,6 @@ export default function Home() {
           }
 
           .fieldr-home__example-row {
-            grid-template-columns: 1fr;
-            gap: 10px;
             padding: 18px 16px;
           }
 
@@ -1153,31 +1218,36 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="fieldr-home__section">
-          <div className="fieldr-home__section-inner fieldr-home__example-grid">
+        <section className="fieldr-home__example-section">
+          <div className="fieldr-home__example-grid">
             <div data-home-example-copy>
-              <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">One missed text</span>
-                <div className="fieldr-home__section-rule" aria-hidden="true" />
+              <div className="fieldr-home__example-eyebrow">
+                <span>One missed text</span>
+                <div className="fieldr-home__example-rule" aria-hidden="true" />
               </div>
               <h2 className="fieldr-home__example-headline">The extra work gets done. The billing never catches up.</h2>
               <p className="fieldr-home__example-body">
-                Arbor closes the gap between field changes and office action.
+                A contractor doesn't lose margin because they can't estimate. They lose it because the field moves faster than the office can keep up. Arbor closes that gap.
               </p>
-              <div className="fieldr-home__example-foot">
-                <span className="fieldr-home__example-chip">Quote delta prepared</span>
-                <span className="fieldr-home__example-chip">Approval required</span>
-                <span className="fieldr-home__example-chip">Written to job record</span>
-              </div>
             </div>
 
             <div className="fieldr-home__example-panel">
               {exampleRows.map((row) => (
-                <div key={row.label} className={`fieldr-home__example-row${row.label === 'Arbor action' ? ' is-fieldr' : ''}`} data-home-example-row>
-                  <div className="fieldr-home__example-kicker">{row.label}</div>
-                  <div>
+                <div key={row.label} className={`fieldr-home__example-row${row.tone === 'arbor' ? ' is-arbor' : ''}`} data-home-example-row>
+                  <div className={`fieldr-home__example-accent${row.tone === 'signal' ? ' is-signal' : ''}${row.tone === 'without' ? ' is-without' : ''}${row.tone === 'arbor' ? ' is-arbor' : ''}`} />
+                  <div className="fieldr-home__example-content">
+                    <div className={`fieldr-home__example-kicker${row.tone === 'without' ? ' is-without' : ''}${row.tone === 'arbor' ? ' is-arbor' : ''}`}>
+                      {row.label}
+                    </div>
                     <div className="fieldr-home__example-title">{row.title}</div>
                     <div className="fieldr-home__example-copy">{row.copy}</div>
+                    {row.tone === 'arbor' ? (
+                      <div className="fieldr-home__example-pills">
+                        {examplePills.map((pill) => (
+                          <span key={pill} className="fieldr-home__example-pill">{pill}</span>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}
