@@ -7,26 +7,9 @@ import { SmartLink } from '../components/SmartLink'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const problemCards = [
-  {
-    number: '01',
-    kicker: 'Signal loss',
-    title: 'Field updates get buried',
-    body: 'Calls and texts land. The update never reaches the office in time.',
-  },
-  {
-    number: '02',
-    kicker: 'Billing gap',
-    title: 'The extra work never gets billed',
-    body: 'Scope changes happen. The revised number arrives too late.',
-    featured: true,
-  },
-  {
-    number: '03',
-    kicker: 'Record drift',
-    title: 'What was promised gets forgotten',
-    body: 'Follow-ups disappear and the job record drifts.',
-  },
+const problemStats = [
+  { value: '3.4h', label: 'Lost daily to admin' },
+  { value: '$0', label: 'Billed for that time' },
 ]
 
 const agentLogEntries = [
@@ -108,18 +91,28 @@ export default function Home() {
         .from('[data-home-reveal="readout"]', { y: 10, opacity: 0, duration: 0.32 }, '-=0.18')
         .from('[data-home-reveal="meta"]', { y: 10, opacity: 0, duration: 0.32 }, '-=0.2')
 
-      gsap.from('[data-home-card]', {
+      gsap.from('[data-home-problem-copy]', {
         scrollTrigger: {
           trigger: '.fieldr-home__problem-grid',
           start: 'top 82%',
           once: true,
         },
-        y: 26,
+        y: 20,
         opacity: 0,
-        scale: 0.985,
-        filter: 'blur(8px)',
-        duration: 0.58,
-        stagger: 0.08,
+        duration: 0.48,
+        ease: 'power2.out',
+      })
+
+      gsap.from('[data-home-problem-card]', {
+        scrollTrigger: {
+          trigger: '.fieldr-home__problem-panel',
+          start: 'top 84%',
+          once: true,
+        },
+        y: 18,
+        opacity: 0,
+        duration: 0.48,
+        stagger: 0.12,
         ease: 'power2.out',
       })
 
@@ -434,65 +427,186 @@ export default function Home() {
 
         .fieldr-home__problem-grid {
           display: grid;
-          grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.1fr) minmax(0, 0.95fr);
-          gap: 0;
-          align-items: stretch;
-          overflow: hidden;
-          border-radius: 10px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 64px;
+          align-items: start;
+          max-width: 1100px;
+          margin: 0 auto;
         }
 
-        .fieldr-home__problem-card {
-          border: 1px solid var(--rule2);
-          border-radius: 8px;
-          background: linear-gradient(180deg, rgba(24,22,19,0.96) 0%, rgba(18,16,14,0.98) 100%);
-          padding: 32px 28px;
-          box-shadow: 0 20px 42px rgba(0,0,0,0.14);
-          transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+        .fieldr-home__problem-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
         }
 
-        .fieldr-home__problem-card + .fieldr-home__problem-card {
-          border-left: 0;
+        .fieldr-home__problem-eyebrow {
+          display: flex;
+          align-items: center;
+          gap: 14px;
         }
 
-        .fieldr-home__problem-card.is-featured {
-          background: linear-gradient(180deg, rgba(184,83,46,0.11) 0%, rgba(20,18,16,1) 100%);
-          border-color: var(--sienna-bd);
-          box-shadow: 0 24px 54px rgba(0,0,0,0.22);
-          transform: translateY(-10px);
-        }
-
-        .fieldr-home__problem-card:hover {
-          transform: translateY(-4px);
-          border-color: rgba(212,103,63,0.28);
-          box-shadow: 0 28px 56px rgba(0,0,0,0.22);
-        }
-
-        .fieldr-home__problem-card.is-featured:hover {
-          transform: translateY(-12px);
-        }
-
-        .fieldr-home__problem-kicker {
-          margin-top: 16px;
+        .fieldr-home__problem-eyebrow span {
           font-family: var(--mono);
-          font-size: 8px;
+          font-size: 10px;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: var(--sienna-lt);
+          color: #c1522a;
         }
 
-        .fieldr-home__problem-title {
-          margin-top: 10px;
-          font-size: 15px;
-          font-weight: 500;
-          color: var(--bright);
+        .fieldr-home__problem-rule {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, rgba(193,82,42,0.4), transparent);
+        }
+
+        .fieldr-home__problem-headline {
+          margin: 0;
+          font-family: var(--serif);
+          font-size: clamp(38px, 5vw, 52px);
+          font-style: italic;
+          font-weight: 900;
+          color: #f2e8d9;
+          letter-spacing: -0.02em;
         }
 
         .fieldr-home__problem-body {
-          margin-top: 8px;
-          font-size: 13px;
-          line-height: 1.72;
+          margin: 0;
+          max-width: 380px;
+          font-size: 14px;
+          line-height: 1.7;
           font-weight: 300;
-          color: var(--body);
+          color: rgba(242,232,217,0.5);
+        }
+
+        .fieldr-home__problem-stats {
+          display: flex;
+          gap: 24px;
+          flex-wrap: wrap;
+        }
+
+        .fieldr-home__problem-stat {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .fieldr-home__problem-stat-value {
+          font-family: var(--serif);
+          font-size: 36px;
+          font-weight: 700;
+          color: #c1522a;
+        }
+
+        .fieldr-home__problem-stat-label {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: rgba(242,232,217,0.35);
+        }
+
+        .fieldr-home__problem-panel {
+          border: 0.5px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
+          overflow: hidden;
+          background: rgba(16,13,11,0.6);
+          box-shadow: 0 22px 50px rgba(0,0,0,0.2);
+        }
+
+        .fieldr-home__problem-card {
+          position: relative;
+          padding: 24px 26px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .fieldr-home__problem-card + .fieldr-home__problem-card {
+          border-top: 0.5px solid rgba(255,255,255,0.08);
+        }
+
+        .fieldr-home__problem-card.is-arbor {
+          background: rgba(193,82,42,0.06);
+        }
+
+        .fieldr-home__problem-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: #c1522a;
+        }
+
+        .fieldr-home__problem-tag.is-team {
+          color: rgba(255,255,255,0.3);
+        }
+
+        .fieldr-home__problem-tag svg {
+          width: 12px;
+          height: 12px;
+          flex: 0 0 auto;
+        }
+
+        .fieldr-home__problem-title {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 500;
+          color: #f2e8d9;
+        }
+
+        .fieldr-home__problem-copytext {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.7;
+          font-weight: 300;
+          color: rgba(242,232,217,0.6);
+        }
+
+        .fieldr-home__problem-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: grid;
+          gap: 8px;
+          font-family: var(--mono);
+          font-size: 12px;
+          color: rgba(242,232,217,0.45);
+        }
+
+        .fieldr-home__problem-list li {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .fieldr-home__problem-list li::before {
+          content: '';
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: #c1522a;
+          opacity: 0.9;
+        }
+
+        .fieldr-home__problem-list.is-team li::before {
+          background: rgba(255,255,255,0.25);
+        }
+
+        .fieldr-home__problem-glyph {
+          position: absolute;
+          top: 16px;
+          right: 18px;
+          opacity: 0.12;
+        }
+
+        .fieldr-home__problem-glyph svg {
+          width: 20px;
+          height: 20px;
+          stroke-width: 1px;
         }
 
         .fieldr-home__log-section {
@@ -761,10 +875,6 @@ export default function Home() {
           .fieldr-home__example-grid {
             grid-template-columns: 1fr;
           }
-
-          .fieldr-home__problem-card.is-featured {
-            transform: none;
-          }
         }
 
         @media (max-width: 640px) {
@@ -815,7 +925,7 @@ export default function Home() {
           }
 
           .fieldr-home__problem-card {
-            padding: 26px 22px;
+            padding: 20px 20px;
           }
 
           .fieldr-home__log-entry {
@@ -894,19 +1004,73 @@ export default function Home() {
 
         <section className="fieldr-home__section">
           <div className="fieldr-home__section-inner">
-            <div className="fieldr-home__section-labelrow">
-              <span className="fieldr-home__section-label">Where margin leaks</span>
-              <div className="fieldr-home__section-rule" aria-hidden="true" />
-            </div>
-
             <div className="fieldr-home__problem-grid">
-              {problemCards.map((card) => (
-                <article key={card.number} className={`fieldr-home__problem-card${card.featured ? ' is-featured' : ''}`} data-home-card>
-                  <div className="fieldr-home__problem-kicker">{card.kicker}</div>
-                  <div className="fieldr-home__problem-title">{card.title}</div>
-                  <div className="fieldr-home__problem-body">{card.body}</div>
+              <div className="fieldr-home__problem-copy" data-home-problem-copy>
+                <div className="fieldr-home__problem-eyebrow">
+                  <span>Labor gap · Admin overload</span>
+                  <div className="fieldr-home__problem-rule" aria-hidden="true" />
+                </div>
+                <h2 className="fieldr-home__problem-headline">The labor gap is real. The admin gap is bigger.</h2>
+                <p className="fieldr-home__problem-body">
+                  Skilled trades are booked out. The time left in the day disappears into calls, coordination, and follow-ups. Arbor removes the admin drag so the work stays in the field where it belongs.
+                </p>
+                <div className="fieldr-home__problem-stats">
+                  {problemStats.map((stat) => (
+                    <div key={stat.label} className="fieldr-home__problem-stat">
+                      <span className="fieldr-home__problem-stat-value">{stat.value}</span>
+                      <span className="fieldr-home__problem-stat-label">{stat.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="fieldr-home__problem-panel" data-home-problem-panel>
+                <article className="fieldr-home__problem-card is-arbor" data-home-problem-card>
+                  <div className="fieldr-home__problem-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#c1522a">
+                      <rect x="3" y="3" width="6" height="6" />
+                      <rect x="15" y="3" width="6" height="6" />
+                      <rect x="3" y="15" width="6" height="6" />
+                      <rect x="15" y="15" width="6" height="6" />
+                    </svg>
+                  </div>
+                  <div className="fieldr-home__problem-tag">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 2" />
+                    </svg>
+                    Arbor handles
+                  </div>
+                  <h3 className="fieldr-home__problem-title">What Arbor takes off your plate</h3>
+                  <p className="fieldr-home__problem-copytext">
+                    Reads inbound calls, texts, and voice notes. Extracts scope changes and pricing signals. Queues decisions for your approval.
+                  </p>
+                  <ul className="fieldr-home__problem-list">
+                    <li>Draft quotes and follow-ups</li>
+                    <li>Scope change detection</li>
+                    <li>Job record sync</li>
+                  </ul>
                 </article>
-              ))}
+
+                <article className="fieldr-home__problem-card" data-home-problem-card>
+                  <div className="fieldr-home__problem-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="rgba(242,232,217,0.4)">
+                      <path d="M12 3l9 9-9 9-9-9z" />
+                      <path d="M12 7l5 5-5 5-5-5z" />
+                    </svg>
+                  </div>
+                  <div className="fieldr-home__problem-tag is-team">Your team keeps</div>
+                  <h3 className="fieldr-home__problem-title">What stays with your crew</h3>
+                  <p className="fieldr-home__problem-copytext">
+                    The tools, the field work, and the final call. Arbor never replaces crews - it removes what keeps them from doing their work.
+                  </p>
+                  <ul className="fieldr-home__problem-list is-team">
+                    <li>All final decisions</li>
+                    <li>Crew relationships</li>
+                    <li>Field execution</li>
+                  </ul>
+                </article>
+              </div>
             </div>
           </div>
         </section>
