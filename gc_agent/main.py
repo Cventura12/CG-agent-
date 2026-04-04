@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     port: int = 8000
     frontend_url: str = "http://localhost:5173"
+    cors_allow_origins: str = ""
+    cors_allow_origin_regex: str = r"^https://.*\.vercel\.app$"
 
     briefing_hour: int = 6
     briefing_retry_interval_minutes: int = 20
@@ -620,10 +622,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Arbor", version=APP_VERSION, lifespan=lifespan)
 
-allowed_origins = [origin.strip() for origin in settings.frontend_url.split(",") if origin.strip()]
+allowed_origins = [
+    origin.strip()
+    for origin in ",".join(
+        [settings.frontend_url, settings.cors_allow_origins]
+    ).split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=settings.cors_allow_origin_regex.strip() or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
