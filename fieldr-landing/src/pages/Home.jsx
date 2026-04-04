@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { AnimatedWords } from '../components/AnimatedWords'
-import { BOOK_DEMO_HREF, APP_FLOW_HREF } from '../components/siteLinks'
+import { BOOK_DEMO_HREF } from '../components/siteLinks'
 import { SmartLink } from '../components/SmartLink'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -12,20 +12,20 @@ const problemCards = [
     number: '01',
     kicker: 'Signal loss',
     title: 'Field updates get buried',
-    body: 'A sub calls in a change. An owner texts a revision. By the time the office surfaces it, the job has moved on and the margin is already gone.',
+    body: 'Calls and texts land. The update never reaches the office in time.',
   },
   {
     number: '02',
     kicker: 'Billing gap',
     title: 'The extra work never gets billed',
-    body: 'You know what changed on site. Getting that into a revised number before the window closes is where revenue disappears job after job.',
+    body: 'Scope changes happen. The revised number arrives too late.',
     featured: true,
   },
   {
     number: '03',
     kicker: 'Record drift',
     title: 'What was promised gets forgotten',
-    body: 'Quotes go quiet. Paperwork gets missed. Follow-through lives in memory until the wrong detail costs you money or credibility.',
+    body: 'Follow-ups disappear and the job record drifts.',
   },
 ]
 
@@ -63,59 +63,28 @@ const agentLogEntries = [
   },
 ]
 
-const heroSignals = ['Capture live', '3 pending decisions', '1 quote delta flagged']
+const heroSignals = [
+  { label: 'Capture live', tone: 'live' },
+  { label: '3 pending decisions', tone: 'neutral' },
+  { label: '1 quote delta flagged', tone: 'alert' },
+]
 
 const exampleRows = [
   {
     label: 'Signal',
     title: 'A tech texts: "Need two extra outlets in conference room."',
-    copy: 'Real field communication. Short, incomplete, and easy to ignore when the office is already moving.',
+    copy: 'Short, real, and easy to miss.',
   },
   {
     label: 'Failure mode',
-    title: 'It stays in messages and the quote never gets revised.',
-    copy: 'The extra work gets done. Nobody updates the number. The revenue slips because the office catches it too late or not at all.',
+    title: 'It stays in messages and the quote never moves.',
+    copy: 'The extra work gets done. The billing does not.',
   },
   {
     label: 'Arbor action',
-    title: 'The change gets caught. The new line item is prepared. It is ready for approval.',
-    copy: 'The change stays tied to the job and shows up for review before the billing window closes.',
+    title: 'The change gets caught and queued for approval.',
+    copy: 'The job record updates before money slips away.',
   },
-]
-
-const gcResponsibilities = [
-  {
-    title: 'Project management',
-    copy: 'Plans, coordinates, and supervises the full build from start to finish so the job stays on schedule.',
-  },
-  {
-    title: 'Communication hub',
-    copy: 'Keeps clients, architects, subs, and suppliers aligned when changes hit.',
-  },
-  {
-    title: 'Budget control',
-    copy: 'Estimates, tracks costs, and protects margin against scope drift.',
-  },
-  {
-    title: 'Subcontractor oversight',
-    copy: 'Hires specialists and ensures quality and accountability on site.',
-  },
-  {
-    title: 'Permits and compliance',
-    copy: 'Secures approvals and keeps the job aligned with code.',
-  },
-  {
-    title: 'Safety management',
-    copy: 'Enforces safety standards and keeps crews protected.',
-  },
-]
-
-const gcSkills = [
-  'Scheduling and coordination',
-  'Cost estimation and financial control',
-  'Stakeholder communication',
-  'Risk and safety management',
-  'Documentation and compliance',
 ]
 
 export default function Home() {
@@ -206,32 +175,6 @@ export default function Home() {
         ease: 'power2.out',
       })
 
-      gsap.from('[data-home-growth]', {
-        scrollTrigger: {
-          trigger: '.fieldr-home__growth',
-          start: 'top 84%',
-          once: true,
-        },
-        y: 20,
-        opacity: 0,
-        duration: 0.46,
-        stagger: 0.08,
-        ease: 'power2.out',
-      })
-
-      gsap.from('[data-home-gc]', {
-        scrollTrigger: {
-          trigger: '.fieldr-home__gc',
-          start: 'top 84%',
-          once: true,
-        },
-        y: 20,
-        opacity: 0,
-        duration: 0.46,
-        stagger: 0.08,
-        ease: 'power2.out',
-      })
-
       gsap.from('[data-home-final]', {
         scrollTrigger: {
           trigger: '.fieldr-home__final-cta',
@@ -269,14 +212,23 @@ export default function Home() {
         .fieldr-home__hero::before {
           content: '';
           position: absolute;
-          inset: -10% 0 auto;
-          height: 520px;
-          background: radial-gradient(circle at top center, rgba(184,83,46,0.09), transparent 72%);
+          inset: -6% 0 auto;
+          height: 560px;
+          background: radial-gradient(ellipse at 50% 18%, rgba(193,82,42,0.08) 0%, transparent 70%);
           pointer-events: none;
         }
 
         .fieldr-home__hero::after {
           content: '';
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+          opacity: 0.04;
+          pointer-events: none;
+          mix-blend-mode: soft-light;
+        }
+
+        .fieldr-home__hero-line {
           position: absolute;
           inset: 12% auto auto 50%;
           width: min(820px, 88vw);
@@ -284,6 +236,7 @@ export default function Home() {
           transform: translateX(-50%);
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
           opacity: 0.65;
+          pointer-events: none;
         }
 
         .fieldr-home__hero-inner {
@@ -313,6 +266,11 @@ export default function Home() {
           text-wrap: balance;
         }
 
+        .fieldr-home__headline em {
+          font-style: italic;
+          font-weight: 500;
+        }
+
         .fieldr-home__subhead {
           margin: 24px auto 0;
           max-width: 600px;
@@ -320,6 +278,15 @@ export default function Home() {
           line-height: 1.74;
           font-weight: 300;
           color: var(--body);
+        }
+
+        .fieldr-home__subhead-hook {
+          margin: 14px auto 0;
+          font-family: var(--mono);
+          font-size: 12px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--dim);
         }
 
         .fieldr-home__cta-row {
@@ -356,6 +323,12 @@ export default function Home() {
         }
 
         .fieldr-home__secondary-cta {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--rule2);
+          border-radius: 999px;
+          padding: 12px 22px;
           color: var(--bright);
           font-family: var(--mono);
           font-size: 10px;
@@ -363,11 +336,14 @@ export default function Home() {
           line-height: 1;
           text-decoration: none;
           text-transform: uppercase;
-          transition: color 180ms ease;
+          transition: color 180ms ease, border-color 180ms ease, transform 180ms ease;
+          background: rgba(22,20,18,0.62);
         }
 
         .fieldr-home__secondary-cta:hover {
           color: var(--sienna-lt);
+          border-color: rgba(193,82,42,0.35);
+          transform: translateY(-1px);
         }
 
         .fieldr-home__meta {
@@ -399,6 +375,18 @@ export default function Home() {
           color: var(--body);
         }
 
+        .fieldr-home__hero-readout-item {
+          color: var(--body);
+        }
+
+        .fieldr-home__hero-readout-item.is-live {
+          color: var(--moss-lt);
+        }
+
+        .fieldr-home__hero-readout-item.is-alert {
+          color: var(--sienna-lt);
+        }
+
         .fieldr-home__hero-readout-dot {
           width: 4px;
           height: 4px;
@@ -415,79 +403,6 @@ export default function Home() {
 
         .fieldr-home__section {
           padding: 100px 40px;
-        }
-
-        .fieldr-home__growth {
-          position: relative;
-          border-top: 1px solid var(--rule);
-          border-bottom: 1px solid var(--rule2);
-          background: linear-gradient(180deg, rgba(20,18,16,0.94) 0%, rgba(14,12,10,0.98) 100%);
-        }
-
-        .fieldr-home__growth::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 10% 30%, rgba(184,83,46,0.08), transparent 42%);
-          pointer-events: none;
-        }
-
-        .fieldr-home__growth-grid {
-          position: relative;
-          z-index: 1;
-          display: grid;
-          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-          gap: 48px;
-          align-items: start;
-        }
-
-        .fieldr-home__growth-title {
-          margin: 14px 0 0;
-          font-family: var(--serif);
-          font-size: 38px;
-          line-height: 1.2;
-          font-style: italic;
-          color: var(--bright);
-        }
-
-        .fieldr-home__growth-body {
-          margin-top: 16px;
-          max-width: 520px;
-          font-size: 15px;
-          line-height: 1.74;
-          font-weight: 300;
-          color: var(--body);
-        }
-
-        .fieldr-home__growth-list {
-          border: 1px solid var(--rule2);
-          border-radius: 10px;
-          background: linear-gradient(180deg, rgba(24,22,19,0.98) 0%, rgba(18,16,14,1) 100%);
-          box-shadow: 0 24px 54px rgba(0,0,0,0.2);
-          overflow: hidden;
-        }
-
-        .fieldr-home__growth-item {
-          padding: 18px 22px;
-          border-top: 1px solid var(--rule2);
-        }
-
-        .fieldr-home__growth-item:first-child {
-          border-top: 0;
-        }
-
-        .fieldr-home__growth-item-title {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--bright);
-        }
-
-        .fieldr-home__growth-item-copy {
-          margin-top: 6px;
-          font-size: 12px;
-          line-height: 1.7;
-          font-weight: 300;
-          color: var(--body);
         }
 
         .fieldr-home__section-inner {
@@ -554,15 +469,6 @@ export default function Home() {
 
         .fieldr-home__problem-card.is-featured:hover {
           transform: translateY(-12px);
-        }
-
-        .fieldr-home__problem-number {
-          font-family: var(--serif);
-          font-size: 48px;
-          font-style: italic;
-          line-height: 1;
-          color: var(--sienna-lt);
-          opacity: 0.28;
         }
 
         .fieldr-home__problem-kicker {
@@ -788,87 +694,6 @@ export default function Home() {
           color: var(--body);
         }
 
-        .fieldr-home__gc {
-          border-top: 1px solid var(--rule);
-          border-bottom: 1px solid var(--rule2);
-          background: linear-gradient(180deg, rgba(21,19,16,0.96) 0%, rgba(16,14,12,0.98) 100%);
-        }
-
-        .fieldr-home__gc-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-          gap: 48px;
-          align-items: start;
-        }
-
-        .fieldr-home__gc-title {
-          margin: 14px 0 0;
-          font-family: var(--serif);
-          font-size: 36px;
-          line-height: 1.2;
-          font-style: italic;
-          color: var(--bright);
-        }
-
-        .fieldr-home__gc-body {
-          margin-top: 16px;
-          max-width: 520px;
-          font-size: 15px;
-          line-height: 1.74;
-          font-weight: 300;
-          color: var(--body);
-        }
-
-        .fieldr-home__gc-panel {
-          border: 1px solid var(--rule2);
-          border-radius: 10px;
-          background: linear-gradient(180deg, rgba(24,22,19,0.98) 0%, rgba(18,16,14,1) 100%);
-          box-shadow: 0 24px 54px rgba(0,0,0,0.2);
-          overflow: hidden;
-        }
-
-        .fieldr-home__gc-row {
-          padding: 18px 22px;
-          border-top: 1px solid var(--rule2);
-        }
-
-        .fieldr-home__gc-row:first-child {
-          border-top: 0;
-        }
-
-        .fieldr-home__gc-row-title {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--bright);
-        }
-
-        .fieldr-home__gc-row-copy {
-          margin-top: 6px;
-          font-size: 12px;
-          line-height: 1.7;
-          font-weight: 300;
-          color: var(--body);
-        }
-
-        .fieldr-home__gc-skills {
-          margin-top: 18px;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-
-        .fieldr-home__gc-skill {
-          border: 1px solid var(--rule2);
-          border-radius: 999px;
-          padding: 7px 11px;
-          background: rgba(22,20,18,0.88);
-          font-family: var(--mono);
-          font-size: 9px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--body);
-        }
-
         .fieldr-home__final-cta {
           padding: 80px 40px 96px;
           border-top: 1px solid var(--rule);
@@ -933,9 +758,7 @@ export default function Home() {
         @media (max-width: 960px) {
           .fieldr-home__problem-grid,
           .fieldr-home__log-grid,
-          .fieldr-home__example-grid,
-          .fieldr-home__growth-grid,
-          .fieldr-home__gc-grid {
+          .fieldr-home__example-grid {
             grid-template-columns: 1fr;
           }
 
@@ -967,13 +790,8 @@ export default function Home() {
           }
 
           .fieldr-home__secondary-cta {
-            display: inline-flex;
-            align-items: center;
             min-height: 42px;
-            border: 1px solid var(--rule2);
-            border-radius: 999px;
-            background: rgba(22,20,18,0.82);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+            width: min(100%, 280px);
           }
 
           .fieldr-home__subhead {
@@ -1019,14 +837,6 @@ export default function Home() {
             padding: 18px 16px;
           }
 
-          .fieldr-home__growth-item {
-            padding: 16px 18px;
-          }
-
-          .fieldr-home__gc-row {
-            padding: 16px 18px;
-          }
-
           .fieldr-home__final-cta {
             padding: 72px 20px 88px;
           }
@@ -1046,95 +856,39 @@ export default function Home() {
 
       <main ref={rootRef} className="fieldr-home">
         <section className="fieldr-home__hero">
+          <span className="fieldr-home__hero-line" aria-hidden="true" />
           <div className="fieldr-home__hero-inner">
             <p className="fieldr-home__eyebrow" data-home-reveal="eyebrow">Built for general contractors</p>
-            <AnimatedWords
-              as="h1"
-              className="fieldr-home__headline"
-              text="The field never stops. Neither does Arbor."
-              data-home-reveal="headline"
-            />
+            <h1 className="fieldr-home__headline" data-home-reveal="headline">
+              <AnimatedWords as="span" text="The field never stops." />
+              {' '}
+              <em>
+                <AnimatedWords as="span" text="Neither does Arbor." />
+              </em>
+            </h1>
             <p className="fieldr-home__subhead" data-home-reveal="subhead">
-              Arbor reads calls, texts, voice notes, and uploads as operating signal. It detects what changed, prepares the next decision, and gets a draft ready before revenue slips through. No new app for your crew. No extra workflow.
+              Arbor reads calls, texts, voice notes, and uploads, detects what changed, and gets a draft ready before revenue slips.
+            </p>
+            <p className="fieldr-home__subhead-hook" data-home-reveal="subhead">
+              No new app for your crew. No extra workflow.
             </p>
             <div className="fieldr-home__cta-row" data-home-reveal="cta">
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
                 Book a Demo
               </SmartLink>
-              <SmartLink to={APP_FLOW_HREF} className="fieldr-home__secondary-cta">Agent</SmartLink>
+              <SmartLink to="#how-it-works" className="fieldr-home__secondary-cta">See how it works</SmartLink>
             </div>
             <div className="fieldr-home__hero-readout" aria-label="Live agent readout" data-home-reveal="readout">
               <span className="fieldr-home__hero-readout-dot" aria-hidden="true" />
               {heroSignals.map((signal, index) => (
-                <span key={signal}>
+                <span key={signal.label} className={`fieldr-home__hero-readout-item${signal.tone === 'live' ? ' is-live' : ''}${signal.tone === 'alert' ? ' is-alert' : ''}`}>
                   {index > 0 ? <span className="fieldr-home__hero-readout-sep" aria-hidden="true">&middot;</span> : null}
                   {' '}
-                  {signal}
+                  {signal.label}
                 </span>
               ))}
             </div>
             <div className="fieldr-home__meta" data-home-reveal="meta">Early access &middot; Chattanooga, TN &middot; Built for general contractors</div>
-          </div>
-        </section>
-
-        <section className="fieldr-home__section fieldr-home__growth">
-          <div className="fieldr-home__section-inner fieldr-home__growth-grid">
-            <div>
-              <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">Labor gap, admin overload</span>
-                <div className="fieldr-home__section-rule" aria-hidden="true" />
-              </div>
-              <h2 className="fieldr-home__growth-title" data-home-growth>
-                The labor gap is real. The admin gap is bigger.
-              </h2>
-              <p className="fieldr-home__growth-body" data-home-growth>
-                Skilled trades are booked out. The time left in the day disappears into calls, coordination, and follow-ups. Arbor removes the admin drag so the work stays in the field where it belongs.
-              </p>
-            </div>
-
-            <div className="fieldr-home__growth-list" data-home-growth>
-              <div className="fieldr-home__growth-item">
-                <div className="fieldr-home__growth-item-title">What Arbor handles</div>
-                <div className="fieldr-home__growth-item-copy">
-                  Answers inbound calls and messages, extracts scope changes and pricing signals, queues decisions for approval, drafts quotes and follow-ups, and keeps the job record synced.
-                </div>
-              </div>
-              <div className="fieldr-home__growth-item">
-                <div className="fieldr-home__growth-item-title">What your team keeps</div>
-                <div className="fieldr-home__growth-item-copy">
-                  The tools, the field work, and the final decisions. Arbor never replaces crews. It removes the work that keeps them from doing their work.
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="fieldr-home__section fieldr-home__gc">
-          <div className="fieldr-home__section-inner fieldr-home__gc-grid">
-            <div>
-              <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">General contractor scope</span>
-                <div className="fieldr-home__section-rule" aria-hidden="true" />
-              </div>
-              <h2 className="fieldr-home__gc-title" data-home-gc>What a general contractor is responsible for.</h2>
-              <p className="fieldr-home__gc-body" data-home-gc>
-                The GC owns delivery. That means coordinating subs, budget, permits, and schedule while being the single point of truth for the client.
-              </p>
-              <div className="fieldr-home__gc-skills" data-home-gc>
-                {gcSkills.map((skill) => (
-                  <span key={skill} className="fieldr-home__gc-skill">{skill}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="fieldr-home__gc-panel" data-home-gc>
-              {gcResponsibilities.map((item) => (
-                <div key={item.title} className="fieldr-home__gc-row">
-                  <div className="fieldr-home__gc-row-title">{item.title}</div>
-                  <div className="fieldr-home__gc-row-copy">{item.copy}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -1157,7 +911,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="fieldr-home__section fieldr-home__log-section">
+        <section id="how-it-works" className="fieldr-home__section fieldr-home__log-section">
           <div className="fieldr-home__section-inner fieldr-home__log-grid">
             <div data-home-log-copy>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
@@ -1166,7 +920,7 @@ export default function Home() {
               </div>
               <h2 className="fieldr-home__log-headline">What Arbor caught while you were on site.</h2>
               <p className="fieldr-home__log-copy">
-                While you are on site, Arbor converts field chatter into decisions. It catches the update, isolates what changed, and puts the next move in front of the office before the trail goes cold.
+                Field chatter becomes reviewable work. The office sees it while it still matters.
               </p>
             </div>
 
@@ -1194,7 +948,7 @@ export default function Home() {
               </div>
               <h2 className="fieldr-home__example-headline">The extra work gets done. The billing never catches up.</h2>
               <p className="fieldr-home__example-body">
-                A contractor does not lose margin because they cannot estimate. They lose it because the field changes faster than the office can keep the record current. Arbor closes that gap before the revised work disappears into texts, calls, and memory.
+                Arbor closes the gap between field changes and office action.
               </p>
               <div className="fieldr-home__example-foot">
                 <span className="fieldr-home__example-chip">Quote delta prepared</span>
@@ -1221,7 +975,7 @@ export default function Home() {
           <div className="fieldr-home__section-inner">
             <h2 className="fieldr-home__final-title" data-home-final>Ready to stop letting changes disappear?</h2>
             <p className="fieldr-home__final-copy" data-home-final>
-              Arbor catches the field updates that usually slip through the office and turns them into reviewable work before they cost you money.
+              Capture the change before it turns into lost margin.
             </p>
             <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__final-button" data-home-final>
               Book a Demo

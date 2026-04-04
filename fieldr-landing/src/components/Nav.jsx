@@ -170,7 +170,7 @@ export function Nav() {
 
         <div style={rightStyle} data-nav-reveal="actions">
           <SmartLink to={APP_FLOW_HREF} style={agentButtonStyle} className="fieldr-nav-agent fieldr-nav-hide-mobile fieldr-nav-mobile-hide-action" onClick={closeMobile}>
-            Agent
+            Agent live
           </SmartLink>
           <SmartLink to={BOOK_DEMO_HREF} style={buttonStyle} className="fieldr-nav-demo fieldr-nav-mobile-hide-action">
             Book a Demo
@@ -192,7 +192,7 @@ export function Nav() {
           <nav aria-label="Mobile" style={mobileNavStyle}>
             <div className="fieldr-nav-mobile-actions">
               <SmartLink to={APP_FLOW_HREF} className="fieldr-nav-agent fieldr-nav-agent--mobile" onClick={closeMobile}>
-                Agent
+                Agent live
               </SmartLink>
               <SmartLink to={BOOK_DEMO_HREF} className="fieldr-nav-demo fieldr-nav-demo--mobile" onClick={closeMobile}>
                 Book a Demo
@@ -320,8 +320,8 @@ export function Nav() {
           width: 6px;
           height: 6px;
           border-radius: 999px;
-          background: var(--sienna-lt);
-          box-shadow: 0 0 0 4px rgba(212,103,63,0.12);
+          background: var(--moss-lt);
+          box-shadow: 0 0 0 4px var(--moss-bg);
           animation: fieldrAgentPulse 1.9s ease-in-out infinite;
           flex: 0 0 auto;
         }
@@ -363,7 +363,7 @@ export function Nav() {
 
         @keyframes fieldrAgentPulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.45; transform: scale(1.15); }
+          50% { opacity: 0.4; transform: scale(1.15); }
         }
 
         @media (max-width: 900px) {
