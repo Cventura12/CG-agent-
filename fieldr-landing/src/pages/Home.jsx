@@ -53,32 +53,32 @@ const marginLeakCards = [
 const agentLogEntries = [
   {
     timestamp: '09:14:32',
-    tone: 'var(--moss-lt)',
+    tone: '#4ade80',
     title: 'Voice note captured',
     detail: 'Johnson site - flashing swap, +$320, flagged for review',
   },
   {
     timestamp: '09:14:33',
-    tone: 'var(--ochre-lt)',
+    tone: '#4ade80',
     title: 'Change extracted',
     detail: 'Scope change identified - Quote revision required before closeout',
   },
   {
     timestamp: '09:16:01',
-    tone: 'var(--sienna-lt)',
+    tone: '#c1522a',
     title: 'Draft quote prepared',
     detail: '$8,720 total - Awaiting contractor sign-off before it goes to customer',
     featured: true,
   },
   {
     timestamp: '09:18:44',
-    tone: 'var(--ochre-lt)',
+    tone: '#c1522a',
     title: 'Follow-up scheduled',
     detail: 'Riverside Commercial - No response in 72h',
   },
   {
     timestamp: '09:19:12',
-    tone: 'var(--moss-lt)',
+    tone: '#4ade80',
     title: 'Pricing updated',
     detail: 'Flashing rate saved so the next quote starts faster',
   },
@@ -711,7 +711,6 @@ export default function Home() {
         .fieldr-home__log-feed {
           position: relative;
           z-index: 1;
-          border-top: 1px solid var(--rule2);
         }
 
         .fieldr-home__log-entry {
@@ -1130,12 +1129,12 @@ export default function Home() {
           <div className="fieldr-home__section-inner fieldr-home__log-grid">
             <div data-home-log-copy>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">What Arbor caught today</span>
+                <span className="fieldr-home__section-label">What Arbor caught this morning</span>
                 <div className="fieldr-home__section-rule" aria-hidden="true" />
               </div>
               <h2 className="fieldr-home__log-headline">What Arbor caught while you were on site.</h2>
               <p className="fieldr-home__log-copy">
-                Field chatter becomes reviewable work. The office sees it while it still matters.
+                Field chatter becomes reviewable work. It catches the update, isolates what changed, and puts the next move in front of the office.
               </p>
             </div>
 
