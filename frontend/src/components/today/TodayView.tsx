@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 
 import { fadeUp } from "../../lib/animations";
 import { formatLongDate, formatTimeAgo } from "../../lib/formatters";
+import { mockAppState } from "../../lib/mockData";
+import { shouldUseMockApi } from "../../lib/offline";
 import { useAppStore } from "../../store/appStore";
 import type { AgentStatus, Job, QueueItem, User, VoiceCallSession } from "../../types";
 import { Badge } from "../ui/Badge";
@@ -70,6 +72,15 @@ function TodayViewContent({
   const apiKey = import.meta.env.VITE_API_KEY;
 
   useEffect(() => {
+    if (shouldUseMockApi()) {
+      setBudgetSummary({
+        total_jobs: mockAppState.jobs.length,
+        flagged_jobs: 0,
+        stale_pending_jobs: 0,
+        total_pending_value: 0,
+      });
+      return;
+    }
     if (!apiUrl || !apiKey) {
       setBudgetError("Budget API not configured.");
       return;

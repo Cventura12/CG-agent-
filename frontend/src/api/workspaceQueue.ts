@@ -1,4 +1,6 @@
 import { apiClient, publicApiClient } from "./client";
+import { shouldUseMockApi } from "../lib/offline";
+import { mockAppState } from "../lib/mockData";
 import type { ExtractedAction, FollowUpStatus, InputSource, JobActivity, QueueItem, QueueStatus } from "../types";
 
 const betaContractorId =
@@ -508,6 +510,10 @@ async function fetchPublicTranscriptInboxItems(): Promise<BackendTranscriptInbox
 }
 
 export async function fetchWorkspaceQueueItems(): Promise<QueueItem[]> {
+  if (shouldUseMockApi()) {
+    return sortQueueItems(mockAppState.queueItems);
+  }
+
   if (hasBetaQueueCredentials()) {
     const [queueResponse, transcriptItems] = await Promise.all([
       publicApiClient.get<PublicQueueResponse>("/queue", {
@@ -537,6 +543,9 @@ export async function fetchWorkspaceQueueItems(): Promise<QueueItem[]> {
 }
 
 export async function approveWorkspaceQueueItem(item: QueueItem): Promise<WorkspaceQueueApprovalResult | null> {
+  if (shouldUseMockApi()) {
+    return null;
+  }
   if (!item.backendLinked) {
     return null;
   }
@@ -635,6 +644,9 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
   }
 
 export async function dismissWorkspaceQueueItem(item: QueueItem): Promise<void> {
+  if (shouldUseMockApi()) {
+    return;
+  }
   if (!item.backendLinked) {
     return;
   }
