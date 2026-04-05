@@ -173,7 +173,8 @@ function TodayViewContent({
                     {pendingItems.map((item, index) => (
                       <button
                         key={item.id}
-                        type="button"onClick={() => navigate(`/queue/${item.id}`)}
+                        type="button"
+                        onClick={() => navigate(`/queue/${item.id}`)}
                         className={`flex w-full items-start gap-3 px-4 py-[14px] text-left transition hover:bg-[var(--bg-4)] ${index < pendingItems.length - 1 ? "border-b border-[var(--line)]" : ""}`}
                       >
                         <InputSourceIcon source={item.source} />
