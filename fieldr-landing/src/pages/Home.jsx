@@ -48,6 +48,29 @@ const heroSignals = [
   { label: '1 quote delta flagged', tone: 'alert' },
 ]
 
+const heroPanelItems = [
+  {
+    title: 'Hartley reroof',
+    detail: 'Rotted decking add +$800 · Needs approval',
+    tone: 'alert',
+  },
+  {
+    title: 'Ridgeview addition',
+    detail: 'Owner text captured · Window upgrade queued',
+    tone: 'neutral',
+  },
+  {
+    title: 'Riverside Commercial',
+    detail: 'Follow-up due · 72h since last response',
+    tone: 'warning',
+  },
+]
+
+const logStats = [
+  { value: '7', label: 'Active jobs' },
+  { value: '3', label: 'Items in queue' },
+  { value: '$2.1k', label: 'Scope at risk' },
+]
 
 export default function Home() {
   const rootRef = useRef(null)
@@ -69,6 +92,8 @@ export default function Home() {
         .from('[data-home-reveal="cta"] > *', { y: 12, opacity: 0, duration: 0.32, stagger: 0.08 }, '-=0.22')
         .from('[data-home-reveal="readout"]', { y: 10, opacity: 0, duration: 0.32 }, '-=0.18')
         .from('[data-home-reveal="meta"]', { y: 10, opacity: 0, duration: 0.32 }, '-=0.2')
+        .from('[data-home-panel]', { y: 18, opacity: 0, duration: 0.42 }, '-=0.28')
+        .from('[data-home-panel-item]', { y: 14, opacity: 0, duration: 0.32, stagger: 0.1 }, '-=0.26')
 
 
       gsap.from('[data-home-log-copy]', {
@@ -124,20 +149,16 @@ export default function Home() {
 
         .fieldr-home__hero {
           position: relative;
-          min-height: calc(100vh - 56px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 88px 24px 64px;
+          padding: 112px 28px 88px;
           overflow: hidden;
         }
 
         .fieldr-home__hero::before {
           content: '';
           position: absolute;
-          inset: -6% 0 auto;
-          height: 560px;
-          background: radial-gradient(ellipse at 50% 18%, rgba(193,82,42,0.08) 0%, transparent 70%);
+          inset: -10% 0 auto;
+          height: 640px;
+          background: radial-gradient(ellipse at 20% 30%, rgba(193,82,42,0.16) 0%, transparent 70%);
           pointer-events: none;
         }
 
@@ -145,29 +166,34 @@ export default function Home() {
           content: '';
           position: absolute;
           inset: 0;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-          opacity: 0.04;
+          background-image: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06), transparent 35%);
+          opacity: 0.6;
           pointer-events: none;
           mix-blend-mode: soft-light;
         }
 
-        .fieldr-home__hero-line {
-          position: absolute;
-          inset: 12% auto auto 50%;
-          width: min(820px, 88vw);
-          height: 1px;
-          transform: translateX(-50%);
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
-          opacity: 0.65;
-          pointer-events: none;
-        }
-
-        .fieldr-home__hero-inner {
+        .fieldr-home__hero-shell {
           position: relative;
           z-index: 1;
           width: 100%;
-          max-width: 780px;
-          text-align: center;
+          max-width: 1180px;
+          margin: 0 auto;
+        }
+
+        .fieldr-home__hero-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+          gap: 56px;
+          align-items: center;
+        }
+
+        .fieldr-home__hero-left {
+          text-align: left;
+        }
+
+        .fieldr-home__hero-right {
+          display: flex;
+          justify-content: flex-end;
         }
 
         .fieldr-home__eyebrow {
@@ -180,11 +206,11 @@ export default function Home() {
         }
 
         .fieldr-home__headline {
-          margin: 20px 0 0;
+          margin: 18px 0 0;
           font-family: var(--serif);
-          font-size: clamp(40px, 7vw, 68px);
-          line-height: 1.05;
-          letter-spacing: -1.5px;
+          font-size: clamp(40px, 5.6vw, 72px);
+          line-height: 1.02;
+          letter-spacing: -1.8px;
           color: var(--bright);
           text-wrap: balance;
         }
@@ -195,28 +221,28 @@ export default function Home() {
         }
 
         .fieldr-home__subhead {
-          margin: 24px auto 0;
-          max-width: 600px;
-          font-size: 17px;
-          line-height: 1.74;
+          margin: 22px 0 0;
+          max-width: 520px;
+          font-size: 16px;
+          line-height: 1.7;
           font-weight: 300;
           color: var(--body);
         }
 
         .fieldr-home__subhead-hook {
-          margin: 14px auto 0;
+          margin: 14px 0 0;
           font-family: var(--mono);
-          font-size: 12px;
+          font-size: 11px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
           color: var(--dim);
         }
 
         .fieldr-home__cta-row {
-          margin-top: 32px;
+          margin-top: 26px;
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           gap: 18px;
           flex-wrap: wrap;
         }
@@ -249,7 +275,7 @@ export default function Home() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid var(--rule2);
+          border: 1px solid rgba(255,255,255,0.18);
           border-radius: 999px;
           padding: 12px 22px;
           color: var(--bright);
@@ -270,7 +296,7 @@ export default function Home() {
         }
 
         .fieldr-home__meta {
-          margin-top: 22px;
+          margin-top: 24px;
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.1em;
@@ -279,10 +305,10 @@ export default function Home() {
         }
 
         .fieldr-home__hero-readout {
-          margin-top: 20px;
+          margin-top: 18px;
           display: inline-flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           gap: 10px;
           flex-wrap: wrap;
           border: 1px solid var(--rule2);
@@ -296,6 +322,102 @@ export default function Home() {
           letter-spacing: 0.08em;
           text-transform: uppercase;
           color: var(--body);
+        }
+
+        .fieldr-home__hero-panel {
+          width: min(100%, 420px);
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(19,18,16,0.9);
+          box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+          padding: 20px;
+          backdrop-filter: blur(16px);
+        }
+
+        .fieldr-home__panel-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 18px;
+        }
+
+        .fieldr-home__panel-kicker {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.55);
+        }
+
+        .fieldr-home__panel-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 12px;
+          border-radius: 999px;
+          background: rgba(193,82,42,0.12);
+          border: 1px solid rgba(193,82,42,0.3);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(193,82,42,0.85);
+        }
+
+        .fieldr-home__panel-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: #4ade80;
+          box-shadow: 0 0 0 5px rgba(74,222,128,0.14);
+          animation: fieldrPulse 2s ease-in-out infinite;
+        }
+
+        .fieldr-home__panel-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .fieldr-home__panel-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          padding: 12px 14px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .fieldr-home__panel-title {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--bright);
+        }
+
+        .fieldr-home__panel-detail {
+          margin-top: 4px;
+          font-size: 12px;
+          line-height: 1.6;
+          color: var(--dim);
+          font-weight: 300;
+        }
+
+        .fieldr-home__panel-status {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.45);
+          white-space: nowrap;
+        }
+
+        .fieldr-home__panel-status.is-alert {
+          color: rgba(193,82,42,0.9);
+        }
+
+        .fieldr-home__panel-status.is-warning {
+          color: rgba(232,193,90,0.8);
         }
 
         .fieldr-home__hero-readout-item {
@@ -394,9 +516,44 @@ export default function Home() {
           color: var(--body);
         }
 
+        .fieldr-home__log-stats {
+          margin-top: 24px;
+          display: flex;
+          gap: 18px;
+          flex-wrap: wrap;
+        }
+
+        .fieldr-home__log-stat {
+          min-width: 120px;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.02);
+        }
+
+        .fieldr-home__log-stat-value {
+          font-family: var(--serif);
+          font-size: 22px;
+          font-style: italic;
+          color: var(--bright);
+        }
+
+        .fieldr-home__log-stat-label {
+          margin-top: 6px;
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--dim);
+        }
+
         .fieldr-home__log-feed {
           position: relative;
           z-index: 1;
+          padding: 8px 26px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(12,11,10,0.55);
         }
 
         .fieldr-home__log-entry {
@@ -460,6 +617,16 @@ export default function Home() {
           padding: 80px 52px;
           border-top: 1px solid var(--rule);
           background: #161310;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .fieldr-home__final-cta::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 70% 20%, rgba(193,82,42,0.12), transparent 55%);
+          pointer-events: none;
         }
 
         .fieldr-home__final-frame {
@@ -471,6 +638,7 @@ export default function Home() {
           border-radius: 20px;
           border: 0.5px solid rgba(255,255,255,0.08);
           background: rgba(255,255,255,0.02);
+          box-shadow: 0 30px 90px rgba(0,0,0,0.5);
         }
 
         .fieldr-home__final-corner {
@@ -667,6 +835,15 @@ export default function Home() {
           .fieldr-home__log-grid {
             grid-template-columns: 1fr;
           }
+
+          .fieldr-home__hero-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .fieldr-home__hero-right {
+            justify-content: flex-start;
+            margin-top: 28px;
+          }
         }
 
         @media (max-width: 640px) {
@@ -676,7 +853,6 @@ export default function Home() {
 
           .fieldr-home__hero {
             padding: 72px 20px 56px;
-            min-height: auto;
           }
 
           .fieldr-home__cta-row {
@@ -709,6 +885,10 @@ export default function Home() {
             padding: 10px 12px;
             row-gap: 8px;
             line-height: 1.7;
+          }
+
+          .fieldr-home__hero-panel {
+            width: 100%;
           }
 
           .fieldr-home__section-labelrow {
@@ -771,39 +951,67 @@ export default function Home() {
 
       <main ref={rootRef} className="fieldr-home" data-build="2026-04-04">
         <section className="fieldr-home__hero">
-          <span className="fieldr-home__hero-line" aria-hidden="true" />
-          <div className="fieldr-home__hero-inner">
-            <p className="fieldr-home__eyebrow" data-home-reveal="eyebrow">Built for general contractors</p>
-            <h1 className="fieldr-home__headline" data-home-reveal="headline">
-              <AnimatedWords as="span" text="The field never stops." />
-              {' '}
-              <em>
-                <AnimatedWords as="span" text="Neither does Arbor." />
-              </em>
-            </h1>
-            <p className="fieldr-home__subhead" data-home-reveal="subhead">
-              Arbor reads calls, texts, voice notes, and uploads, detects what changed, and gets a draft ready before revenue slips.
-            </p>
-            <p className="fieldr-home__subhead-hook" data-home-reveal="subhead">
-              No new app for your crew. No extra workflow.
-            </p>
-            <div className="fieldr-home__cta-row" data-home-reveal="cta">
-              <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
-                Book a Demo
-              </SmartLink>
-              <SmartLink to="#how-it-works" className="fieldr-home__secondary-cta">See how it works</SmartLink>
-            </div>
-            <div className="fieldr-home__hero-readout" aria-label="Live agent readout" data-home-reveal="readout">
-              <span className="fieldr-home__hero-readout-dot" aria-hidden="true" />
-              {heroSignals.map((signal, index) => (
-                <span key={signal.label} className={`fieldr-home__hero-readout-item${signal.tone === 'live' ? ' is-live' : ''}${signal.tone === 'alert' ? ' is-alert' : ''}`}>
-                  {index > 0 ? <span className="fieldr-home__hero-readout-sep" aria-hidden="true">&middot;</span> : null}
+          <div className="fieldr-home__hero-shell">
+            <div className="fieldr-home__hero-grid">
+              <div className="fieldr-home__hero-left">
+                <p className="fieldr-home__eyebrow" data-home-reveal="eyebrow">Built for general contractors</p>
+                <h1 className="fieldr-home__headline" data-home-reveal="headline">
+                  <AnimatedWords as="span" text="The field never stops." />
                   {' '}
-                  {signal.label}
-                </span>
-              ))}
+                  <em>
+                    <AnimatedWords as="span" text="Neither does Arbor." />
+                  </em>
+                </h1>
+                <p className="fieldr-home__subhead" data-home-reveal="subhead">
+                  Arbor reads calls, texts, voice notes, and uploads, detects what changed, and gets a draft ready before revenue slips.
+                </p>
+                <p className="fieldr-home__subhead-hook" data-home-reveal="subhead">
+                  No new app for your crew. No extra workflow.
+                </p>
+                <div className="fieldr-home__cta-row" data-home-reveal="cta">
+                  <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__primary-cta">
+                    Book a Demo
+                  </SmartLink>
+                  <SmartLink to="#how-it-works" className="fieldr-home__secondary-cta">See how it works</SmartLink>
+                </div>
+                <div className="fieldr-home__hero-readout" aria-label="Live agent readout" data-home-reveal="readout">
+                  <span className="fieldr-home__hero-readout-dot" aria-hidden="true" />
+                  {heroSignals.map((signal, index) => (
+                    <span key={signal.label} className={`fieldr-home__hero-readout-item${signal.tone === 'live' ? ' is-live' : ''}${signal.tone === 'alert' ? ' is-alert' : ''}`}>
+                      {index > 0 ? <span className="fieldr-home__hero-readout-sep" aria-hidden="true">&middot;</span> : null}
+                      {' '}
+                      {signal.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="fieldr-home__meta" data-home-reveal="meta">Early access &middot; Chattanooga, TN &middot; Built for general contractors</div>
+              </div>
+
+              <div className="fieldr-home__hero-right">
+                <div className="fieldr-home__hero-panel" data-home-panel>
+                  <div className="fieldr-home__panel-header">
+                    <span className="fieldr-home__panel-kicker">Live queue snapshot</span>
+                    <span className="fieldr-home__panel-pill">
+                      <span className="fieldr-home__panel-dot" aria-hidden="true" />
+                      Agent live
+                    </span>
+                  </div>
+                  <div className="fieldr-home__panel-list">
+                    {heroPanelItems.map((item) => (
+                      <div key={item.title} className="fieldr-home__panel-item" data-home-panel-item>
+                        <div>
+                          <div className="fieldr-home__panel-title">{item.title}</div>
+                          <div className="fieldr-home__panel-detail">{item.detail}</div>
+                        </div>
+                        <span className={`fieldr-home__panel-status${item.tone === 'alert' ? ' is-alert' : ''}${item.tone === 'warning' ? ' is-warning' : ''}`}>
+                          {item.tone === 'alert' ? 'Needs review' : item.tone === 'warning' ? 'Follow-up' : 'Captured'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="fieldr-home__meta" data-home-reveal="meta">Early access &middot; Chattanooga, TN &middot; Built for general contractors</div>
           </div>
         </section>
 
@@ -818,6 +1026,14 @@ export default function Home() {
               <p className="fieldr-home__log-copy">
                 Field chatter becomes reviewable work. It catches the update, isolates what changed, and puts the next move in front of the office.
               </p>
+              <div className="fieldr-home__log-stats">
+                {logStats.map((stat) => (
+                  <div key={stat.label} className="fieldr-home__log-stat">
+                    <div className="fieldr-home__log-stat-value">{stat.value}</div>
+                    <div className="fieldr-home__log-stat-label">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="fieldr-home__log-feed">
