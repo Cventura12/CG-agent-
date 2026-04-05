@@ -1,4 +1,4 @@
-﻿ï»¿import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 import { Clock3 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -127,4 +127,5 @@ export function QueueViewDemo() {
   const items = useAppStore.getState().queueItems;
   return <QueueViewContent items={items} />;
 }
+
 

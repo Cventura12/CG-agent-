@@ -52,3 +52,4 @@ createRoot(rootElement).render(
     </AppErrorBoundary>
   </StrictMode>
 );
+

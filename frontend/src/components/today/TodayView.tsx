@@ -1,4 +1,4 @@
-﻿ï»¿import { AlertTriangle, ArrowRight } from "lucide-react";
+﻿import { AlertTriangle, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -113,7 +113,7 @@ function TodayViewContent({
                 <span className="text-[var(--t2)]">{budgetError}</span>
               ) : budgetSummary ? (
                 <span>
-                  Budget at risk: {budgetSummary.flagged_jobs} flagged Â· ${budgetSummary.total_pending_value.toLocaleString()} pending Â· {budgetSummary.stale_pending_jobs} stale
+                  Budget at risk: {budgetSummary.flagged_jobs} flagged · ${budgetSummary.total_pending_value.toLocaleString()} pending · {budgetSummary.stale_pending_jobs} stale
                 </span>
               ) : (
                 <span className="text-[var(--t2)]">Budget signal unavailable</span>
@@ -124,7 +124,7 @@ function TodayViewContent({
               onClick={() => navigate("/jobs")}
               className="text-left text-[11px] font-medium text-[var(--accent-2)] transition hover:text-[var(--t1)]"
             >
-              Review budgets â
+              Review budgets →
             </button>
           </div>
         </div>
@@ -137,7 +137,7 @@ function TodayViewContent({
                 <span>{urgentItems.length} items need immediate review</span>
               </div>
               <button type="button" onClick={() => navigate("/queue")} className="text-left text-[11px] font-medium text-[var(--accent-2)] transition hover:text-[var(--t1)]">
-                Go to queue â
+                Go to queue →
               </button>
             </div>
           </div>
@@ -151,7 +151,7 @@ function TodayViewContent({
                 <div>
                   <div className="text-[13px] font-medium text-[var(--t1)]">Agent feed</div>
                   <div className="mt-1 text-[12px] text-[var(--t2)]">
-                    {agentStatus.active ? `Watching live for ${firstName} Â· ${formatLongDate(currentTime)}` : "Offline mode"}
+                    {agentStatus.active ? `Watching live for ${firstName} · ${formatLongDate(currentTime)}` : "Offline mode"}
                   </div>
                 </div>
                 <Button variant="ghost" onClick={() => navigate("/queue")} className="w-full justify-center sm:w-auto">Open queue</Button>
@@ -188,7 +188,7 @@ function TodayViewContent({
                           {item.status === "manual_review" && item.manualReviewReason ? (
                             <div className="mt-2 text-[11px] text-[var(--accent-2)]">{item.manualReviewReason}</div>
                           ) : null}
-                          <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">{item.jobName ?? "Unassigned"} Â· {formatTimeAgo(item.createdAt)}</div>
+                          <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">{item.jobName ?? "Unassigned"} · {formatTimeAgo(item.createdAt)}</div>
                         </div>
                         <ArrowRight className="mt-[4px] h-[14px] w-[14px] text-[var(--t3)]" strokeWidth={2} />
                       </button>
@@ -256,6 +256,7 @@ export default function TodayView(props: TodayViewProps) {
 export function TodayViewDemo() {
   return <TodayView />;
 }
+
 
 
 

@@ -54,3 +54,4 @@ export async function fetchWorkspaceJobFollowUpState(jobId: string): Promise<Wor
   const payload = normalizeEnvelope(response.data);
   return payload.followup_state ?? null;
 }
+

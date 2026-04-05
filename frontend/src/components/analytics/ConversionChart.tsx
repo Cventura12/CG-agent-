@@ -57,3 +57,4 @@ export function ConversionChart({ data }: ConversionChartProps) {
     </div>
   );
 }
+

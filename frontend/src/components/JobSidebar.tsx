@@ -1,4 +1,4 @@
-﻿ï»¿import type { KeyboardEvent } from "react";
+﻿import type { KeyboardEvent } from "react";
 import clsx from "clsx";
 
 import type { Job } from "../types";
@@ -208,3 +208,4 @@ export function JobSidebar({ jobs, selectedJobId, onJobSelect, draftCounts }: Jo
     </aside>
   );
 }
+

@@ -20,3 +20,4 @@ export const slideRight = {
     transition: { duration: 0.22, ease: "easeOut" as const, delay: i * 0.04 },
   }),
 };
+

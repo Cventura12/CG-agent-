@@ -1,4 +1,4 @@
-﻿ï»¿import { publicApiClient } from "./client";
+﻿import { publicApiClient } from "./client";
 import type {
   QuoteDecisionResponse,
   QuoteDeliveryResponse,
@@ -289,3 +289,4 @@ export async function sendQuoteToClient(
 
   return response.data;
 }
+

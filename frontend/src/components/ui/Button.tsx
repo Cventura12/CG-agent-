@@ -31,3 +31,4 @@ export function Button({ variant = "ghost", leftIcon, className, children, type 
     </button>
   );
 }
+

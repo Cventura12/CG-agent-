@@ -1,4 +1,4 @@
-﻿ï»¿import clsx from "clsx";
+﻿import clsx from "clsx";
 
 import type { QuoteFollowupState } from "../types";
 
@@ -206,3 +206,4 @@ export function FollowupStatusCard({
     </div>
   );
 }
+

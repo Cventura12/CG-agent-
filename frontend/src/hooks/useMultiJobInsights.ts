@@ -1,4 +1,4 @@
-﻿ï»¿import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 
 import { fetchMultiJobInsights } from "../api/insights";
 
@@ -10,3 +10,4 @@ export function useMultiJobInsights(gcId: string | null, horizonDays: number) {
     staleTime: 30000,
   });
 }
+

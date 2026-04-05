@@ -1,4 +1,4 @@
-﻿ï»¿import { X } from "lucide-react";
+﻿import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { QueueItem } from "../../types";
@@ -49,7 +49,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           <InputSourceIcon source={item.source} />
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-medium text-[var(--t1)]">{item.title}</div>
-            <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{item.source} Â· {formatTimestamp(item.createdAt)}</div>
+            <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{item.source} · {formatTimestamp(item.createdAt)}</div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {item.urgent ? <Badge label="Urgent" color="amber" /> : null}
               {item.status === "manual_review" && typeof item.confidenceScore === "number" ? (
@@ -260,3 +260,4 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
     </div>
   );
 }
+

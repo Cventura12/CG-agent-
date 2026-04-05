@@ -29,3 +29,4 @@ export function JobCard({ job, selected, onClick }: JobCardProps) {
     </button>
   );
 }
+

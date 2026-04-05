@@ -1,4 +1,4 @@
-﻿ï»¿import { publicApiClient } from "./client";
+﻿import { publicApiClient } from "./client";
 import type { BriefingPayload } from "../types";
 
 const betaContractorId =
@@ -27,3 +27,4 @@ export async function fetchContractorBriefing(): Promise<BriefingPayload> {
 
   return response.data;
 }
+

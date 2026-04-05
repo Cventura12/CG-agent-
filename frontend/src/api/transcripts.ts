@@ -82,3 +82,4 @@ export async function logTranscriptAsUpdate(
   }
   return response.data.data;
 }
+

@@ -1,4 +1,4 @@
-﻿ï»¿export type AppNavItem = {
+﻿export type AppNavItem = {
   section: "Operations" | "Field";
   label: string;
   shortLabel: string;
@@ -75,3 +75,4 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
 export function navItemForPath(pathname: string): AppNavItem | null {
   return APP_NAV_ITEMS.find((item) => item.match(pathname)) ?? null;
 }
+

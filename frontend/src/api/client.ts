@@ -1,4 +1,4 @@
-﻿ï»¿import { useAuth } from "@clerk/clerk-react";
+﻿import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import { useEffect } from "react";
 
@@ -48,3 +48,4 @@ export function useApiAuthInterceptor() {
     };
   }, [getToken]);
 }
+

@@ -586,3 +586,4 @@ export function QuoteComposer({
     </motion.div>
   );
 }
+

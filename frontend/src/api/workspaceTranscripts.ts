@@ -56,3 +56,4 @@ export async function fetchWorkspaceTranscriptQuotePrefill(
   );
   return normalizeEnvelope(response.data);
 }
+

@@ -1,4 +1,4 @@
-﻿ï»¿import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 
 import { useQueue } from "./useQueue";
 
@@ -42,3 +42,4 @@ export function useQueueNotificationStub(gcId: string | null): void {
     }
   }, [gcId, queueQuery.data, queueQuery.isError, queueQuery.isLoading]);
 }
+

@@ -1142,7 +1142,7 @@ export function QuotePage() {
     ? offlineQueue.length > 0
       ? `${offlineQueue.length} draft${offlineQueue.length === 1 ? "" : "s"} queued to sync`
       : "Ready to generate"
-    : `Offline mode Â· ${offlineQueue.length} queued`;
+    : `Offline mode · ${offlineQueue.length} queued`;
   const readinessBadgeLabel = !isOnline
     ? "Offline"
     : offlineQueue.length > 0
@@ -1392,7 +1392,7 @@ export function QuotePage() {
                   lineHeight: 1.8,
                 }}
               >
-                STRUCTURING LINE ITEMS Â· APPLYING PRICING BASELINE Â· FLAGGING ASSUMPTIONS
+                STRUCTURING LINE ITEMS · APPLYING PRICING BASELINE · FLAGGING ASSUMPTIONS
               </div>
             </div>
           ) : null}
@@ -2097,3 +2097,4 @@ export function QuotePage() {
     </div>
   );
 }
+

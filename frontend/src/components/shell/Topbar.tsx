@@ -39,3 +39,4 @@ export function TopbarGhostAction(props: ComponentProps<typeof Button>) {
 export function TopbarAccentAction(props: ComponentProps<typeof Button>) {
   return <Button variant="accent" {...props} />;
 }
+

@@ -43,3 +43,4 @@ export function QuoteCard({ quote, selected, onClick }: QuoteCardProps) {
     </button>
   );
 }
+

@@ -17,3 +17,4 @@ export interface QuoteStatusBadgeProps {
 export function QuoteStatusBadge({ status }: QuoteStatusBadgeProps) {
   return <Badge label={status} color={statusColor[status]} />;
 }
+

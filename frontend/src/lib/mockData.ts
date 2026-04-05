@@ -1,4 +1,4 @@
-﻿ï»¿import type {
+﻿import type {
   AgentStatus,
   AnalyticsPeriod,
   FollowUp,
@@ -49,7 +49,7 @@ const voiceSessions: VoiceCallSession[] = [
     goal: "issue_report",
     runtimeMode: "stream",
     streamState: "closed",
-    summary: "Roofing Â· Field issue at Hartley reroof: flashing swap needs approval before the crew closes.",
+    summary: "Roofing · Field issue at Hartley reroof: flashing swap needs approval before the crew closes.",
     lastPrompt: "Do you have a square count, quantity, or rough measurement I should attach?",
     lastCallerTranscript: "We need to swap the flashing and add $320 today before the crew closes the roof.",
     transferState: "saved_for_review",
@@ -579,4 +579,5 @@ export const mockAppState = {
   selectedQueueItemId: queueItems[0]?.id ?? null,
   selectedQuoteId: quotes[0]?.id ?? null,
 };
+
 

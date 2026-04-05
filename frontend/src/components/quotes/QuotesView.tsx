@@ -180,3 +180,4 @@ export default function QuotesView() {
 export function QuotesViewDemo() {
   return <QuotesViewContent quotes={useAppStore.getState().quotes} />;
 }
+

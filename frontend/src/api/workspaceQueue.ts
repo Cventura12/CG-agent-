@@ -706,3 +706,4 @@ export function mapBackendJobActivityType(type: string | undefined): JobActivity
   if (normalized === "call") return "call";
   return "note";
 }
+

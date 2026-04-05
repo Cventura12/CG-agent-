@@ -353,3 +353,4 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
     </div>
   );
 }
+

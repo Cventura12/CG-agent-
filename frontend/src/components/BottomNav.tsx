@@ -65,3 +65,4 @@ export function BottomNav({ queueCount = 0 }: { queueCount?: number }) {
     </nav>
   );
 }
+

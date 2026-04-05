@@ -1,4 +1,4 @@
-﻿ï»¿import { Check, UserPlus } from "lucide-react";
+﻿import { Check, UserPlus } from "lucide-react";
 
 import type { AgentStatus } from "../../types";
 import { Button } from "../ui/Button";
@@ -57,4 +57,5 @@ export function FeedAside({ setupStepsCompleted, agentStatus }: FeedAsideProps) 
     </aside>
   );
 }
+
 

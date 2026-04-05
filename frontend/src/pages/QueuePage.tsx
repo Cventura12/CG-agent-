@@ -781,7 +781,7 @@ export function QueuePage() {
                       <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-500">Caller / source</div>
                       <div className="mt-2 text-[15px] text-slate-600">
                         {(transcript.source || "call_transcript").replace(/_/g, " ")}
-                        {transcript.provider ? ` Â· ${transcript.provider}` : ""}
+                        {transcript.provider ? ` · ${transcript.provider}` : ""}
                       </div>
                     </div>
                   </div>
@@ -1172,7 +1172,7 @@ export function QueuePage() {
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-semibold text-[var(--gc-ink)]">{job.name}</div>
-                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">{job.type} Â· {job.contract_type}</div>
+                    <div className="mt-1 text-[12px] text-[var(--gc-ink-soft)]">{job.type} · {job.contract_type}</div>
                   </div>
                   <span className="text-[11px] font-medium text-[var(--gc-ink-muted)]">{job.status}</span>
                 </Link>
@@ -1205,6 +1205,7 @@ export function QueuePage() {
     </div>
   );
 }
+
 
 
 

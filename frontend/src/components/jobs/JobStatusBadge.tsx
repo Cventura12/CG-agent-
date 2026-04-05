@@ -16,3 +16,4 @@ export interface JobStatusBadgeProps {
 export function JobStatusBadge({ status }: JobStatusBadgeProps) {
   return <Badge label={status.replace("_", " ")} color={statusColor[status]} />;
 }
+

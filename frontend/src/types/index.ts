@@ -251,3 +251,4 @@ export interface WorkspaceTranscriptQuotePrefill {
   estimate_related: boolean;
   quote_input: string;
 }
+

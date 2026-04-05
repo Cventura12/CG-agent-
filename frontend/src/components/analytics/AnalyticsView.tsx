@@ -1,4 +1,4 @@
-﻿ï»¿import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 
 import { formatCompactCurrency, formatCurrency, formatHoursMinutes, formatMonoTime } from "../../lib/formatters";
 import { useAppStore } from "../../store/appStore";
@@ -141,4 +141,5 @@ export function AnalyticsViewDemo() {
   const state = useAppStore.getState();
   return <AnalyticsViewContent periods={state.analytics} queueItems={state.queueItems} jobs={state.jobs} />;
 }
+
 

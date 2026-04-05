@@ -16,3 +16,4 @@ export function MetricCard({ label, value, tone = "default", delta }: MetricCard
     </article>
   );
 }
+

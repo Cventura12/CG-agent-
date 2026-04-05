@@ -1,4 +1,4 @@
-﻿ï»¿import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 
 import { fadeUp } from "../../lib/animations";
 import type { QueueItem } from "../../types";
@@ -60,4 +60,5 @@ export function StatRow({ queueItems, openQuotes, followUpsDue, activeJobs }: St
     </section>
   );
 }
+
 

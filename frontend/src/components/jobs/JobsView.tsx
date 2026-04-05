@@ -1,4 +1,4 @@
-﻿ï»¿import { Search } from "lucide-react";
+﻿import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -91,3 +91,4 @@ export default function JobsView() {
 export function JobsViewDemo() {
   return <JobsViewContent jobs={useAppStore.getState().jobs} />;
 }
+

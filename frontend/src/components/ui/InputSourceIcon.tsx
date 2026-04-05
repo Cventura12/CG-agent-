@@ -28,3 +28,4 @@ export function InputSourceIcon({ source, size = 22 }: InputSourceIconProps) {
     </span>
   );
 }
+
