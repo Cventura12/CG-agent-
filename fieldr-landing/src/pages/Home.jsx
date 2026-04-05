@@ -1249,7 +1249,7 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-                <div className="fieldr-home__meta" data-home-reveal="meta">Early access &middot; Chattanooga, TN &middot; Built for general contractors</div>
+                <div className="fieldr-home__meta" data-home-reveal="meta">Chattanooga, TN &middot; Built for general contractors</div>
               </div>
 
               <div className="fieldr-home__hero-right">
@@ -1366,7 +1366,7 @@ export default function Home() {
 
             <div className="fieldr-home__final-eyebrow">
               <span className="fieldr-home__final-eyebrow-line" aria-hidden="true" />
-              <span>Early access</span>
+              <span>Live demo</span>
               <span className="fieldr-home__final-eyebrow-line" aria-hidden="true" />
             </div>
 
@@ -1375,7 +1375,7 @@ export default function Home() {
             </h2>
 
             <p className="fieldr-home__final-copy">
-              Arbor is running in early access for GCs in Chattanooga. <span>Twenty minutes. No commitment. See the queue move in real time.</span>
+              Arbor is built for GCs in Chattanooga. <span>Twenty minutes. No commitment. See the queue move in real time.</span>
             </p>
             <div className="fieldr-home__final-pills">
               <span className="fieldr-home__final-pill">Live capture</span>
