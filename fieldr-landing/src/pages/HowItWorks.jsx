@@ -89,7 +89,7 @@ export default function HowItWorks() {
 
         .fieldr-how__page-header {
           position: relative;
-          padding: 120px 40px 64px;
+          padding: 120px 40px 80px;
           border-bottom: 1px solid var(--rule);
           overflow: hidden;
         }
@@ -97,10 +97,10 @@ export default function HowItWorks() {
         .fieldr-how__page-header::before {
           content: '';
           position: absolute;
-          inset: -8% auto auto -8%;
-          width: 44%;
-          height: 320px;
-          background: radial-gradient(circle at center, rgba(184,83,46,0.08), transparent 68%);
+          inset: -10% auto auto -10%;
+          width: 55%;
+          height: 360px;
+          background: radial-gradient(circle at center, rgba(184,83,46,0.12), transparent 70%);
           pointer-events: none;
         }
 
@@ -109,6 +109,13 @@ export default function HowItWorks() {
           z-index: 1;
           max-width: 1240px;
           margin: 0 auto;
+        }
+
+        .fieldr-how__hero-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+          gap: 56px;
+          align-items: center;
         }
 
         .fieldr-how__eyebrow {
@@ -140,46 +147,128 @@ export default function HowItWorks() {
           color: var(--body);
         }
 
+        .fieldr-how__panel {
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(16,14,12,0.9);
+          box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+          padding: 22px;
+          backdrop-filter: blur(16px);
+        }
+
+        .fieldr-how__panel-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 14px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          margin-bottom: 16px;
+        }
+
+        .fieldr-how__panel-title {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.55);
+        }
+
+        .fieldr-how__panel-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(193,82,42,0.3);
+          background: rgba(193,82,42,0.12);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(193,82,42,0.85);
+        }
+
+        .fieldr-how__panel-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #4ade80;
+          box-shadow: 0 0 0 5px rgba(74,222,128,0.16);
+          animation: fieldrPulse 2s ease-in-out infinite;
+        }
+
+        .fieldr-how__panel-rows {
+          display: grid;
+          gap: 12px;
+        }
+
+        .fieldr-how__panel-row {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          gap: 12px;
+          align-items: center;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+        }
+
+        .fieldr-how__panel-step {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.45);
+        }
+
+        .fieldr-how__panel-copy {
+          font-size: 12px;
+          color: rgba(232,224,212,0.7);
+        }
+
+        .fieldr-how__panel-status {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.4);
+        }
+
         .fieldr-how__steps {
-          padding: 0 40px;
-          border-bottom: 1px solid var(--rule);
+          padding: 0 40px 80px;
         }
 
         .fieldr-how__steps-grid {
           max-width: 1240px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          border-left: 1px solid var(--rule);
-          border-right: 1px solid var(--rule);
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 20px;
         }
 
         .fieldr-how__step {
           position: relative;
-          padding: 48px 36px;
-          border-right: 1px solid var(--rule);
-          background: linear-gradient(180deg, rgba(23,21,18,0.88) 0%, rgba(18,16,14,0.82) 100%);
+          padding: 36px 32px;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 16px;
+          background: linear-gradient(180deg, rgba(20,18,16,0.92) 0%, rgba(14,12,11,0.9) 100%);
+          box-shadow: 0 24px 60px rgba(0,0,0,0.25);
           transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
-        }
-
-        .fieldr-how__step:last-child {
-          border-right: 0;
         }
 
         .fieldr-how__step::before {
           content: '';
           position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          height: 2px;
-          background: linear-gradient(90deg, var(--sienna), rgba(212,103,63,0.18));
+          inset: 0;
+          border-radius: 16px;
+          border: 1px solid rgba(193,82,42,0.15);
+          pointer-events: none;
         }
 
         .fieldr-how__step:hover {
           transform: translateY(-4px);
-          background: linear-gradient(180deg, rgba(28,26,23,0.94) 0%, rgba(20,18,16,0.9) 100%);
-          box-shadow: 0 24px 48px rgba(0,0,0,0.16);
+          background: linear-gradient(180deg, rgba(26,24,22,0.96) 0%, rgba(18,16,14,0.92) 100%);
+          box-shadow: 0 32px 70px rgba(0,0,0,0.3);
         }
 
         .fieldr-how__step-number {
@@ -208,7 +297,7 @@ export default function HowItWorks() {
         }
 
         .fieldr-how__cta {
-          padding: 80px 40px;
+          padding: 96px 40px;
           border-top: 1px solid var(--rule);
           text-align: center;
         }
@@ -257,17 +346,12 @@ export default function HowItWorks() {
         }
 
         @media (max-width: 1080px) {
-          .fieldr-how__steps-grid {
+          .fieldr-how__hero-grid {
             grid-template-columns: 1fr;
           }
 
-          .fieldr-how__step {
-            border-right: 0;
-            border-bottom: 1px solid var(--rule);
-          }
-
-          .fieldr-how__step:last-child {
-            border-bottom: 0;
+          .fieldr-how__steps-grid {
+            grid-template-columns: 1fr;
           }
         }
 
@@ -285,7 +369,7 @@ export default function HowItWorks() {
           }
 
           .fieldr-how__step {
-            padding: 36px 20px;
+            padding: 28px 20px;
           }
 
           .fieldr-how__cta-button {
@@ -306,16 +390,46 @@ export default function HowItWorks() {
       <main ref={rootRef} className="fieldr-how" aria-label="Arbor how it works page">
         <section className="fieldr-how__page-header">
           <div className="fieldr-how__inner">
-            <p className="fieldr-how__eyebrow" data-how-reveal="eyebrow">How it works</p>
-            <AnimatedWords
-              as="h1"
-              className="fieldr-how__headline"
-              text="How Arbor keeps things from slipping through."
-              data-how-reveal="headline"
-            />
-            <p className="fieldr-how__subhead" data-how-reveal="subhead">
-              Arbor works in the background while your crew keeps working. It captures what already comes in, understands what changed, and puts the next decision in front of you before the job record drifts.
-            </p>
+            <div className="fieldr-how__hero-grid">
+              <div>
+                <p className="fieldr-how__eyebrow" data-how-reveal="eyebrow">How it works</p>
+                <AnimatedWords
+                  as="h1"
+                  className="fieldr-how__headline"
+                  text="How Arbor keeps things from slipping through."
+                  data-how-reveal="headline"
+                />
+                <p className="fieldr-how__subhead" data-how-reveal="subhead">
+                  Arbor works in the background while your crew keeps working. It captures what already comes in, understands what changed, and puts the next decision in front of you before the job record drifts.
+                </p>
+              </div>
+              <div className="fieldr-how__panel" data-how-reveal="subhead">
+                <div className="fieldr-how__panel-header">
+                  <span className="fieldr-how__panel-title">System loop</span>
+                  <span className="fieldr-how__panel-pill">
+                    <span className="fieldr-how__panel-dot" aria-hidden="true" />
+                    Live
+                  </span>
+                </div>
+                <div className="fieldr-how__panel-rows">
+                  <div className="fieldr-how__panel-row">
+                    <span className="fieldr-how__panel-step">Capture</span>
+                    <span className="fieldr-how__panel-copy">Inbound call + transcript captured</span>
+                    <span className="fieldr-how__panel-status">Active</span>
+                  </div>
+                  <div className="fieldr-how__panel-row">
+                    <span className="fieldr-how__panel-step">Extract</span>
+                    <span className="fieldr-how__panel-copy">Scope delta + price signal detected</span>
+                    <span className="fieldr-how__panel-status">Queued</span>
+                  </div>
+                  <div className="fieldr-how__panel-row">
+                    <span className="fieldr-how__panel-step">Write back</span>
+                    <span className="fieldr-how__panel-copy">Draft quote created + linked to job</span>
+                    <span className="fieldr-how__panel-status">Ready</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
