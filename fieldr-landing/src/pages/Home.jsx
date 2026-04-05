@@ -151,12 +151,9 @@ export default function Home() {
 
         .fieldr-home__hero {
           position: relative;
-          padding: 128px 28px 104px;
+          padding: 132px 28px 108px;
           overflow: hidden;
-          background:
-            radial-gradient(circle at 12% 10%, rgba(193,82,42,0.28), transparent 45%),
-            radial-gradient(circle at 88% 0%, rgba(255,255,255,0.12), transparent 40%),
-            #0b0a09;
+          background: #0b0a09;
         }
 
         .fieldr-home__hero::before {
@@ -164,7 +161,7 @@ export default function Home() {
           position: absolute;
           inset: -10% 0 auto;
           height: 640px;
-          background: radial-gradient(ellipse at 25% 35%, rgba(193,82,42,0.32) 0%, transparent 70%);
+          background: radial-gradient(ellipse at 20% 30%, rgba(193,82,42,0.16) 0%, transparent 70%);
           pointer-events: none;
         }
 
@@ -172,8 +169,8 @@ export default function Home() {
           content: '';
           position: absolute;
           inset: 0;
-          background-image: linear-gradient(120deg, rgba(255,255,255,0.06), transparent 60%);
-          opacity: 0.8;
+          background-image: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.05), transparent 40%);
+          opacity: 0.6;
           pointer-events: none;
           mix-blend-mode: soft-light;
         }
@@ -208,24 +205,23 @@ export default function Home() {
           font-size: 9px;
           letter-spacing: 0.18em;
           text-transform: uppercase;
-          color: #ff8a5c;
+          color: var(--sienna-lt);
         }
 
         .fieldr-home__headline {
           margin: 18px 0 0;
           font-family: var(--serif);
-          font-size: clamp(44px, 5.4vw, 76px);
+          font-size: clamp(44px, 5.1vw, 74px);
           line-height: 1.02;
           letter-spacing: -1.8px;
           color: var(--bright);
-          text-shadow: 0 12px 40px rgba(0,0,0,0.5);
           text-wrap: balance;
         }
 
         .fieldr-home__headline em {
           font-style: italic;
           font-weight: 500;
-          color: #ff8a5c;
+          color: var(--sienna-lt);
         }
 
         .fieldr-home__subhead {
@@ -234,7 +230,7 @@ export default function Home() {
           font-size: 16.5px;
           line-height: 1.72;
           font-weight: 300;
-          color: rgba(242,236,228,0.8);
+          color: rgba(232,224,212,0.7);
         }
 
         .fieldr-home__subhead-hook {
@@ -243,7 +239,7 @@ export default function Home() {
           font-size: 10px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: rgba(242,236,228,0.6);
+          color: rgba(232,224,212,0.5);
         }
 
         .fieldr-home__cta-row {
@@ -261,16 +257,16 @@ export default function Home() {
           justify-content: center;
           border: 0;
           border-radius: 8px;
-          padding: 15px 34px;
-          background: linear-gradient(135deg, #c1522a, #ff8a5c);
+          padding: 14px 32px;
+          background: linear-gradient(135deg, #c1522a, #d86a44);
           color: var(--bright);
           font-family: var(--sans);
-          font-size: 15px;
-          font-weight: 600;
+          font-size: 14px;
+          font-weight: 500;
           line-height: 1;
           cursor: pointer;
           text-decoration: none;
-          box-shadow: 0 22px 60px rgba(255,138,92,0.35);
+          box-shadow: 0 16px 36px rgba(184,83,46,0.25);
           transition: transform 180ms ease, box-shadow 180ms ease;
         }
 
@@ -283,7 +279,7 @@ export default function Home() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(255,255,255,0.3);
+          border: 1px solid rgba(255,255,255,0.22);
           border-radius: 999px;
           padding: 12px 22px;
           color: var(--bright);
@@ -294,7 +290,7 @@ export default function Home() {
           text-decoration: none;
           text-transform: uppercase;
           transition: color 180ms ease, border-color 180ms ease, transform 180ms ease;
-          background: rgba(12,10,9,0.72);
+          background: rgba(12,10,9,0.6);
         }
 
         .fieldr-home__secondary-cta:hover {
@@ -319,11 +315,11 @@ export default function Home() {
           justify-content: flex-start;
           gap: 10px;
           flex-wrap: wrap;
-          border: 1px solid rgba(255,255,255,0.18);
+          border: 1px solid rgba(255,255,255,0.12);
           border-radius: 999px;
-          background: rgba(8,7,6,0.88);
+          background: rgba(10,9,8,0.78);
           backdrop-filter: blur(10px);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 44px rgba(0,0,0,0.45);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 14px 34px rgba(0,0,0,0.35);
           padding: 10px 14px;
           font-family: var(--mono);
           font-size: 9px;
@@ -335,10 +331,10 @@ export default function Home() {
         .fieldr-home__hero-panel {
           position: relative;
           width: min(100%, 420px);
-          border-radius: 20px;
-          border: 1px solid rgba(255,255,255,0.16);
-          background: linear-gradient(180deg, rgba(24,21,19,0.98) 0%, rgba(10,9,8,0.98) 100%);
-          box-shadow: 0 36px 110px rgba(0,0,0,0.7);
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(16,14,13,0.94);
+          box-shadow: 0 26px 70px rgba(0,0,0,0.45);
           padding: 22px;
           backdrop-filter: blur(16px);
         }
@@ -348,16 +344,7 @@ export default function Home() {
           position: absolute;
           inset: 0;
           border-radius: 18px;
-          border: 1px solid rgba(193,82,42,0.12);
-          pointer-events: none;
-        }
-
-        .fieldr-home__hero-panel::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: 18px;
-          background: radial-gradient(circle at 80% 0%, rgba(193,82,42,0.12), transparent 55%);
+          border: 1px solid rgba(255,255,255,0.06);
           pointer-events: none;
         }
 
@@ -367,7 +354,7 @@ export default function Home() {
           justify-content: space-between;
           padding-bottom: 12px;
           margin-bottom: 16px;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
         }
 
         .fieldr-home__panel-dots {
@@ -413,18 +400,18 @@ export default function Home() {
         .fieldr-home__panel-tab {
           padding: 6px 10px;
           border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.18);
+          border: 1px solid rgba(255,255,255,0.12);
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: rgba(242,236,228,0.7);
+          color: rgba(232,224,212,0.6);
         }
 
         .fieldr-home__panel-tab.is-active {
           color: #fff;
-          border-color: rgba(255,138,92,0.6);
-          background: rgba(255,138,92,0.18);
+          border-color: rgba(193,82,42,0.45);
+          background: rgba(193,82,42,0.12);
         }
 
         .fieldr-home__panel-header {
@@ -488,8 +475,8 @@ export default function Home() {
         .fieldr-home__panel-stat {
           padding: 10px 12px;
           border-radius: 12px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.16);
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
         }
 
         .fieldr-home__panel-stat-value {
@@ -514,8 +501,8 @@ export default function Home() {
           gap: 12px;
           padding: 12px 14px;
           border-radius: 12px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.16);
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
         }
 
         .fieldr-home__panel-item-dot {
@@ -559,11 +546,11 @@ export default function Home() {
         }
 
         .fieldr-home__panel-status.is-alert {
-          color: rgba(255,138,92,0.95);
+          color: rgba(193,82,42,0.9);
         }
 
         .fieldr-home__panel-status.is-warning {
-          color: rgba(248,214,115,0.9);
+          color: rgba(232,193,90,0.85);
         }
 
         .fieldr-home__panel-status.is-alert {
@@ -642,7 +629,7 @@ export default function Home() {
           content: '';
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 18% 24%, rgba(255,138,92,0.18), transparent 30%);
+          background: radial-gradient(circle at 18% 24%, rgba(193,82,42,0.08), transparent 30%);
           pointer-events: none;
         }
 
@@ -705,9 +692,9 @@ export default function Home() {
           z-index: 1;
           padding: 18px 22px 8px;
           border-radius: 20px;
-          border: 1px solid rgba(255,255,255,0.16);
-          background: rgba(8,7,6,0.9);
-          box-shadow: 0 36px 100px rgba(0,0,0,0.6);
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(10,9,8,0.85);
+          box-shadow: 0 28px 80px rgba(0,0,0,0.5);
         }
 
         .fieldr-home__log-feed-header {
@@ -715,7 +702,7 @@ export default function Home() {
           align-items: center;
           justify-content: space-between;
           padding-bottom: 16px;
-          border-bottom: 1px solid rgba(255,255,255,0.12);
+          border-bottom: 1px solid rgba(255,255,255,0.08);
           margin-bottom: 4px;
         }
 
@@ -740,7 +727,7 @@ export default function Home() {
           grid-template-columns: 78px 10px minmax(0, 1fr) 120px;
           gap: 18px;
           padding: 12px 0 10px;
-          border-bottom: 1px solid rgba(255,255,255,0.12);
+          border-bottom: 1px solid rgba(255,255,255,0.08);
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.14em;
@@ -754,17 +741,17 @@ export default function Home() {
           gap: 18px;
           align-items: start;
           padding: 18px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.12);
+          border-bottom: 1px solid rgba(255,255,255,0.08);
           transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
         }
 
         .fieldr-home__log-entry.is-featured {
           margin: 8px 0;
           padding: 18px 14px;
-          border: 1px solid rgba(255,138,92,0.45);
+          border: 1px solid rgba(193,82,42,0.35);
           border-left: 3px solid var(--sienna);
           border-radius: 10px;
-          background: rgba(255,138,92,0.18);
+          background: rgba(193,82,42,0.14);
         }
 
         .fieldr-home__log-entry:hover {
@@ -829,7 +816,7 @@ export default function Home() {
         .fieldr-home__final-cta {
           padding: 104px 52px;
           border-top: 1px solid var(--rule);
-          background: radial-gradient(circle at 20% 20%, rgba(193,82,42,0.22), transparent 55%), #161310;
+          background: radial-gradient(circle at 20% 20%, rgba(193,82,42,0.16), transparent 55%), #161310;
           position: relative;
           overflow: hidden;
         }
@@ -838,7 +825,7 @@ export default function Home() {
           content: '';
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 75% 10%, rgba(255,255,255,0.1), transparent 45%);
+          background: radial-gradient(circle at 75% 10%, rgba(255,255,255,0.06), transparent 45%);
           pointer-events: none;
         }
 
@@ -849,9 +836,9 @@ export default function Home() {
           padding: 72px 84px;
           text-align: center;
           border-radius: 24px;
-          border: 1px solid rgba(255,255,255,0.16);
-          background: linear-gradient(180deg, rgba(24,20,18,0.96) 0%, rgba(10,9,8,0.98) 100%);
-          box-shadow: 0 46px 140px rgba(0,0,0,0.7);
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(16,14,13,0.95);
+          box-shadow: 0 32px 90px rgba(0,0,0,0.55);
         }
 
         .fieldr-home__final-corner {
@@ -954,13 +941,13 @@ export default function Home() {
         .fieldr-home__final-pill {
           padding: 6px 12px;
           border-radius: 999px;
-          border: 1px solid rgba(255,138,92,0.45);
-          background: rgba(255,138,92,0.2);
+          border: 1px solid rgba(193,82,42,0.35);
+          background: rgba(193,82,42,0.16);
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: rgba(255,210,190,0.95);
+          color: rgba(255,190,150,0.9);
         }
 
         .fieldr-home__final-button {
@@ -970,16 +957,16 @@ export default function Home() {
           justify-content: center;
           border: 0;
           border-radius: 10px;
-          padding: 15px 44px;
-          background: linear-gradient(135deg, #c1522a, #ff8a5c);
+          padding: 14px 40px;
+          background: linear-gradient(135deg, #c1522a, #d86a44);
           color: #fff;
           font-family: var(--sans);
-          font-size: 15px;
-          font-weight: 600;
+          font-size: 14px;
+          font-weight: 500;
           line-height: 1;
           text-decoration: none;
           transition: transform 180ms ease, box-shadow 180ms ease;
-          box-shadow: 0 24px 60px rgba(255,138,92,0.4);
+          box-shadow: 0 18px 42px rgba(193,82,42,0.38);
         }
 
         .fieldr-home__final-button:hover {
@@ -1234,14 +1221,14 @@ export default function Home() {
               <div className="fieldr-home__hero-left">
                 <p className="fieldr-home__eyebrow" data-home-reveal="eyebrow">Arbor · Agentic ops for GCs</p>
                 <h1 className="fieldr-home__headline" data-home-reveal="headline">
-                  <AnimatedWords as="span" text="Stop margin leaks." />
+                  <AnimatedWords as="span" text="Turn field chatter into" />
                   {' '}
                   <em>
-                    <AnimatedWords as="span" text="Approve every change." />
+                    <AnimatedWords as="span" text="approved revenue." />
                   </em>
                 </h1>
                 <p className="fieldr-home__subhead" data-home-reveal="subhead">
-                  Arbor captures calls, texts, voice notes, and uploads, extracts the change, and drafts the action before the job moves on.
+                  Arbor captures calls, texts, voice notes, and uploads, extracts what changed, and drafts the next move before the job moves on.
                 </p>
                 <p className="fieldr-home__subhead-hook" data-home-reveal="subhead">
                   No new app for your crew. No extra workflow.
@@ -1384,11 +1371,11 @@ export default function Home() {
             </div>
 
             <h2 className="fieldr-home__final-title">
-              Book a demo. Stop bleeding margin.
+              Ready to run the agent on a live job?
             </h2>
 
             <p className="fieldr-home__final-copy">
-              Arbor is running in early access for GCs in Chattanooga. <span>Twenty minutes. No commitment. Watch the queue close on a real job.</span>
+              Arbor is running in early access for GCs in Chattanooga. <span>Twenty minutes. No commitment. See the queue move in real time.</span>
             </p>
             <div className="fieldr-home__final-pills">
               <span className="fieldr-home__final-pill">Live capture</span>
