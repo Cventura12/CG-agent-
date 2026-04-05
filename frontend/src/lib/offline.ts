@@ -9,10 +9,12 @@ export function shouldUseMockApi(): boolean {
   }
 
   const hostname = window.location.hostname || "";
-  const publicUrl = (env.VITE_PUBLIC_API_URL as string | undefined) ?? (env.VITE_API_URL as string | undefined) ?? "";
-
-  if (hostname.includes("vercel.app")) {
+  if (env.VITE_FORCE_OFFLINE === "1") {
     return true;
+  }
+
+  if (hostname.includes("vercel.app") && env.VITE_PUBLIC_API_URL && env.VITE_PUBLIC_API_URL.includes("railway.app")) {
+    return false;
   }
 
   return false;
