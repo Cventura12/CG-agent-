@@ -1,5 +1,6 @@
 ﻿import { motion } from "framer-motion";
 import { AlertTriangle, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { fadeUp } from "../../lib/animations";
@@ -28,6 +29,17 @@ export interface TodayViewProps {
   currentTime?: Date;
 }
 
+type BudgetOverviewSummary = {
+  total_jobs: number;
+  flagged_jobs: number;
+  stale_pending_jobs: number;
+  total_pending_value: number;
+};
+
+type BudgetOverviewResponse = {
+  summary: BudgetOverviewSummary;
+};
+
 function deriveSetupSteps(queueItems: QueueItem[], openQuotes: number, followUpsDue: number, recentJobs: Job[]): 0 | 1 | 2 | 3 {
   if (openQuotes > 0 || followUpsDue > 0) return 3;
   if (queueItems.some((item) => item.status === "approved" || item.status === "dismissed" || item.status === "snoozed")) return 2;
@@ -51,11 +63,62 @@ function TodayViewContent({
   const pendingItems = queueItems.filter((item) => item.status === "pending" || item.status === "manual_review");
   const urgentItems = pendingItems.filter((item) => item.urgent);
   const firstName = user.name.split(" ")[0] ?? user.name;
+  const [budgetSummary, setBudgetSummary] = useState<BudgetOverviewSummary | null>(null);
+  const [budgetLoading, setBudgetLoading] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const apiKey = import.meta.env.VITE_API_KEY;
+
+  useEffect(() => {
+    if (!apiUrl || !apiKey) {
+      setBudgetError("Budget API not configured.");
+      return;
+    }
+    setBudgetLoading(true);
+    setBudgetError(null);
+    fetch(`${apiUrl}/budget/overview`, {
+      headers: { "X-API-Key": apiKey },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed");
+        }
+        return response.json() as Promise<BudgetOverviewResponse>;
+      })
+      .then((payload) => setBudgetSummary(payload.summary))
+      .catch(() => setBudgetError("Could not load budget overview."))
+      .finally(() => setBudgetLoading(false));
+  }, [apiKey, apiUrl]);
 
   return (
     <div className="flex h-full min-w-0 overflow-hidden bg-[var(--bg)]">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <StatRow queueItems={queueItems} openQuotes={openQuotes} followUpsDue={followUpsDue} activeJobs={activeJobs} />
+        <div className="border-b border-[var(--line)] px-3 py-3 sm:px-5">
+          <div className="flex flex-col gap-2 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-[12px] text-[var(--t1)]">
+              <AlertTriangle className="h-[14px] w-[14px] text-[var(--accent)]" strokeWidth={2} />
+              {budgetLoading ? (
+                <span>Loading budget signal...</span>
+              ) : budgetError ? (
+                <span className="text-[var(--t2)]">{budgetError}</span>
+              ) : budgetSummary ? (
+                <span>
+                  Budget at risk: {budgetSummary.flagged_jobs} flagged · ${budgetSummary.total_pending_value.toLocaleString()} pending · {budgetSummary.stale_pending_jobs} stale
+                </span>
+              ) : (
+                <span className="text-[var(--t2)]">Budget signal unavailable</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/jobs")}
+              className="text-left text-[11px] font-medium text-[var(--accent-2)] transition hover:text-[var(--t1)]"
+            >
+              Review budgets →
+            </button>
+          </div>
+        </div>
 
         {urgentItems.length > 0 ? (
           <div className="border-b border-[var(--line)] px-3 py-3 sm:px-5">
@@ -188,5 +251,16 @@ export default function TodayView(props: TodayViewProps) {
 export function TodayViewDemo() {
   return <TodayView />;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
