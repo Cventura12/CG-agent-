@@ -1,9 +1,38 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Filter, MoreHorizontal, Search, ChevronRight, ShieldAlert, Radar, Sparkles } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { useJobs } from "../hooks/useJobs";
+import BudgetOverviewCard from "../components/budget/BudgetOverviewCard";
+
+type BudgetOverviewJob = {
+  job_id: string;
+  job_name: string;
+  contractor_id: string;
+  job_status: string;
+  original_contract: number;
+  approved_changes: number;
+  pending_changes: number;
+  revised_total: number;
+  approved_count: number;
+  pending_count: number;
+  over_budget: boolean;
+  has_stale_pending: boolean;
+  last_change_at: string | null;
+  overage_percent: number | null;
+  status_color: "green" | "yellow" | "red";
+};
+
+type BudgetOverviewResponse = {
+  jobs: BudgetOverviewJob[];
+  summary: {
+    total_jobs: number;
+    flagged_jobs: number;
+    stale_pending_jobs: number;
+    total_pending_value: number;
+  };
+};
 
 function openItemStageClass(stage: string | null | undefined): string {
   if (stage === "approved") return "gc-chip info";
@@ -98,9 +127,38 @@ function operationalNote(job: {
 export function JobsPage() {
   const { userId } = useAuth();
   const currentUserId = userId ?? null;
+  const navigate = useNavigate();
   const jobsQuery = useJobs(currentUserId);
   const jobs = jobsQuery.data?.jobs ?? [];
   const [searchValue, setSearchValue] = useState("");
+  const [budgetData, setBudgetData] = useState<BudgetOverviewResponse | null>(null);
+  const [budgetLoading, setBudgetLoading] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const apiKey = import.meta.env.VITE_API_KEY;
+
+  useEffect(() => {
+    if (!apiUrl || !apiKey) {
+      setBudgetError("Budget API not configured.");
+      return;
+    }
+    setBudgetLoading(true);
+    setBudgetError(null);
+    fetch(`${apiUrl}/budget/overview`, {
+      headers: {
+        "X-API-Key": apiKey,
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed");
+        }
+        return response.json() as Promise<BudgetOverviewResponse>;
+      })
+      .then((payload) => setBudgetData(payload))
+      .catch(() => setBudgetError("Could not load budget overview."))
+      .finally(() => setBudgetLoading(false));
+  }, [apiKey, apiUrl]);
 
   const filteredJobs = useMemo(() => {
     const needle = searchValue.trim().toLowerCase();
@@ -150,6 +208,51 @@ export function JobsPage() {
               New Job
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-[26px] border border-white/12 bg-white/[0.04] px-6 py-6 shadow-[0_20px_40px_rgba(8,12,22,0.25)]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.24em] text-white/40">Budget tracking</div>
+            <div className="mt-2 text-[22px] font-semibold text-white">Contract exposure overview</div>
+          </div>
+          {budgetData?.summary ? (
+            <div className="flex flex-wrap items-center gap-3 text-[12px] text-white/45">
+              <span>{budgetData.summary.total_jobs} jobs tracked</span>
+              <span>•</span>
+              <span>{budgetData.summary.flagged_jobs} flagged</span>
+              <span>•</span>
+              <span>${budgetData.summary.total_pending_value.toLocaleString()} pending</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {budgetLoading ? (
+            <div className="text-[13px] text-white/45">Loading budget overview...</div>
+          ) : budgetError ? (
+            <div className="text-[13px] text-white/45">{budgetError}</div>
+          ) : budgetData?.jobs?.length ? (
+            budgetData.jobs.slice(0, 3).map((job) => (
+              <BudgetOverviewCard
+                key={job.job_id}
+                jobId={job.job_id}
+                jobName={job.job_name}
+                originalContract={job.original_contract}
+                revisedTotal={job.revised_total}
+                pendingChanges={job.pending_changes}
+                approvedChanges={job.approved_changes}
+                pendingCount={job.pending_count}
+                overagePercent={job.overage_percent}
+                statusColor={job.status_color}
+                hasstalePending={job.has_stale_pending}
+                onReviewPending={(id) => navigate(`/queue?job_id=${encodeURIComponent(id)}`)}
+              />
+            ))
+          ) : (
+            <div className="text-[13px] text-white/45">No budget data yet.</div>
+          )}
         </div>
       </section>
 

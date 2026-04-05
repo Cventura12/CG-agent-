@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { Activity, ArrowLeft, Clock3, FileText, History, MessageSquareMore, Phone, Sparkles } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 
 import { advanceOpenItemLifecycle, createOpenItemDraftAction, fetchJobDetail } from "../api/jobs";
 import { approveDraft, discardDraft, editDraft } from "../api/queue";
 import { logTranscriptAsUpdate } from "../api/transcripts";
+import JobBudgetPanel from "../components/budget/JobBudgetPanel";
 import { useQueue } from "../hooks/useQueue";
 import type { JobCallHistoryEntry, OpenItem, OpenItemActionStage, QueuePayload, TranscriptClassification } from "../types";
 
@@ -176,6 +177,7 @@ function canLogTranscriptAsUpdate(classification: TranscriptClassification): boo
 export function JobDetailPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId ?? "";
+  const navigate = useNavigate();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -445,6 +447,18 @@ export function JobDetailPage() {
 
       <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <section className="space-y-6">
+          <article className="gc-stack-card p-7">
+            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+              <Sparkles className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
+              <span>Budget tracking</span>
+            </div>
+            <div className="mt-5">
+              <JobBudgetPanel
+                jobId={jobId}
+                onNavigateToQueue={() => navigate(`/queue?job_id=${encodeURIComponent(jobId)}`)}
+              />
+            </div>
+          </article>
           <article className="gc-stack-card p-7">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <Sparkles className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />

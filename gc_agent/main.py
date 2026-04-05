@@ -32,6 +32,7 @@ from gc_agent.api.voice import router as public_voice_router
 from gc_agent.nodes.followup_trigger import process_due_followups
 from gc_agent.routers.analytics import router as analytics_router
 from gc_agent.routers.auth import router as auth_router
+from gc_agent.routers.budget import router as budget_router
 from gc_agent.routers.ingest import router as ingest_router
 from gc_agent.routers.insights import router as insights_router
 from gc_agent.routers.jobs import router as jobs_router
@@ -640,6 +641,7 @@ app.add_middleware(
 
 app.include_router(twilio_router, prefix="/webhook")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(budget_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(insights_router, prefix="/api/v1")
