@@ -13,7 +13,7 @@ export function shouldUseMockApi(): boolean {
     return true;
   }
 
-  if (hostname.includes("vercel.app") && env.VITE_PUBLIC_API_URL && env.VITE_PUBLIC_API_URL.includes("railway.app")) {
+  if (hostname.includes("vercel.app")) {
     return false;
   }
 
