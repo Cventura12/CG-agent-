@@ -1,9 +1,7 @@
-﻿import { motion } from "framer-motion";
-import { AlertTriangle, ArrowRight } from "lucide-react";
+﻿import { AlertTriangle, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { fadeUp } from "../../lib/animations";
 import { formatLongDate, formatTimeAgo } from "../../lib/formatters";
 import { mockAppState } from "../../lib/mockData";
 import { shouldUseMockApi } from "../../lib/offline";
@@ -148,7 +146,7 @@ function TodayViewContent({
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_260px]">
             <div className="scrollbar-none min-h-0 overflow-y-auto p-3 sm:p-5">
               <ZeroDragOnboarding />
-              <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4} className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
+              <sectionclassName="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
               <div className="flex flex-col gap-3 border-b border-[var(--line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
                   <div className="text-[13px] font-medium text-[var(--t1)]">Agent feed</div>
@@ -173,14 +171,9 @@ function TodayViewContent({
                 ) : (
                   <div className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-3)]">
                     {pendingItems.map((item, index) => (
-                      <motion.button
+                      <button
                         key={item.id}
-                        type="button"
-                        custom={index}
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeUp}
-                        onClick={() => navigate(`/queue/${item.id}`)}
+                        type="button"onClick={() => navigate(`/queue/${item.id}`)}
                         className={`flex w-full items-start gap-3 px-4 py-[14px] text-left transition hover:bg-[var(--bg-4)] ${index < pendingItems.length - 1 ? "border-b border-[var(--line)]" : ""}`}
                       >
                         <InputSourceIcon source={item.source} />
@@ -197,12 +190,12 @@ function TodayViewContent({
                           <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">{item.jobName ?? "Unassigned"} · {formatTimeAgo(item.createdAt)}</div>
                         </div>
                         <ArrowRight className="mt-[4px] h-[14px] w-[14px] text-[var(--t3)]" strokeWidth={2} />
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
-            </motion.section>
+            </section>
             <div className="mt-3 sm:mt-5">
               <VoiceSessionList
                 sessions={voiceSessions}
@@ -262,6 +255,7 @@ export default function TodayView(props: TodayViewProps) {
 export function TodayViewDemo() {
   return <TodayView />;
 }
+
 
 
 
