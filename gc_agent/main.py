@@ -87,6 +87,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
+_DEFAULT_FRONTEND_ORIGINS = [
+    "https://cg-agent-six.vercel.app",
+    "https://cg-agent-djno.vercel.app",
+]
 
 
 def _log_startup_runtime_warnings() -> None:
@@ -626,7 +630,7 @@ app = FastAPI(title="Arbor", version=APP_VERSION, lifespan=lifespan)
 allowed_origins = [
     origin.strip()
     for origin in ",".join(
-        [settings.frontend_url, settings.cors_allow_origins]
+        [settings.frontend_url, settings.cors_allow_origins, ",".join(_DEFAULT_FRONTEND_ORIGINS)]
     ).split(",")
     if origin.strip()
 ]

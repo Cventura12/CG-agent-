@@ -16,6 +16,8 @@ allowed_origins = [
     for origin in (
         os.getenv("FRONTEND_URL", "").strip(),
         os.getenv("WEB_APP_URL", "").strip(),
+        "https://cg-agent-six.vercel.app",
+        "https://cg-agent-djno.vercel.app",
         "http://localhost:4173",
         "http://127.0.0.1:4173",
         "http://localhost:5173",
