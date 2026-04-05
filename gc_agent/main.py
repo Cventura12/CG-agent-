@@ -13,6 +13,7 @@ from uuid import uuid4
 import uvicorn
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -642,6 +643,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_public_cors_headers(request: Request, call_next):
+    """Ensure public endpoints respond with CORS headers for Vercel clients."""
+    if request.method == "OPTIONS" and request.url.path.startswith("/public"):
+        origin = request.headers.get("origin", "*")
+        return Response(
+            status_code=204,
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "86400",
+                "Vary": "Origin",
+            },
+        )
+
+    response = await call_next(request)
+    if request.url.path.startswith("/public"):
+        origin = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Vary"] = "Origin"
+    return response
 
 app.include_router(twilio_router, prefix="/webhook")
 app.include_router(auth_router, prefix="/api/v1")

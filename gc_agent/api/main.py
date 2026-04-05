@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from gc_agent.api.router import APP_VERSION, open_router, router
@@ -34,6 +35,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_public_cors_headers(request: Request, call_next):
+    """Ensure public endpoints respond with CORS headers for Vercel clients."""
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin", "*")
+        return Response(
+            status_code=204,
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "86400",
+                "Vary": "Origin",
+            },
+        )
+
+    response = await call_next(request)
+    origin = request.headers.get("origin", "*")
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Vary"] = "Origin"
+    return response
 
 app.include_router(open_router)
 app.include_router(router)
