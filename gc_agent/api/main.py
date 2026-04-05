@@ -18,17 +18,20 @@ allowed_origins = [
         os.getenv("WEB_APP_URL", "").strip(),
         "http://localhost:4173",
         "http://127.0.0.1:4173",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
     )
     if origin.strip()
 ]
-if allowed_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=sorted(set(allowed_origins)),
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=sorted(set(allowed_origins)),
+    allow_origin_regex=r"^https://.*\.vercel\.app$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(open_router)
 app.include_router(router)
