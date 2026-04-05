@@ -927,59 +927,205 @@ export default function Home() {
         }
 
         .fieldr-home__final-cta {
-          padding: 80px 40px 96px;
+          padding: 80px 52px;
           border-top: 1px solid var(--rule);
+          background: #161310;
+        }
+
+        .fieldr-home__final-frame {
+          position: relative;
+          max-width: 720px;
+          margin: 0 auto;
+          padding: 64px 72px;
           text-align: center;
+          border-radius: 20px;
+          border: 0.5px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.02);
+        }
+
+        .fieldr-home__final-corner {
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          border-color: #c1522a;
+          border-style: solid;
+          border-width: 1.5px;
+        }
+
+        .fieldr-home__final-corner.is-top-left {
+          top: -1.5px;
+          left: -1.5px;
+          border-right: 0;
+          border-bottom: 0;
+          border-top-left-radius: 20px;
+        }
+
+        .fieldr-home__final-corner.is-top-right {
+          top: -1.5px;
+          right: -1.5px;
+          border-left: 0;
+          border-bottom: 0;
+          border-top-right-radius: 20px;
+        }
+
+        .fieldr-home__final-corner.is-bottom-left {
+          bottom: -1.5px;
+          left: -1.5px;
+          border-right: 0;
+          border-top: 0;
+          border-bottom-left-radius: 20px;
+        }
+
+        .fieldr-home__final-corner.is-bottom-right {
+          bottom: -1.5px;
+          right: -1.5px;
+          border-left: 0;
+          border-top: 0;
+          border-bottom-right-radius: 20px;
+        }
+
+        .fieldr-home__final-eyebrow {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 28px;
+        }
+
+        .fieldr-home__final-eyebrow span {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #c1522a;
+        }
+
+        .fieldr-home__final-eyebrow-line {
+          width: 32px;
+          height: 1px;
+          background: rgba(193,82,42,0.35);
         }
 
         .fieldr-home__final-title {
           margin: 0;
           font-family: var(--serif);
-          font-size: clamp(34px, 5vw, 42px);
-          line-height: 1.16;
+          font-size: clamp(40px, 5vw, 50px);
+          line-height: 1.08;
           font-style: italic;
-          color: var(--bright);
+          font-weight: 900;
+          color: #efe5d4;
+          letter-spacing: -0.02em;
+          white-space: pre-line;
         }
 
         .fieldr-home__final-copy {
-          margin: 16px auto 0;
-          max-width: 460px;
+          margin: 20px auto 0;
+          max-width: 400px;
           font-size: 14px;
-          line-height: 1.72;
-          color: var(--body);
+          line-height: 1.75;
+          font-weight: 300;
+          color: rgba(239,229,212,0.45);
+        }
+
+        .fieldr-home__final-copy span {
+          color: rgba(239,229,212,0.7);
         }
 
         .fieldr-home__final-button {
-          margin-top: 24px;
+          margin-top: 36px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           border: 0;
-          border-radius: 5px;
-          padding: 13px 28px;
-          background: linear-gradient(135deg, var(--sienna), var(--sienna-lt));
-          color: var(--bright);
+          border-radius: 8px;
+          padding: 14px 36px;
+          background: #c1522a;
+          color: #fff;
           font-family: var(--sans);
           font-size: 14px;
           font-weight: 500;
           line-height: 1;
           text-decoration: none;
-          box-shadow: 0 16px 36px rgba(184,83,46,0.18);
           transition: transform 180ms ease, box-shadow 180ms ease;
+          box-shadow: 0 16px 36px rgba(193,82,42,0.2);
         }
 
         .fieldr-home__final-button:hover {
           transform: translateY(-1px);
-          box-shadow: 0 20px 42px rgba(184,83,46,0.24);
+          box-shadow: 0 20px 42px rgba(193,82,42,0.28);
         }
 
-        .fieldr-home__final-note {
-          margin-top: 18px;
+        .fieldr-home__final-meta {
+          margin-top: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          flex-wrap: wrap;
           font-family: var(--mono);
-          font-size: 9px;
+          font-size: 10px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(239,229,212,0.25);
+        }
+
+        .fieldr-home__final-meta-dot {
+          width: 3px;
+          height: 3px;
+          border-radius: 999px;
+          background: rgba(239,229,212,0.15);
+        }
+
+        .fieldr-home__final-status {
+          margin-top: 48px;
+          display: flex;
+          justify-content: center;
+        }
+
+        .fieldr-home__final-status-row {
+          display: flex;
+        }
+
+        .fieldr-home__final-status-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 20px;
+          border: 0.5px solid rgba(255,255,255,0.07);
+          font-family: var(--mono);
+          font-size: 10px;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: var(--muted);
+          color: rgba(239,229,212,0.3);
+          background: rgba(255,255,255,0.01);
+        }
+
+        .fieldr-home__final-status-item + .fieldr-home__final-status-item {
+          margin-left: -0.5px;
+        }
+
+        .fieldr-home__final-status-item:first-child {
+          border-radius: 100px 0 0 100px;
+        }
+
+        .fieldr-home__final-status-item:last-child {
+          border-radius: 0 100px 100px 0;
+        }
+
+        .fieldr-home__final-status-item.is-live {
+          color: rgba(74,222,128,0.7);
+        }
+
+        .fieldr-home__final-status-item.is-alert {
+          color: rgba(193,82,42,0.8);
+        }
+
+        .fieldr-home__final-status-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: #4ade80;
+          animation: fieldrPulse 2s ease-in-out infinite;
         }
 
         @keyframes fieldrPulse {
@@ -1086,20 +1232,43 @@ export default function Home() {
             padding: 18px 16px;
           }
 
-          .fieldr-home__final-cta {
-            padding: 72px 20px 88px;
-          }
+        .fieldr-home__final-cta {
+          padding: 64px 20px;
+        }
 
-          .fieldr-home__final-button {
-            width: min(100%, 280px);
-          }
+        .fieldr-home__final-frame {
+          padding: 48px 28px;
+        }
 
-          .fieldr-home__final-note {
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.8;
-          }
+        .fieldr-home__final-title {
+          font-size: 34px;
+        }
+
+        .fieldr-home__final-button {
+          width: min(100%, 280px);
+        }
+
+        .fieldr-home__final-meta {
+          line-height: 1.8;
+        }
+
+        .fieldr-home__final-status-row {
+          flex-direction: column;
+          width: 100%;
+        }
+
+        .fieldr-home__final-status-item {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .fieldr-home__final-status-item:first-child {
+          border-radius: 100px 100px 0 0;
+        }
+
+        .fieldr-home__final-status-item:last-child {
+          border-radius: 0 0 100px 100px;
+        }
         }
       `}</style>
 
@@ -1256,15 +1425,50 @@ export default function Home() {
         </section>
 
         <section className="fieldr-home__final-cta">
-          <div className="fieldr-home__section-inner">
-            <h2 className="fieldr-home__final-title" data-home-final>Ready to stop letting changes disappear?</h2>
-            <p className="fieldr-home__final-copy" data-home-final>
-              Capture the change before it turns into lost margin.
+          <div className="fieldr-home__final-frame" data-home-final>
+            <span className="fieldr-home__final-corner is-top-left" aria-hidden="true" />
+            <span className="fieldr-home__final-corner is-top-right" aria-hidden="true" />
+            <span className="fieldr-home__final-corner is-bottom-left" aria-hidden="true" />
+            <span className="fieldr-home__final-corner is-bottom-right" aria-hidden="true" />
+
+            <div className="fieldr-home__final-eyebrow">
+              <span className="fieldr-home__final-eyebrow-line" aria-hidden="true" />
+              <span>Early access</span>
+              <span className="fieldr-home__final-eyebrow-line" aria-hidden="true" />
+            </div>
+
+            <h2 className="fieldr-home__final-title">
+              The crew doesn't stop.
+              {'\n'}
+              Neither should the billing.
+            </h2>
+
+            <p className="fieldr-home__final-copy">
+              Arbor is running in early access for GCs in Chattanooga. <span>Twenty minutes. No commitment. See the loop close on a real job.</span>
             </p>
-            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__final-button" data-home-final>
+
+            <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__final-button">
               Book a Demo
             </SmartLink>
-            <div className="fieldr-home__final-note" data-home-final>20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
+
+            <div className="fieldr-home__final-meta">
+              <span>20 minutes</span>
+              <span className="fieldr-home__final-meta-dot" aria-hidden="true" />
+              <span>No commitment</span>
+              <span className="fieldr-home__final-meta-dot" aria-hidden="true" />
+              <span>Chattanooga, TN</span>
+            </div>
+          </div>
+
+          <div className="fieldr-home__final-status" data-home-final>
+            <div className="fieldr-home__final-status-row">
+              <div className="fieldr-home__final-status-item is-live">
+                <span className="fieldr-home__final-status-dot" aria-hidden="true" />
+                Capture live
+              </div>
+              <div className="fieldr-home__final-status-item">3 pending decisions</div>
+              <div className="fieldr-home__final-status-item is-alert">1 quote delta flagged</div>
+            </div>
           </div>
         </section>
       </main>
