@@ -174,6 +174,38 @@ export default function HowItWorks() {
           backdrop-filter: blur(16px);
         }
 
+        .fieldr-how__panel-topbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 12px;
+          margin-bottom: 14px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .fieldr-how__panel-id {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.55);
+        }
+
+        .fieldr-how__panel-signal {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(74,222,128,0.3);
+          background: rgba(74,222,128,0.08);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(74,222,128,0.8);
+        }
+
         .fieldr-how__panel-header {
           display: flex;
           align-items: center;
@@ -213,6 +245,35 @@ export default function HowItWorks() {
           background: #4ade80;
           box-shadow: 0 0 0 5px rgba(74,222,128,0.16);
           animation: fieldrPulse 2s ease-in-out infinite;
+        }
+
+        .fieldr-how__panel-metrics {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+
+        .fieldr-how__panel-metric {
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+        }
+
+        .fieldr-how__panel-metric-value {
+          font-family: var(--serif);
+          font-size: 18px;
+          color: var(--bright);
+        }
+
+        .fieldr-how__panel-metric-label {
+          margin-top: 4px;
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.45);
         }
 
         .fieldr-how__panel-rows {
@@ -278,8 +339,8 @@ export default function HowItWorks() {
           top: 0;
           bottom: 0;
           left: 10px;
-          width: 1px;
-          background: linear-gradient(180deg, rgba(193,82,42,0.5), rgba(255,255,255,0.06));
+          width: 2px;
+          background: linear-gradient(180deg, rgba(193,82,42,0.7), rgba(255,255,255,0.08));
         }
 
         .fieldr-how__step {
@@ -299,8 +360,8 @@ export default function HowItWorks() {
           width: 18px;
           height: 18px;
           border-radius: 50%;
-          background: rgba(193,82,42,0.9);
-          box-shadow: 0 0 0 6px rgba(193,82,42,0.16);
+          background: rgba(193,82,42,1);
+          box-shadow: 0 0 0 8px rgba(193,82,42,0.2);
         }
 
         .fieldr-how__step-number {
@@ -308,7 +369,7 @@ export default function HowItWorks() {
           font-size: 9px;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: rgba(232,224,212,0.55);
+          color: rgba(232,224,212,0.75);
         }
 
         .fieldr-how__step-title {
@@ -429,6 +490,35 @@ export default function HowItWorks() {
           color: var(--bright);
         }
 
+        .fieldr-how__cta-card {
+          margin: 28px auto 0;
+          max-width: 720px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(16,14,13,0.92);
+          padding: 24px;
+          box-shadow: 0 24px 70px rgba(0,0,0,0.4);
+        }
+
+        .fieldr-how__cta-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .fieldr-how__cta-item {
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.6);
+        }
+
         .fieldr-how__cta-button {
           margin-top: 24px;
           display: inline-flex;
@@ -498,6 +588,11 @@ export default function HowItWorks() {
             padding: 22px 18px 22px 24px;
           }
 
+          .fieldr-how__panel-metrics,
+          .fieldr-how__cta-grid {
+            grid-template-columns: 1fr;
+          }
+
           .fieldr-how__cta-button {
             width: min(100%, 280px);
             justify-content: center;
@@ -530,12 +625,33 @@ export default function HowItWorks() {
                 </p>
               </div>
               <div className="fieldr-how__panel" data-how-reveal="subhead">
+                <div className="fieldr-how__panel-topbar">
+                  <span className="fieldr-how__panel-id">agent://arbor</span>
+                  <span className="fieldr-how__panel-signal">
+                    <span className="fieldr-how__panel-dot" aria-hidden="true" />
+                    Live
+                  </span>
+                </div>
                 <div className="fieldr-how__panel-header">
                   <span className="fieldr-how__panel-title">System loop</span>
                   <span className="fieldr-how__panel-pill">
                     <span className="fieldr-how__panel-dot" aria-hidden="true" />
                     Live
                   </span>
+                </div>
+                <div className="fieldr-how__panel-metrics">
+                  <div className="fieldr-how__panel-metric">
+                    <div className="fieldr-how__panel-metric-value">7</div>
+                    <div className="fieldr-how__panel-metric-label">Active jobs</div>
+                  </div>
+                  <div className="fieldr-how__panel-metric">
+                    <div className="fieldr-how__panel-metric-value">3</div>
+                    <div className="fieldr-how__panel-metric-label">Items queued</div>
+                  </div>
+                  <div className="fieldr-how__panel-metric">
+                    <div className="fieldr-how__panel-metric-value">$2.1k</div>
+                    <div className="fieldr-how__panel-metric-label">At risk</div>
+                  </div>
                 </div>
                 <div className="fieldr-how__panel-rows">
                   <div className="fieldr-how__panel-row">
@@ -593,11 +709,18 @@ export default function HowItWorks() {
 
         <section className="fieldr-how__cta">
           <div className="fieldr-how__inner">
-            <h2 className="fieldr-how__cta-title" data-how-cta>Ready to see it on your jobs?</h2>
+            <h2 className="fieldr-how__cta-title" data-how-cta>Run a live operator session.</h2>
+            <div className="fieldr-how__cta-card" data-how-cta>
+              <div className="fieldr-how__cta-note">We attach to a real job, capture one update, and close the loop end-to-end.</div>
+              <div className="fieldr-how__cta-grid">
+                <div className="fieldr-how__cta-item">Live capture</div>
+                <div className="fieldr-how__cta-item">Queue approval</div>
+                <div className="fieldr-how__cta-item">Draft quote</div>
+              </div>
+            </div>
             <SmartLink to={BOOK_DEMO_HREF} className="fieldr-how__cta-button" data-how-cta>
               Book a Demo
             </SmartLink>
-            <div className="fieldr-how__cta-note" data-how-cta>20 minutes &middot; No commitment &middot; Chattanooga, TN</div>
           </div>
         </section>
       </main>
