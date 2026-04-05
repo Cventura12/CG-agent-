@@ -80,6 +80,31 @@ export default function HowItWorks() {
         ease: 'power2.out',
       })
 
+      gsap.from('[data-how-line]', {
+        scrollTrigger: {
+          trigger: '.fieldr-how__workflow-grid',
+          start: 'top 82%',
+          once: true,
+        },
+        scaleY: 0,
+        transformOrigin: 'top',
+        duration: 0.6,
+        ease: 'power2.out',
+      })
+
+      gsap.from('[data-how-node]', {
+        scrollTrigger: {
+          trigger: '.fieldr-how__workflow-grid',
+          start: 'top 82%',
+          once: true,
+        },
+        scale: 0.6,
+        opacity: 0,
+        duration: 0.4,
+        stagger: 0.08,
+        ease: 'power2.out',
+      })
+
       gsap.from('[data-how-cta]', {
         scrollTrigger: {
           trigger: '.fieldr-how__cta',
@@ -107,7 +132,7 @@ export default function HowItWorks() {
 
         .fieldr-how__page-header {
           position: relative;
-          padding: 120px 40px 80px;
+          padding: 110px 40px 64px;
           border-bottom: 1px solid var(--rule);
           overflow: hidden;
         }
@@ -314,7 +339,7 @@ export default function HowItWorks() {
         }
 
         .fieldr-how__workflow {
-          padding: 0 40px 96px;
+          padding: 0 40px 72px;
         }
 
         .fieldr-how__workflow-grid {
@@ -328,40 +353,38 @@ export default function HowItWorks() {
 
         .fieldr-how__timeline {
           position: relative;
-          padding-left: 32px;
+          padding-left: 28px;
           display: grid;
           gap: 22px;
         }
 
-        .fieldr-how__timeline::before {
-          content: '';
+        .fieldr-how__timeline-line {
           position: absolute;
           top: 0;
           bottom: 0;
-          left: 10px;
+          left: 8px;
           width: 2px;
           background: linear-gradient(180deg, rgba(193,82,42,0.7), rgba(255,255,255,0.08));
         }
 
         .fieldr-how__step {
           position: relative;
-          padding: 22px 24px 22px 28px;
+          padding: 20px 22px 20px 26px;
           border: 1px solid rgba(255,255,255,0.08);
           border-radius: 14px;
           background: rgba(16,14,12,0.86);
           box-shadow: 0 20px 50px rgba(0,0,0,0.25);
         }
 
-        .fieldr-how__step::before {
-          content: '';
+        .fieldr-how__step-dot {
           position: absolute;
           left: -32px;
-          top: 28px;
-          width: 18px;
-          height: 18px;
+          top: 24px;
+          width: 16px;
+          height: 16px;
           border-radius: 50%;
           background: rgba(193,82,42,1);
-          box-shadow: 0 0 0 8px rgba(193,82,42,0.2);
+          box-shadow: 0 0 0 7px rgba(193,82,42,0.2);
         }
 
         .fieldr-how__step-number {
@@ -476,7 +499,7 @@ export default function HowItWorks() {
         }
 
         .fieldr-how__cta {
-          padding: 96px 40px;
+          padding: 72px 40px;
           border-top: 1px solid var(--rule);
           text-align: center;
         }
@@ -525,12 +548,12 @@ export default function HowItWorks() {
           align-items: center;
           justify-content: center;
           border: 0;
-          border-radius: 5px;
-          padding: 13px 28px;
+          border-radius: 6px;
+          padding: 11px 24px;
           background: linear-gradient(135deg, var(--sienna), var(--sienna-lt));
           color: var(--bright);
           font-family: var(--sans);
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
           line-height: 1;
           cursor: pointer;
@@ -577,15 +600,15 @@ export default function HowItWorks() {
           }
 
           .fieldr-how__workflow {
-            padding-bottom: 72px;
+            padding-bottom: 56px;
           }
 
           .fieldr-how__timeline {
-            padding-left: 24px;
+            padding-left: 22px;
           }
 
           .fieldr-how__step {
-            padding: 22px 18px 22px 24px;
+            padding: 18px 16px 18px 22px;
           }
 
           .fieldr-how__panel-metrics,
@@ -678,8 +701,10 @@ export default function HowItWorks() {
         <section className="fieldr-how__workflow">
           <div className="fieldr-how__workflow-grid">
             <div className="fieldr-how__timeline">
+              <span className="fieldr-how__timeline-line" data-how-line aria-hidden="true" />
               {steps.map((step) => (
                 <article key={step.number} className="fieldr-how__step" data-how-step>
+                  <span className="fieldr-how__step-dot" data-how-node aria-hidden="true" />
                   <div className="fieldr-how__step-number">{step.number}</div>
                   <div className="fieldr-how__step-title">{step.title}</div>
                   <div className="fieldr-how__step-body">{step.body}</div>
