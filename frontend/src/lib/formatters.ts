@@ -1,4 +1,4 @@
-import { format, formatDistanceToNowStrict, isValid, parseISO } from "date-fns";
+﻿import { format, formatDistanceToNowStrict, isValid, parseISO } from "date-fns";
 
 export function formatLongDate(value: Date | string): string {
   const date = typeof value === "string" ? parseISO(value) : value;
@@ -22,7 +22,7 @@ export function formatTimeAgo(value: string): string {
 
 export function formatMonoTime(value: string): string {
   const date = parseISO(value);
-  return isValid(date) ? format(date, "MMM d � HH:mm") : "Unknown";
+  return isValid(date) ? format(date, "MMM d · HH:mm") : "Unknown";
 }
 
 export function formatCurrency(value: number): string {
