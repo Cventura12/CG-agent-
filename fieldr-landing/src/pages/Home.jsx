@@ -51,18 +51,21 @@ const heroSignals = [
 const heroPanelItems = [
   {
     title: 'Hartley reroof',
-    detail: 'Rotted decking add +$800 · Needs approval',
+    detail: 'Decking add · +$800 scope',
     tone: 'alert',
+    status: 'Needs review',
   },
   {
     title: 'Ridgeview addition',
-    detail: 'Owner text captured · Window upgrade queued',
+    detail: 'Owner text · Window upgrade queued',
     tone: 'neutral',
+    status: 'Captured',
   },
   {
     title: 'Riverside Commercial',
     detail: 'Follow-up due · 72h since last response',
     tone: 'warning',
+    status: 'Follow-up',
   },
 ]
 
@@ -122,7 +125,6 @@ export default function Home() {
         ease: 'power2.out',
       })
 
-
       gsap.from('[data-home-final]', {
         scrollTrigger: {
           trigger: '.fieldr-home__final-cta',
@@ -149,8 +151,9 @@ export default function Home() {
 
         .fieldr-home__hero {
           position: relative;
-          padding: 112px 28px 88px;
+          padding: 124px 28px 96px;
           overflow: hidden;
+          background: radial-gradient(circle at 10% 10%, rgba(193,82,42,0.12), transparent 50%);
         }
 
         .fieldr-home__hero::before {
@@ -158,7 +161,7 @@ export default function Home() {
           position: absolute;
           inset: -10% 0 auto;
           height: 640px;
-          background: radial-gradient(ellipse at 20% 30%, rgba(193,82,42,0.16) 0%, transparent 70%);
+          background: radial-gradient(ellipse at 25% 35%, rgba(193,82,42,0.18) 0%, transparent 70%);
           pointer-events: none;
         }
 
@@ -166,8 +169,8 @@ export default function Home() {
           content: '';
           position: absolute;
           inset: 0;
-          background-image: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06), transparent 35%);
-          opacity: 0.6;
+          background-image: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08), transparent 35%);
+          opacity: 0.7;
           pointer-events: none;
           mix-blend-mode: soft-light;
         }
@@ -182,8 +185,8 @@ export default function Home() {
 
         .fieldr-home__hero-grid {
           display: grid;
-          grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-          gap: 56px;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+          gap: 64px;
           align-items: center;
         }
 
@@ -208,7 +211,7 @@ export default function Home() {
         .fieldr-home__headline {
           margin: 18px 0 0;
           font-family: var(--serif);
-          font-size: clamp(40px, 5.6vw, 72px);
+          font-size: clamp(42px, 5.2vw, 74px);
           line-height: 1.02;
           letter-spacing: -1.8px;
           color: var(--bright);
@@ -222,20 +225,20 @@ export default function Home() {
 
         .fieldr-home__subhead {
           margin: 22px 0 0;
-          max-width: 520px;
-          font-size: 16px;
-          line-height: 1.7;
+          max-width: 560px;
+          font-size: 16.5px;
+          line-height: 1.72;
           font-weight: 300;
-          color: var(--body);
+          color: rgba(232,224,212,0.72);
         }
 
         .fieldr-home__subhead-hook {
           margin: 14px 0 0;
           font-family: var(--mono);
-          font-size: 11px;
+          font-size: 10px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--dim);
+          color: rgba(232,224,212,0.5);
         }
 
         .fieldr-home__cta-row {
@@ -252,8 +255,8 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           border: 0;
-          border-radius: 5px;
-          padding: 13px 28px;
+          border-radius: 8px;
+          padding: 14px 30px;
           background: linear-gradient(135deg, var(--sienna), var(--sienna-lt));
           color: var(--bright);
           font-family: var(--sans);
@@ -262,7 +265,7 @@ export default function Home() {
           line-height: 1;
           cursor: pointer;
           text-decoration: none;
-          box-shadow: 0 16px 36px rgba(184,83,46,0.18);
+          box-shadow: 0 18px 40px rgba(184,83,46,0.28);
           transition: transform 180ms ease, box-shadow 180ms ease;
         }
 
@@ -286,7 +289,7 @@ export default function Home() {
           text-decoration: none;
           text-transform: uppercase;
           transition: color 180ms ease, border-color 180ms ease, transform 180ms ease;
-          background: rgba(22,20,18,0.62);
+          background: rgba(14,12,10,0.5);
         }
 
         .fieldr-home__secondary-cta:hover {
@@ -301,7 +304,7 @@ export default function Home() {
           font-size: 9px;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: var(--muted);
+          color: rgba(232,224,212,0.4);
         }
 
         .fieldr-home__hero-readout {
@@ -311,9 +314,9 @@ export default function Home() {
           justify-content: flex-start;
           gap: 10px;
           flex-wrap: wrap;
-          border: 1px solid var(--rule2);
+          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 999px;
-          background: rgba(22,20,18,0.72);
+          background: rgba(10,9,8,0.7);
           backdrop-filter: blur(10px);
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 10px 26px rgba(0,0,0,0.18);
           padding: 10px 14px;
@@ -325,13 +328,32 @@ export default function Home() {
         }
 
         .fieldr-home__hero-panel {
+          position: relative;
           width: min(100%, 420px);
           border-radius: 18px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(19,18,16,0.9);
-          box-shadow: 0 24px 80px rgba(0,0,0,0.45);
-          padding: 20px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: linear-gradient(180deg, rgba(22,19,17,0.92) 0%, rgba(14,12,10,0.98) 100%);
+          box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+          padding: 22px;
           backdrop-filter: blur(16px);
+        }
+
+        .fieldr-home__hero-panel::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 18px;
+          border: 1px solid rgba(193,82,42,0.12);
+          pointer-events: none;
+        }
+
+        .fieldr-home__hero-panel::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 18px;
+          background: radial-gradient(circle at 80% 0%, rgba(193,82,42,0.12), transparent 55%);
+          pointer-events: none;
         }
 
         .fieldr-home__panel-header {
@@ -349,14 +371,21 @@ export default function Home() {
           color: rgba(232,224,212,0.55);
         }
 
+        .fieldr-home__panel-sub {
+          margin-top: 6px;
+          font-size: 12px;
+          color: rgba(232,224,212,0.55);
+          font-weight: 300;
+        }
+
         .fieldr-home__panel-pill {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           padding: 6px 12px;
           border-radius: 999px;
-          background: rgba(193,82,42,0.12);
-          border: 1px solid rgba(193,82,42,0.3);
+          background: rgba(193,82,42,0.14);
+          border: 1px solid rgba(193,82,42,0.35);
           font-family: var(--mono);
           font-size: 9px;
           letter-spacing: 0.18em;
@@ -378,15 +407,61 @@ export default function Home() {
           gap: 12px;
         }
 
+        .fieldr-home__panel-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+
+        .fieldr-home__panel-stat {
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .fieldr-home__panel-stat-value {
+          font-family: var(--serif);
+          font-size: 18px;
+          color: var(--bright);
+        }
+
+        .fieldr-home__panel-stat-label {
+          margin-top: 4px;
+          font-family: var(--mono);
+          font-size: 8px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.45);
+        }
+
         .fieldr-home__panel-item {
-          display: flex;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
           align-items: center;
-          justify-content: space-between;
-          gap: 14px;
+          gap: 12px;
           padding: 12px 14px;
           border-radius: 12px;
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .fieldr-home__panel-item-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: rgba(232,224,212,0.4);
+        }
+
+        .fieldr-home__panel-item-dot.is-alert {
+          background: rgba(193,82,42,0.9);
+          box-shadow: 0 0 0 4px rgba(193,82,42,0.2);
+        }
+
+        .fieldr-home__panel-item-dot.is-warning {
+          background: rgba(232,193,90,0.9);
+          box-shadow: 0 0 0 4px rgba(232,193,90,0.18);
         }
 
         .fieldr-home__panel-title {
@@ -399,7 +474,7 @@ export default function Home() {
           margin-top: 4px;
           font-size: 12px;
           line-height: 1.6;
-          color: var(--dim);
+          color: rgba(232,224,212,0.55);
           font-weight: 300;
         }
 
@@ -494,15 +569,15 @@ export default function Home() {
 
         .fieldr-home__log-grid {
           display: grid;
-          grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-          gap: 48px;
+          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+          gap: 52px;
           align-items: start;
         }
 
         .fieldr-home__log-headline {
-          margin: 14px 0 0;
+          margin: 10px 0 0;
           font-family: var(--serif);
-          font-size: 38px;
+          font-size: 36px;
           line-height: 1.2;
           font-style: italic;
           color: var(--bright);
@@ -513,22 +588,21 @@ export default function Home() {
           max-width: 420px;
           font-size: 14px;
           line-height: 1.75;
-          color: var(--body);
+          color: rgba(232,224,212,0.68);
         }
 
         .fieldr-home__log-stats {
           margin-top: 24px;
-          display: flex;
-          gap: 18px;
-          flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
         }
 
         .fieldr-home__log-stat {
-          min-width: 120px;
-          padding: 12px 14px;
-          border-radius: 12px;
+          padding: 14px 16px;
+          border-radius: 14px;
           border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.02);
+          background: rgba(255,255,255,0.03);
         }
 
         .fieldr-home__log-stat-value {
@@ -550,29 +624,55 @@ export default function Home() {
         .fieldr-home__log-feed {
           position: relative;
           z-index: 1;
-          padding: 8px 26px;
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(12,11,10,0.55);
+          padding: 18px 22px 8px;
+          border-radius: 20px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(12,11,10,0.72);
+          box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+        }
+
+        .fieldr-home__log-feed-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 16px;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          margin-bottom: 4px;
+        }
+
+        .fieldr-home__log-feed-title {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.6);
+        }
+
+        .fieldr-home__log-feed-meta {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.4);
         }
 
         .fieldr-home__log-entry {
           display: grid;
-          grid-template-columns: 96px 10px minmax(0, 1fr);
+          grid-template-columns: 78px 10px minmax(0, 1fr);
           gap: 18px;
           align-items: start;
           padding: 18px 0;
-          border-bottom: 1px solid var(--rule2);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
           transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
         }
 
         .fieldr-home__log-entry.is-featured {
           margin: 8px 0;
           padding: 18px 14px;
-          border: 1px solid var(--sienna-bd);
-          border-left: 2px solid var(--sienna);
-          border-radius: 8px;
-          background: rgba(184,83,46,0.08);
+          border: 1px solid rgba(193,82,42,0.35);
+          border-left: 3px solid var(--sienna);
+          border-radius: 10px;
+          background: rgba(184,83,46,0.12);
         }
 
         .fieldr-home__log-entry:hover {
@@ -614,9 +714,9 @@ export default function Home() {
         }
 
         .fieldr-home__final-cta {
-          padding: 80px 52px;
+          padding: 96px 52px;
           border-top: 1px solid var(--rule);
-          background: #161310;
+          background: radial-gradient(circle at 20% 20%, rgba(193,82,42,0.16), transparent 55%), #161310;
           position: relative;
           overflow: hidden;
         }
@@ -625,20 +725,20 @@ export default function Home() {
           content: '';
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 70% 20%, rgba(193,82,42,0.12), transparent 55%);
+          background: radial-gradient(circle at 75% 10%, rgba(255,255,255,0.06), transparent 45%);
           pointer-events: none;
         }
 
         .fieldr-home__final-frame {
           position: relative;
-          max-width: 720px;
+          max-width: 760px;
           margin: 0 auto;
-          padding: 64px 72px;
+          padding: 72px 84px;
           text-align: center;
-          border-radius: 20px;
-          border: 0.5px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.02);
-          box-shadow: 0 30px 90px rgba(0,0,0,0.5);
+          border-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: linear-gradient(180deg, rgba(24,20,18,0.92) 0%, rgba(12,10,9,0.96) 100%);
+          box-shadow: 0 40px 120px rgba(0,0,0,0.55);
         }
 
         .fieldr-home__final-corner {
@@ -687,7 +787,7 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 12px;
-          margin-bottom: 28px;
+          margin-bottom: 22px;
         }
 
         .fieldr-home__final-eyebrow span {
@@ -707,8 +807,8 @@ export default function Home() {
         .fieldr-home__final-title {
           margin: 0;
           font-family: var(--serif);
-          font-size: clamp(40px, 5vw, 50px);
-          line-height: 1.08;
+          font-size: clamp(42px, 4.6vw, 52px);
+          line-height: 1.06;
           font-style: italic;
           font-weight: 900;
           color: #efe5d4;
@@ -717,12 +817,12 @@ export default function Home() {
         }
 
         .fieldr-home__final-copy {
-          margin: 20px auto 0;
-          max-width: 400px;
-          font-size: 14px;
-          line-height: 1.75;
+          margin: 16px auto 0;
+          max-width: 420px;
+          font-size: 14.5px;
+          line-height: 1.7;
           font-weight: 300;
-          color: rgba(239,229,212,0.45);
+          color: rgba(239,229,212,0.55);
         }
 
         .fieldr-home__final-copy span {
@@ -730,13 +830,13 @@ export default function Home() {
         }
 
         .fieldr-home__final-button {
-          margin-top: 36px;
+          margin-top: 30px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           border: 0;
-          border-radius: 8px;
-          padding: 14px 36px;
+          border-radius: 10px;
+          padding: 14px 40px;
           background: #c1522a;
           color: #fff;
           font-family: var(--sans);
@@ -745,7 +845,7 @@ export default function Home() {
           line-height: 1;
           text-decoration: none;
           transition: transform 180ms ease, box-shadow 180ms ease;
-          box-shadow: 0 16px 36px rgba(193,82,42,0.2);
+          box-shadow: 0 18px 42px rgba(193,82,42,0.3);
         }
 
         .fieldr-home__final-button:hover {
@@ -775,7 +875,7 @@ export default function Home() {
         }
 
         .fieldr-home__final-status {
-          margin-top: 48px;
+          margin-top: 36px;
           display: flex;
           justify-content: center;
         }
@@ -844,6 +944,10 @@ export default function Home() {
             justify-content: flex-start;
             margin-top: 28px;
           }
+
+          .fieldr-home__log-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
 
         @media (max-width: 640px) {
@@ -889,6 +993,24 @@ export default function Home() {
 
           .fieldr-home__hero-panel {
             width: 100%;
+          }
+
+          .fieldr-home__panel-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .fieldr-home__log-stats {
+            grid-template-columns: 1fr;
+          }
+
+          .fieldr-home__log-feed {
+            padding: 16px 16px 8px;
+          }
+
+          .fieldr-home__log-feed-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
           }
 
           .fieldr-home__section-labelrow {
@@ -954,16 +1076,16 @@ export default function Home() {
           <div className="fieldr-home__hero-shell">
             <div className="fieldr-home__hero-grid">
               <div className="fieldr-home__hero-left">
-                <p className="fieldr-home__eyebrow" data-home-reveal="eyebrow">Built for general contractors</p>
+                <p className="fieldr-home__eyebrow" data-home-reveal="eyebrow">Arbor · Operations agent for GCs</p>
                 <h1 className="fieldr-home__headline" data-home-reveal="headline">
-                  <AnimatedWords as="span" text="The field never stops." />
+                  <AnimatedWords as="span" text="Turn field chatter into" />
                   {' '}
                   <em>
-                    <AnimatedWords as="span" text="Neither does Arbor." />
+                    <AnimatedWords as="span" text="approved revenue." />
                   </em>
                 </h1>
                 <p className="fieldr-home__subhead" data-home-reveal="subhead">
-                  Arbor reads calls, texts, voice notes, and uploads, detects what changed, and gets a draft ready before revenue slips.
+                  Arbor captures calls, texts, voice notes, and uploads, extracts what changed, and drafts the next move before the job moves on.
                 </p>
                 <p className="fieldr-home__subhead-hook" data-home-reveal="subhead">
                   No new app for your crew. No extra workflow.
@@ -990,21 +1112,39 @@ export default function Home() {
               <div className="fieldr-home__hero-right">
                 <div className="fieldr-home__hero-panel" data-home-panel>
                   <div className="fieldr-home__panel-header">
-                    <span className="fieldr-home__panel-kicker">Live queue snapshot</span>
+                    <div>
+                      <div className="fieldr-home__panel-kicker">Live queue snapshot</div>
+                      <div className="fieldr-home__panel-sub">Synced to active jobs</div>
+                    </div>
                     <span className="fieldr-home__panel-pill">
                       <span className="fieldr-home__panel-dot" aria-hidden="true" />
                       Agent live
                     </span>
                   </div>
+                  <div className="fieldr-home__panel-stats">
+                    <div className="fieldr-home__panel-stat">
+                      <div className="fieldr-home__panel-stat-value">7</div>
+                      <div className="fieldr-home__panel-stat-label">Active jobs</div>
+                    </div>
+                    <div className="fieldr-home__panel-stat">
+                      <div className="fieldr-home__panel-stat-value">3</div>
+                      <div className="fieldr-home__panel-stat-label">Items queued</div>
+                    </div>
+                    <div className="fieldr-home__panel-stat">
+                      <div className="fieldr-home__panel-stat-value">$2.1k</div>
+                      <div className="fieldr-home__panel-stat-label">Scope at risk</div>
+                    </div>
+                  </div>
                   <div className="fieldr-home__panel-list">
                     {heroPanelItems.map((item) => (
                       <div key={item.title} className="fieldr-home__panel-item" data-home-panel-item>
+                        <span className={`fieldr-home__panel-item-dot${item.tone === 'alert' ? ' is-alert' : ''}${item.tone === 'warning' ? ' is-warning' : ''}`} aria-hidden="true" />
                         <div>
                           <div className="fieldr-home__panel-title">{item.title}</div>
                           <div className="fieldr-home__panel-detail">{item.detail}</div>
                         </div>
                         <span className={`fieldr-home__panel-status${item.tone === 'alert' ? ' is-alert' : ''}${item.tone === 'warning' ? ' is-warning' : ''}`}>
-                          {item.tone === 'alert' ? 'Needs review' : item.tone === 'warning' ? 'Follow-up' : 'Captured'}
+                          {item.status}
                         </span>
                       </div>
                     ))}
@@ -1019,12 +1159,12 @@ export default function Home() {
           <div className="fieldr-home__section-inner fieldr-home__log-grid">
             <div data-home-log-copy>
               <div className="fieldr-home__section-labelrow" style={{ marginBottom: '22px' }}>
-                <span className="fieldr-home__section-label">What Arbor caught this morning</span>
+                <span className="fieldr-home__section-label">Live capture feed</span>
                 <div className="fieldr-home__section-rule" aria-hidden="true" />
               </div>
-              <h2 className="fieldr-home__log-headline">What Arbor caught while you were on site.</h2>
+              <h2 className="fieldr-home__log-headline">Live capture, queued for approval.</h2>
               <p className="fieldr-home__log-copy">
-                Field chatter becomes reviewable work. It catches the update, isolates what changed, and puts the next move in front of the office.
+                Every inbound message is parsed, scoped, and routed into the decision queue with context attached.
               </p>
               <div className="fieldr-home__log-stats">
                 {logStats.map((stat) => (
@@ -1037,6 +1177,10 @@ export default function Home() {
             </div>
 
             <div className="fieldr-home__log-feed">
+              <div className="fieldr-home__log-feed-header">
+                <span className="fieldr-home__log-feed-title">Activity feed</span>
+                <span className="fieldr-home__log-feed-meta">Last capture 2m ago</span>
+              </div>
               {agentLogEntries.map((entry) => (
                 <div key={`${entry.timestamp}-${entry.title}`} className={`fieldr-home__log-entry${entry.featured ? ' is-featured' : ''}`} data-home-log-entry>
                   <div className="fieldr-home__log-time">{entry.timestamp}</div>
@@ -1065,13 +1209,11 @@ export default function Home() {
             </div>
 
             <h2 className="fieldr-home__final-title">
-              The crew doesn't stop.
-              {'\n'}
-              Neither should the billing.
+              Ready to run the agent on a live job?
             </h2>
 
             <p className="fieldr-home__final-copy">
-              Arbor is running in early access for GCs in Chattanooga. <span>Twenty minutes. No commitment. See the loop close on a real job.</span>
+              Arbor is running in early access for GCs in Chattanooga. <span>Twenty minutes. No commitment. See the queue move in real time.</span>
             </p>
 
             <SmartLink to={BOOK_DEMO_HREF} className="fieldr-home__final-button">
