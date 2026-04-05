@@ -30,6 +30,24 @@ const steps = [
   },
 ]
 
+const queueStack = [
+  {
+    title: 'Hartley reroof',
+    detail: 'Decking add · +$800 scope',
+    status: 'Needs review',
+  },
+  {
+    title: 'Ridgeview addition',
+    detail: 'Owner text · Window upgrade queued',
+    status: 'Captured',
+  },
+  {
+    title: 'Riverside Commercial',
+    detail: 'Follow-up due · 72h since last response',
+    status: 'Follow-up',
+  },
+]
+
 export default function HowItWorks() {
   const rootRef = useRef(null)
 
@@ -50,7 +68,7 @@ export default function HowItWorks() {
 
       gsap.from('[data-how-step]', {
         scrollTrigger: {
-          trigger: '.fieldr-how__steps-grid',
+          trigger: '.fieldr-how__workflow-grid',
           start: 'top 82%',
           once: true,
         },
@@ -234,41 +252,55 @@ export default function HowItWorks() {
           color: rgba(232,224,212,0.4);
         }
 
-        .fieldr-how__steps {
-          padding: 0 40px 80px;
+        .fieldr-how__workflow {
+          padding: 0 40px 96px;
         }
 
-        .fieldr-how__steps-grid {
+        .fieldr-how__workflow-grid {
           max-width: 1240px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 20px;
+          grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+          gap: 48px;
+          align-items: start;
+        }
+
+        .fieldr-how__timeline {
+          position: relative;
+          padding-left: 32px;
+          display: grid;
+          gap: 22px;
+        }
+
+        .fieldr-how__timeline::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 10px;
+          width: 1px;
+          background: linear-gradient(180deg, rgba(193,82,42,0.5), rgba(255,255,255,0.06));
         }
 
         .fieldr-how__step {
           position: relative;
-          padding: 36px 32px;
+          padding: 22px 24px 22px 28px;
           border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 16px;
-          background: linear-gradient(180deg, rgba(20,18,16,0.92) 0%, rgba(14,12,11,0.9) 100%);
-          box-shadow: 0 24px 60px rgba(0,0,0,0.25);
-          transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+          border-radius: 14px;
+          background: rgba(16,14,12,0.86);
+          box-shadow: 0 20px 50px rgba(0,0,0,0.25);
         }
 
         .fieldr-how__step::before {
           content: '';
           position: absolute;
-          inset: 0;
-          border-radius: 16px;
-          border: 1px solid rgba(193,82,42,0.15);
-          pointer-events: none;
-        }
-
-        .fieldr-how__step:hover {
-          transform: translateY(-4px);
-          background: linear-gradient(180deg, rgba(26,24,22,0.96) 0%, rgba(18,16,14,0.92) 100%);
-          box-shadow: 0 32px 70px rgba(0,0,0,0.3);
+          left: -32px;
+          top: 28px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: rgba(193,82,42,0.9);
+          box-shadow: 0 0 0 6px rgba(193,82,42,0.16);
         }
 
         .fieldr-how__step-number {
@@ -276,11 +308,11 @@ export default function HowItWorks() {
           font-size: 9px;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: var(--sienna-lt);
+          color: rgba(232,224,212,0.55);
         }
 
         .fieldr-how__step-title {
-          margin-top: 12px;
+          margin-top: 10px;
           font-family: var(--serif);
           font-size: 22px;
           font-weight: 500;
@@ -289,11 +321,97 @@ export default function HowItWorks() {
         }
 
         .fieldr-how__step-body {
-          margin-top: 10px;
+          margin-top: 8px;
           font-size: 13px;
           line-height: 1.7;
           font-weight: 300;
           color: var(--body);
+        }
+
+        .fieldr-how__queue-card {
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(12,10,9,0.9);
+          box-shadow: 0 28px 80px rgba(0,0,0,0.45);
+          padding: 22px;
+        }
+
+        .fieldr-how__queue-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 14px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          margin-bottom: 14px;
+        }
+
+        .fieldr-how__queue-title {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.55);
+        }
+
+        .fieldr-how__queue-count {
+          font-family: var(--mono);
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(193,82,42,0.85);
+        }
+
+        .fieldr-how__queue-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .fieldr-how__queue-item {
+          display: grid;
+          grid-template-columns: 10px minmax(0, 1fr) auto;
+          gap: 12px;
+          align-items: center;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+        }
+
+        .fieldr-how__queue-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: rgba(232,224,212,0.45);
+        }
+
+        .fieldr-how__queue-dot.is-alert {
+          background: rgba(193,82,42,0.9);
+          box-shadow: 0 0 0 5px rgba(193,82,42,0.2);
+        }
+
+        .fieldr-how__queue-dot.is-warning {
+          background: rgba(232,193,90,0.9);
+          box-shadow: 0 0 0 5px rgba(232,193,90,0.18);
+        }
+
+        .fieldr-how__queue-item-title {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--bright);
+        }
+
+        .fieldr-how__queue-item-detail {
+          margin-top: 4px;
+          font-size: 12px;
+          color: rgba(232,224,212,0.6);
+        }
+
+        .fieldr-how__queue-status {
+          font-family: var(--mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,224,212,0.45);
         }
 
         .fieldr-how__cta {
@@ -350,7 +468,7 @@ export default function HowItWorks() {
             grid-template-columns: 1fr;
           }
 
-          .fieldr-how__steps-grid {
+          .fieldr-how__workflow-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -368,8 +486,16 @@ export default function HowItWorks() {
             padding-bottom: 48px;
           }
 
+          .fieldr-how__workflow {
+            padding-bottom: 72px;
+          }
+
+          .fieldr-how__timeline {
+            padding-left: 24px;
+          }
+
           .fieldr-how__step {
-            padding: 28px 20px;
+            padding: 22px 18px 22px 24px;
           }
 
           .fieldr-how__cta-button {
@@ -433,15 +559,35 @@ export default function HowItWorks() {
           </div>
         </section>
 
-        <section className="fieldr-how__steps">
-          <div className="fieldr-how__steps-grid">
-            {steps.map((step) => (
-              <article key={step.number} className="fieldr-how__step" data-how-step>
-                <div className="fieldr-how__step-number">{step.number}</div>
-                <div className="fieldr-how__step-title">{step.title}</div>
-                <div className="fieldr-how__step-body">{step.body}</div>
-              </article>
-            ))}
+        <section className="fieldr-how__workflow">
+          <div className="fieldr-how__workflow-grid">
+            <div className="fieldr-how__timeline">
+              {steps.map((step) => (
+                <article key={step.number} className="fieldr-how__step" data-how-step>
+                  <div className="fieldr-how__step-number">{step.number}</div>
+                  <div className="fieldr-how__step-title">{step.title}</div>
+                  <div className="fieldr-how__step-body">{step.body}</div>
+                </article>
+              ))}
+            </div>
+            <div className="fieldr-how__queue-card" data-how-step>
+              <div className="fieldr-how__queue-header">
+                <span className="fieldr-how__queue-title">Decision queue</span>
+                <span className="fieldr-how__queue-count">3 items</span>
+              </div>
+              <div className="fieldr-how__queue-list">
+                {queueStack.map((item) => (
+                  <div key={item.title} className="fieldr-how__queue-item">
+                    <span className={`fieldr-how__queue-dot${item.status === 'Needs review' ? ' is-alert' : ''}${item.status === 'Follow-up' ? ' is-warning' : ''}`} aria-hidden="true" />
+                    <div>
+                      <div className="fieldr-how__queue-item-title">{item.title}</div>
+                      <div className="fieldr-how__queue-item-detail">{item.detail}</div>
+                    </div>
+                    <span className="fieldr-how__queue-status">{item.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
