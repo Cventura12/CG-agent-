@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 
 interface JobBudgetPanelProps {
   jobId: string
@@ -286,7 +286,7 @@ const JobBudgetPanel: React.FC<JobBudgetPanelProps> = ({ jobId, onNavigateToQueu
             onClick={() => onNavigateToQueue(jobId)}
             className="w-full rounded-md bg-[#C1522A] px-5 py-3 text-[14px] font-medium text-[#F5F0E8] hover:bg-[#D4623A]"
           >
-            Review {data.pending_count} Pending Change{data.pending_count > 1 ? 's' : ''} →
+            Review {data.pending_count} Pending Change{data.pending_count > 1 ? 's' : ''} â
           </button>
         </div>
       ) : null}

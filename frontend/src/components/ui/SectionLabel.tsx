@@ -1,4 +1,4 @@
-export interface SectionLabelProps {
+﻿export interface SectionLabelProps {
   children: string;
 }
 

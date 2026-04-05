@@ -1,4 +1,4 @@
-﻿import { apiClient } from "./client";
+﻿ï»¿import { apiClient } from "./client";
 import type { ApiEnvelope, MultiJobInsightsPayload } from "../types";
 
 export async function fetchMultiJobInsights(horizonDays = 14): Promise<MultiJobInsightsPayload> {

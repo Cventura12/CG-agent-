@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+ï»¿import { useMemo, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Layers3, Radar, Sparkles, TrendingUp } from "lucide-react";
@@ -153,7 +153,7 @@ export function InsightsPage() {
                             <div key={job.id} className="rounded-[18px] border border-[var(--gc-line)] bg-white/78 px-4 py-4">
                               <div className="text-[16px] font-semibold text-[var(--gc-ink)]">{job.name}</div>
                               <div className="mt-2 font-mono text-[11px] text-[var(--gc-ink-muted)]">
-                                {job.id} · {job.days_until_completion ?? "?"} days · {formatCurrency(job.contract_value)}
+                                {job.id} Â· {job.days_until_completion ?? "?"} days Â· {formatCurrency(job.contract_value)}
                               </div>
                             </div>
                           ))}
@@ -167,7 +167,7 @@ export function InsightsPage() {
                             <div key={item} className="rounded-[18px] border border-[var(--gc-line)] bg-white/78 px-4 py-4">
                               <div className="text-[16px] font-semibold text-[var(--gc-ink)]">{item}</div>
                               <div className="mt-2 font-mono text-[11px] text-[var(--gc-ink-muted)]">
-                                Order window · {opportunity.recommended_order_window_days} days
+                                Order window Â· {opportunity.recommended_order_window_days} days
                               </div>
                             </div>
                           ))}

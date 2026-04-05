@@ -1,4 +1,4 @@
-﻿import { Check, UserPlus } from "lucide-react";
+﻿ï»¿import { Check, UserPlus } from "lucide-react";
 
 import type { AgentStatus } from "../../types";
 import { Button } from "../ui/Button";

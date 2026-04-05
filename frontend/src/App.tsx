@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+﻿import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import AnalyticsView from "./components/analytics/AnalyticsView";
 import JobsView from "./components/jobs/JobsView";

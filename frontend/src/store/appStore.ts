@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 
 import {
   approveWorkspaceQueueItem,
@@ -639,7 +639,7 @@ function applyQueueApprovals(
   ].filter(Boolean);
 
   const jobsWithSync = syncJobsState(jobs, quotes, followUps, queueItems);
-  const summary = summaryParts.join(" · ");
+  const summary = summaryParts.join(" Â· ");
   const agentStatus = summaryParts.length > 0
     ? appendAgentLog(syncAgentStatus(state.agentStatus, queueItems, processedCount, summary), summary, timestamp)
     : syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems));
@@ -762,7 +762,7 @@ function applyQueueApprovalResults(
   ].filter(Boolean);
 
   const jobsWithSync = syncJobsState(jobs, quotes, followUps, queueItems);
-  const summary = summaryParts.join(" · ");
+  const summary = summaryParts.join(" Â· ");
   const agentStatus = summaryParts.length > 0
     ? appendAgentLog(syncAgentStatus(state.agentStatus, queueItems, processedCount, summary), summary, new Date().toISOString())
     : syncAgentStatus(state.agentStatus, queueItems, 0, summarizeQueueTask(queueItems));

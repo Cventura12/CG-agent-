@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+﻿ï»¿import { useMemo, useState } from "react";
 
 import { formatCompactCurrency, formatCurrency, formatHoursMinutes, formatMonoTime } from "../../lib/formatters";
 import { useAppStore } from "../../store/appStore";

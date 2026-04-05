@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+﻿import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -148,7 +148,7 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
             <h2 className="text-[18px] font-medium tracking-[-0.4px] text-[var(--t1)]">{job.name}</h2>
             <JobStatusBadge status={job.status} />
           </div>
-          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} ï¿½ {job.customerContact}</div>
+          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} Ã¯Â¿Â½ {job.customerContact}</div>
           {job.address ? <div className="mt-2 font-mono text-[12px] text-[var(--t3)]">{job.address}</div> : null}
           {job.tags.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -333,7 +333,7 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
             sessions={voiceSessions}
             title="Job call history"
             detail="Streaming call captures, transfer state, and replayable recordings tied to this job."
-            emptyDescription="When the agent captures live calls for this job, theyï¿½ll show up here with transfer and recording state."
+            emptyDescription="When the agent captures live calls for this job, theyÃ¯Â¿Â½ll show up here with transfer and recording state."
             onRequestTransfer={requestVoiceTransfer}
             compact
           />

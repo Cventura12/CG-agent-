@@ -1,4 +1,4 @@
-﻿import { useQuery } from "@tanstack/react-query";
+﻿ï»¿import { useQuery } from "@tanstack/react-query";
 
 import { fetchMultiJobInsights } from "../api/insights";
 

@@ -1,4 +1,4 @@
-﻿import { publicApiClient } from "./client";
+﻿ï»¿import { publicApiClient } from "./client";
 import type { BriefingPayload } from "../types";
 
 const betaContractorId =

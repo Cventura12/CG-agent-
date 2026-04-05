@@ -1,4 +1,4 @@
-﻿import clsx from "clsx";
+﻿ï»¿import clsx from "clsx";
 import { BarChart2, BriefcaseBusiness, FileText, History, LayoutGrid, ListTodo } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -59,8 +59,8 @@ export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
           <div className="flex items-start gap-2">
             <span className={`mt-[4px] h-[6px] w-[6px] rounded-full ${agentStatus.active ? "bg-[var(--accent)] anim-pulse" : "bg-[var(--t3)]"}`} />
             <div className="min-w-0">
-              <div className="text-[11px] font-medium text-[var(--t1)]">Arbor Agent · {agentStatus.active ? "Active" : "Offline"}</div>
-              <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">Monitoring · {agentStatus.openItems} open items</div>
+              <div className="text-[11px] font-medium text-[var(--t1)]">Arbor Agent Â· {agentStatus.active ? "Active" : "Offline"}</div>
+              <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">Monitoring Â· {agentStatus.openItems} open items</div>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[11.5px] text-[var(--t1)]">{job.name}</div>
                     <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">
-                      {job.status.replace("_", " ")} · {formatTimeAgo(job.lastActivityAt ?? job.createdAt)}
+                      {job.status.replace("_", " ")} Â· {formatTimeAgo(job.lastActivityAt ?? job.createdAt)}
                     </div>
                   </div>
                 </Link>

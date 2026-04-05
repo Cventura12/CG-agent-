@@ -1,4 +1,4 @@
-import {
+﻿import {
   BarChart2,
   BriefcaseBusiness,
   CalendarDays,
@@ -77,10 +77,10 @@ export function Sidebar({ agentStatus, queueItems, recentJobs }: SidebarProps) {
             />
             <div className="min-w-0">
               <div className="text-[11px] font-medium text-[var(--t1)]">
-                Arbor Agent · {agentStatus.active ? "Active" : "Offline"}
+                Arbor Agent Â· {agentStatus.active ? "Active" : "Offline"}
               </div>
               <div className="mt-[3px] font-mono text-[10px] text-[var(--t3)]">
-                Monitoring · {queueItems.length} open items
+                Monitoring Â· {queueItems.length} open items
               </div>
             </div>
           </div>

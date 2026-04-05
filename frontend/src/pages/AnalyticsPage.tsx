@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowUpRight, TrendingUp, Waves } from "lucide-react";
+﻿import { AlertTriangle, ArrowUpRight, TrendingUp, Waves } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useState } from "react";
 

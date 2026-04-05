@@ -1,4 +1,4 @@
-﻿import clsx from "clsx";
+﻿ï»¿import clsx from "clsx";
 
 import type { QueueItem as QueueItemType } from "../../types";
 import { formatTimeAgo } from "../../lib/formatters";
@@ -50,7 +50,7 @@ export function QueueItem({ item, selected, onClick }: QueueItemProps) {
           </div>
         ) : null}
         <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">
-          {item.jobName ?? "Unassigned"} · {formatTimeAgo(item.createdAt)}
+          {item.jobName ?? "Unassigned"} Â· {formatTimeAgo(item.createdAt)}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">

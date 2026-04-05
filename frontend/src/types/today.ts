@@ -1,4 +1,4 @@
-export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL";
+﻿export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL";
 export type QueueItemStatus = "pending" | "approved" | "dismissed";
 export type SetupStep = "connect" | "review" | "approve";
 

@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion";
+﻿ï»¿import { motion } from "framer-motion";
 
 import { fadeUp } from "../../lib/animations";
 import type { QueueItem } from "../../types";

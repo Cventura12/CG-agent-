@@ -1,4 +1,4 @@
-export interface MetricCardProps {
+﻿export interface MetricCardProps {
   label: string;
   value: string;
   tone?: "default" | "green" | "amber" | "red";

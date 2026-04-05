@@ -1,4 +1,4 @@
-import type { Quote } from "../../types";
+﻿import type { Quote } from "../../types";
 import { formatCurrency, formatTimeAgo } from "../../lib/formatters";
 import { Badge } from "../ui/Badge";
 import { QuoteStatusBadge } from "./QuoteStatusBadge";

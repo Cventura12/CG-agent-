@@ -1,4 +1,4 @@
-export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL" | "WHATSAPP";
+﻿export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL" | "WHATSAPP";
 export type QueueStatus = "pending" | "manual_review" | "approved" | "dismissed" | "snoozed";
 export type QuoteStatus = "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired";
 export type JobStatus = "active" | "quoted" | "in_progress" | "completed" | "stalled";

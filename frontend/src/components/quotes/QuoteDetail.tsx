@@ -1,4 +1,4 @@
-﻿import { X } from "lucide-react";
+﻿ï»¿import { X } from "lucide-react";
 
 import type { Quote } from "../../types";
 import { formatCurrency, formatTimestamp } from "../../lib/formatters";
@@ -39,7 +39,7 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[14px] font-medium text-[var(--t1)]">{quote.jobName}</div>
-            <div className="mt-1 text-[12px] text-[var(--t2)]">{quote.customerName} · {quote.customerContact}</div>
+            <div className="mt-1 text-[12px] text-[var(--t2)]">{quote.customerName} Â· {quote.customerContact}</div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <QuoteStatusBadge status={quote.status} />
               {intakeLabel ? <Badge label={intakeLabel} color="blue" /> : null}

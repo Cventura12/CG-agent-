@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿ï»¿import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { SignIn, useUser } from "@clerk/clerk-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -219,7 +219,7 @@ export function OnboardingPage() {
                   <div><label className="lbl" htmlFor="markup_pct">Overhead markup</label><input id="markup_pct" className="inp" type="number" value={defaultMarkupPct} onChange={(event) => setDefaultMarkupPct(event.target.value)} placeholder={`e.g. ${activeDefaults.default_markup_pct}%`} /></div>
                 </div>
                 <div><label className="lbl" htmlFor="supplier">Primary supplier</label><input id="supplier" className="inp" value={preferredSupplier} onChange={(event) => setPreferredSupplier(event.target.value)} placeholder="e.g. ABC Supply, Wesco" /></div>
-                <div className="alert ainfo" style={{ fontSize: 11 }}><span>◈</span><span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "0.5px", lineHeight: 1.7 }}>START WITH DEFAULTS NOW — TIGHTEN THEM LATER WITH REAL JOBS AND IMPORTED PRICE BOOKS</span></div>
+                <div className="alert ainfo" style={{ fontSize: 11 }}><span>â</span><span style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, letterSpacing: "0.5px", lineHeight: 1.7 }}>START WITH DEFAULTS NOW â TIGHTEN THEM LATER WITH REAL JOBS AND IMPORTED PRICE BOOKS</span></div>
                 <PricingImportPanel
                   disabledReason={
                     bypassAuth
@@ -230,7 +230,7 @@ export function OnboardingPage() {
                 />
                 {importSummary ? (
                   <div className="alert aok" style={{ fontSize: 12 }}>
-                    <span>✓</span>
+                    <span>â</span>
                     <div>
                       Imported {importSummary.imported_count} price rows and skipped {importSummary.skipped_count}. Future quote drafts will use this price book as a starting baseline.
                     </div>
@@ -241,12 +241,12 @@ export function OnboardingPage() {
 
             {step === 3 ? (
               <div className="pb lg ani" style={{ textAlign: "center", padding: "40px 24px" }}>
-                <div style={{ fontSize: 38, marginBottom: 14 }}>🏗</div>
+                <div style={{ fontSize: 38, marginBottom: 14 }}>ð</div>
                 <h2 style={{ fontFamily: "'Oswald', sans-serif", fontSize: 24, fontWeight: 600, letterSpacing: "2.5px", textTransform: "uppercase", color: "var(--amber-hot)", marginBottom: 8 }}>Ready to work</h2>
-                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.5px", marginBottom: 24 }}>BASELINE SAVED · NEXT STEP: CREATE A LIVE QUOTE DRAFT</div>
+                <div style={{ fontFamily: "'Syne Mono', monospace", fontSize: 8, color: "var(--fog)", letterSpacing: "1.5px", marginBottom: 24 }}>BASELINE SAVED Â· NEXT STEP: CREATE A LIVE QUOTE DRAFT</div>
                 {importSummary ? (
                   <div className="alert aok" style={{ marginBottom: 18, textAlign: "left", fontSize: 12 }}>
-                    <span>✓</span>
+                    <span>â</span>
                     <div>Imported {importSummary.imported_count} pricing rows. Your next useful step is turning a real request into a reviewable quote draft.</div>
                   </div>
                 ) : null}
@@ -258,9 +258,9 @@ export function OnboardingPage() {
 
             {step < 3 ? (
               <div style={{ borderTop: "1px solid var(--wire)", padding: "11px 14px", display: "flex", justifyContent: "flex-end", gap: 9 }}>
-                {step > 0 ? <button type="button" className="btn bw" onClick={() => setStep((current) => Math.max(current - 1, 0))}>← Back</button> : null}
+                {step > 0 ? <button type="button" className="btn bw" onClick={() => setStep((current) => Math.max(current - 1, 0))}>â Back</button> : null}
                 {step < 2 ? (
-                  <button type="button" className="cta" style={{ fontSize: 11, padding: "7px 18px" }} aria-label="Continue" disabled={(step === 0 && !canAdvanceCompanyStep) || (step === 1 && !canAdvanceTradeStep) || isBusy} onClick={() => setStep((current) => current + 1)}>CONTINUE →</button>
+                  <button type="button" className="cta" style={{ fontSize: 11, padding: "7px 18px" }} aria-label="Continue" disabled={(step === 0 && !canAdvanceCompanyStep) || (step === 1 && !canAdvanceTradeStep) || isBusy} onClick={() => setStep((current) => current + 1)}>CONTINUE â</button>
                 ) : (
                   <button type="button" className="cta" style={{ fontSize: 11, padding: "7px 18px" }} disabled={isBusy} onClick={() => saveMutation.mutate()}>{saveMutation.isPending ? "SAVING..." : "FINISH SETUP"}</button>
                 )}

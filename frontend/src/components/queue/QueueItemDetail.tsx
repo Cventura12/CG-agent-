@@ -1,4 +1,4 @@
-﻿import { X } from "lucide-react";
+﻿ï»¿import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { QueueItem } from "../../types";
@@ -49,7 +49,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           <InputSourceIcon source={item.source} />
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-medium text-[var(--t1)]">{item.title}</div>
-            <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{item.source} · {formatTimestamp(item.createdAt)}</div>
+            <div className="mt-1 font-mono text-[10px] text-[var(--t3)]">{item.source} Â· {formatTimestamp(item.createdAt)}</div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {item.urgent ? <Badge label="Urgent" color="amber" /> : null}
               {item.status === "manual_review" && typeof item.confidenceScore === "number" ? (
@@ -83,7 +83,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           <section className="mt-3 rounded-lg border border-[var(--amber-b)] bg-[var(--amber-b)] p-3">
             <SectionLabel>Confidence check</SectionLabel>
             <div className="mt-2 text-[12px] leading-relaxed text-[var(--t1)]">
-              Extracted amount uncertain — please verify against the audio before sending.
+              Extracted amount uncertain â please verify against the audio before sending.
             </div>
             {typeof item.confidenceScore === "number" ? (
               <div className="mt-2 text-[11px] text-[var(--amber)]">
@@ -95,7 +95,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           <section className="mt-3 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] p-3">
             <SectionLabel>Confidence check</SectionLabel>
             <div className="mt-2 text-[12px] leading-relaxed text-[var(--t2)]">
-              Low-confidence capture — verify the details before approving.
+              Low-confidence capture â verify the details before approving.
             </div>
             {typeof item.confidenceScore === "number" ? (
               <div className="mt-2 text-[11px] text-[var(--t3)]">

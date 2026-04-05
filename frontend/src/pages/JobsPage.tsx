@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Filter, MoreHorizontal, Search, ChevronRight, ShieldAlert, Radar, Sparkles } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -220,9 +220,9 @@ export function JobsPage() {
           {budgetData?.summary ? (
             <div className="flex flex-wrap items-center gap-3 text-[12px] text-white/45">
               <span>{budgetData.summary.total_jobs} jobs tracked</span>
-              <span>•</span>
+              <span>â¢</span>
               <span>{budgetData.summary.flagged_jobs} flagged</span>
-              <span>•</span>
+              <span>â¢</span>
               <span>${budgetData.summary.total_pending_value.toLocaleString()} pending</span>
             </div>
           ) : null}

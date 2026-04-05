@@ -1,4 +1,4 @@
-import type { JobStatus } from "../../types";
+﻿import type { JobStatus } from "../../types";
 import { Badge } from "../ui/Badge";
 
 const statusColor: Record<JobStatus, Parameters<typeof Badge>[0]["color"]> = {

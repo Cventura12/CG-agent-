@@ -1,4 +1,4 @@
-type ArborLogoProps = {
+﻿type ArborLogoProps = {
   compact?: boolean;
   showText?: boolean;
   className?: string;

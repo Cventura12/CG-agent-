@@ -1,4 +1,4 @@
-export function hasWindowStorage(): boolean {
+﻿export function hasWindowStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 

@@ -1,4 +1,4 @@
-import { Check, CircleDollarSign, FileText, NotebookPen, RefreshCcw, ShieldCheck } from "lucide-react";
+﻿import { Check, CircleDollarSign, FileText, NotebookPen, RefreshCcw, ShieldCheck } from "lucide-react";
 
 import type { ExtractedAction } from "../../types";
 import { formatCompactCurrency } from "../../lib/formatters";

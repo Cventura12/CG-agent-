@@ -1,4 +1,4 @@
-import type { Job } from "../../types";
+﻿import type { Job } from "../../types";
 import { formatCurrency, formatTimeAgo } from "../../lib/formatters";
 import { JobStatusBadge } from "./JobStatusBadge";
 

@@ -1,4 +1,4 @@
-export function shouldUseMockApi(): boolean {
+﻿export function shouldUseMockApi(): boolean {
   const env = import.meta.env;
   if (env.VITE_OFFLINE_MODE === "1" || env.VITE_MOCK_MODE === "1") {
     return true;
