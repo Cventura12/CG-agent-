@@ -147,3 +147,4 @@ export function Sidebar({ className, onNavigate }: SidebarProps = {}) {
   );
 }
 
+

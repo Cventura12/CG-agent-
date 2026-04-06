@@ -26,3 +26,4 @@ export function Badge({ label, color, className }: BadgeProps) {
   );
 }
 
+

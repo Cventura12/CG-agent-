@@ -28,3 +28,4 @@ export async function fetchContractorBriefing(): Promise<BriefingPayload> {
   return response.data;
 }
 
+

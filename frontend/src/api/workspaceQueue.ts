@@ -707,3 +707,4 @@ export function mapBackendJobActivityType(type: string | undefined): JobActivity
   return "note";
 }
 
+

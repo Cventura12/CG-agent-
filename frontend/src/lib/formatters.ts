@@ -71,3 +71,4 @@ export function initialsFromName(name: string): string {
   return tokens.map((token) => token[0]?.toUpperCase() ?? "").join("");
 }
 
+

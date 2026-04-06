@@ -49,3 +49,4 @@ export function Topbar({ currentTime, onImportTranscript, onNewQuote }: TopbarPr
   );
 }
 
+
