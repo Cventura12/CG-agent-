@@ -599,31 +599,8 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
         },
       }
     );
-      const workspaceArtifacts = normalizeWorkspaceArtifacts(response.data.workspace_artifacts);
-      const confirmation = response.data.confirmation ?? undefined;
-      return {
-        itemId: item.id,
-        backendKind: "draft",
-        status: "approved",
-        approvedAt,
-        activeJobId: workspaceArtifacts?.active_job_id?.trim() || undefined,
-        generatedQuoteId: workspaceArtifacts?.quote?.id?.trim() || undefined,
-        generatedFollowUpIds: (workspaceArtifacts?.followups ?? [])
-          .map((followUp) => followUp.id?.trim() || "")
-          .filter(Boolean),
-        workspaceArtifacts,
-        backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
-        confirmationStatus: confirmation?.status,
-        confirmationChannel: confirmation?.channel,
-        confirmationTo: confirmation?.to,
-        confirmationError: confirmation?.error ?? confirmation?.reason,
-      };
-    }
-
-    const response = await apiClient.post<InternalDraftApprovalResponse>(`/queue/${encodeURIComponent(item.id)}/approve`);
-    const payload = normalizeEnvelope(response.data);
-    const workspaceArtifacts = normalizeWorkspaceArtifacts(payload.workspace_artifacts);
-    const confirmation = payload.confirmation ?? undefined;
+    const workspaceArtifacts = normalizeWorkspaceArtifacts(response.data.workspace_artifacts);
+    const confirmation = response.data.confirmation ?? undefined;
     return {
       itemId: item.id,
       backendKind: "draft",
@@ -642,6 +619,29 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
       confirmationError: confirmation?.error ?? confirmation?.reason,
     };
   }
+
+  const response = await apiClient.post<InternalDraftApprovalResponse>(`/queue/${encodeURIComponent(item.id)}/approve`);
+  const payload = normalizeEnvelope(response.data);
+  const workspaceArtifacts = normalizeWorkspaceArtifacts(payload.workspace_artifacts);
+  const confirmation = payload.confirmation ?? undefined;
+  return {
+    itemId: item.id,
+    backendKind: "draft",
+    status: "approved",
+    approvedAt,
+    activeJobId: workspaceArtifacts?.active_job_id?.trim() || undefined,
+    generatedQuoteId: workspaceArtifacts?.quote?.id?.trim() || undefined,
+    generatedFollowUpIds: (workspaceArtifacts?.followups ?? [])
+      .map((followUp) => followUp.id?.trim() || "")
+      .filter(Boolean),
+    workspaceArtifacts,
+    backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
+    confirmationStatus: confirmation?.status,
+    confirmationChannel: confirmation?.channel,
+    confirmationTo: confirmation?.to,
+    confirmationError: confirmation?.error ?? confirmation?.reason,
+  };
+}
 
 export async function dismissWorkspaceQueueItem(item: QueueItem): Promise<void> {
   if (shouldUseMockApi()) {
@@ -706,5 +706,4 @@ export function mapBackendJobActivityType(type: string | undefined): JobActivity
   if (normalized === "call") return "call";
   return "note";
 }
-
 
