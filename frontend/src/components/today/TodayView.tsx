@@ -113,7 +113,7 @@ function TodayViewContent({
                 <span className="text-[var(--t2)]">{budgetError}</span>
               ) : budgetSummary ? (
                 <span>
-                  Budget at risk: {budgetSummary.flagged_jobs} flagged · ${budgetSummary.total_pending_value.toLocaleString()} pending · {budgetSummary.stale_pending_jobs} stale
+                  Budget at risk: {budgetSummary.flagged_jobs} flagged · {budgetSummary.total_pending_value.toLocaleString()} pending · {budgetSummary.stale_pending_jobs} stale
                 </span>
               ) : (
                 <span className="text-[var(--t2)]">Budget signal unavailable</span>
@@ -143,10 +143,10 @@ function TodayViewContent({
           </div>
         ) : null}
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_260px]">
-            <div className="scrollbar-none min-h-0 overflow-y-auto p-3 sm:p-5">
-              <ZeroDragOnboarding />
-              <sectionclassName="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="scrollbar-none min-h-0 overflow-y-auto p-3 sm:p-5">
+            <ZeroDragOnboarding />
+            <section className="overflow-hidden rounded-[10px] border border-[var(--line-2)] bg-[var(--bg-2)]">
               <div className="flex flex-col gap-3 border-b border-[var(--line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
                   <div className="text-[13px] font-medium text-[var(--t1)]">Agent feed</div>
@@ -256,6 +256,7 @@ export default function TodayView(props: TodayViewProps) {
 export function TodayViewDemo() {
   return <TodayView />;
 }
+
 
 
 
