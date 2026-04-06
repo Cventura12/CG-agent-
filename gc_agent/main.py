@@ -582,7 +582,11 @@ async def lifespan(app: FastAPI):
     except Exception:
         LOGGER.exception("Failed to warm LangGraph during startup")
 
-    jobs_loaded = await _count_active_jobs(app)
+    try:
+        jobs_loaded = await _count_active_jobs(app)
+    except Exception:
+        LOGGER.exception("Startup job count failed")
+        jobs_loaded = 0
     app.state.jobs_loaded = jobs_loaded
 
     scheduler = AsyncIOScheduler()
@@ -690,12 +694,17 @@ app.include_router(public_voice_router, prefix="/public", tags=["public"])
 @app.get("/health")
 async def health() -> dict[str, object]:
     """Return service health and lightweight readiness metadata."""
-    jobs_loaded = await _count_active_jobs(app)
+    try:
+        jobs_loaded = await _count_active_jobs(app)
+    except Exception:
+        LOGGER.exception("Healthcheck job count failed")
+        jobs_loaded = 0
     app.state.jobs_loaded = jobs_loaded
     return {
         "status": "ok",
         "version": APP_VERSION,
         "jobs_loaded": jobs_loaded,
+        "supabase_configured": bool(app.state.supabase_client),
     }
 
 
