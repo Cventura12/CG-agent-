@@ -5,8 +5,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from database import supabase
-from dependencies import get_current_contractor
+from gc_agent.auth import get_current_gc
+from gc_agent.db.client import get_client
 
 
 router = APIRouter(prefix="/budget", tags=["budget"])
@@ -50,11 +50,11 @@ def _enrich_row(row: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("/overview")
-async def budget_overview(contractor_id: str = Depends(get_current_contractor)) -> dict[str, Any]:
+async def budget_overview(contractor_id: str = Depends(get_current_gc)) -> dict[str, Any]:
     """Return budget overview for active jobs, including roll-up flags and totals."""
     try:
         response = (
-            supabase.table("job_budget_summary")
+            get_client().table("job_budget_summary")
             .select("*")
             .eq("contractor_id", contractor_id)
             .neq("job_status", "closed")
@@ -88,12 +88,12 @@ async def budget_overview(contractor_id: str = Depends(get_current_contractor)) 
 
 @router.get("/jobs/{job_id}")
 async def budget_job_detail(
-    job_id: str, contractor_id: str = Depends(get_current_contractor)
+    job_id: str, contractor_id: str = Depends(get_current_gc)
 ) -> dict[str, Any]:
     """Return budget summary for a single job owned by the contractor."""
     try:
         response = (
-            supabase.table("job_budget_summary")
+            get_client().table("job_budget_summary")
             .select("*")
             .eq("job_id", job_id)
             .eq("contractor_id", contractor_id)
@@ -114,12 +114,12 @@ async def budget_job_detail(
 async def update_contract_value(
     job_id: str,
     payload: ContractValueUpdate,
-    contractor_id: str = Depends(get_current_contractor),
+    contractor_id: str = Depends(get_current_gc),
 ) -> dict[str, Any]:
     """Update a job contract value and return the refreshed budget summary row."""
     try:
         update_response = (
-            supabase.table("jobs")
+            get_client().table("jobs")
             .update({"contract_value": payload.contract_value})
             .eq("id", job_id)
             .eq("contractor_id", contractor_id)
@@ -133,7 +133,7 @@ async def update_contract_value(
 
     try:
         summary_response = (
-            supabase.table("job_budget_summary")
+            get_client().table("job_budget_summary")
             .select("*")
             .eq("job_id", job_id)
             .eq("contractor_id", contractor_id)
