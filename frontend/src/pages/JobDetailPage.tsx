@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
-import { Activity, ArrowLeft, Clock3, FileText, History, MessageSquareMore, Phone, Sparkles } from "lucide-react";
+import { Activity, ArrowLeft, BarChart2, Clock3, ClipboardList, FileText, History, MessageSquareMore, Phone } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 
 import { advanceOpenItemLifecycle, createOpenItemDraftAction, fetchJobDetail } from "../api/jobs";
@@ -417,13 +417,23 @@ export function JobDetailPage() {
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-[52rem]">
-              <div className="gc-overline">Job command view</div>
+              <div className="gc-overline">Job record</div>
               <h1 className="gc-page-title mt-3">{job.name}</h1>
               <p className="gc-page-copy mt-4">{job.address || `${job.type} job record`}</p>
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <span className="gc-micro-pill">{job.status}</span>
                 <span className="gc-micro-pill">{unresolvedItems.length} unresolved items</span>
                 {pendingDrafts.length > 0 ? <span className="gc-micro-pill">{pendingDrafts.length} drafts waiting</span> : null}
+                {(job.operational_summary?.financial_exposure_count ?? 0) > 0 ? (
+                  <span className="inline-flex rounded-xl border border-orange-400/40 bg-orange-500/20 px-3 py-1 text-[12px] font-semibold text-orange-200">
+                    {job.operational_summary?.financial_exposure_count} money at risk
+                  </span>
+                ) : null}
+                {(job.operational_summary?.stalled_count ?? 0) > 0 ? (
+                  <span className="inline-flex rounded-xl border border-amber-400/40 bg-amber-500/20 px-3 py-1 text-[12px] font-semibold text-amber-200">
+                    {job.operational_summary?.stalled_count} stalled
+                  </span>
+                ) : null}
               </div>
             </div>
             <div className="rounded-[24px] border border-white/12 bg-white/[0.06] px-5 py-4 shadow-[0_18px_36px_rgba(5,9,19,0.2)]">
@@ -447,41 +457,6 @@ export function JobDetailPage() {
 
       <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <section className="space-y-6">
-          <article className="gc-stack-card p-7">
-            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
-              <Sparkles className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
-              <span>Budget tracking</span>
-            </div>
-            <div className="mt-5">
-              <JobBudgetPanel
-                jobId={jobId}
-                onNavigateToQueue={() => navigate(`/queue?job_id=${encodeURIComponent(jobId)}`)}
-              />
-            </div>
-          </article>
-          <article className="gc-stack-card p-7">
-            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
-              <Sparkles className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
-              <span>Job overview</span>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {[
-                ["Type", job.type],
-                ["Status", job.status],
-                ["Contract value", formatCurrency(job.contract_value)],
-                ["Completion target", job.est_completion || "Not set"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-4 py-4">
-                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">{label}</div>
-                  <div className="mt-2 text-[17px] font-semibold text-slate-950">{value}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
-              <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Notes</div>
-              <div className="mt-3 text-[15px] leading-7 text-slate-600">{job.notes || "No site notes recorded yet."}</div>
-            </div>
-          </article>
 
           <article className="gc-stack-card p-7">
             <div className="flex items-center justify-between gap-4">
@@ -629,36 +604,6 @@ export function JobDetailPage() {
           </article>
 
           <article className="gc-stack-card p-7">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
-                <MessageSquareMore className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-                <span>Customer follow-through</span>
-              </div>
-              <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${followupChip.className}`}>{followupChip.label}</span>
-            </div>
-
-            <div className="mt-5 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
-              <div className="text-[18px] font-semibold text-slate-950">{followupHeadline(followupState?.status)}</div>
-              <div className="mt-2 text-[15px] leading-7 text-slate-500">{followupReason(followupState?.stop_reason ?? null)}</div>
-
-              <div className="mt-5 grid gap-4 sm:grid-cols-3">
-                <div>
-                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Channel</div>
-                  <div className="mt-2 text-[16px] font-semibold text-slate-950">{followupState?.channel ? followupState.channel.charAt(0).toUpperCase() + followupState.channel.slice(1) : "None"}</div>
-                </div>
-                <div>
-                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Reminders sent</div>
-                  <div className="mt-2 text-[16px] font-semibold text-slate-950">{followupState?.reminder_count ?? 0}</div>
-                </div>
-                <div>
-                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Last reminder</div>
-                  <div className="mt-2 text-[16px] font-semibold text-slate-950">{formatTimestamp(followupState?.last_reminder_at ?? null)}</div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article className="gc-stack-card p-7">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <FileText className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
               <span>Work waiting on review</span>
@@ -717,9 +662,106 @@ export function JobDetailPage() {
               )}
             </div>
           </article>
+
+          <article className="gc-stack-card p-7">
+            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+              <ClipboardList className="h-5 w-5 text-slate-500" aria-hidden="true" />
+              <span>Job overview</span>
+            </div>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {[
+                ["Type", job.type],
+                ["Status", job.status],
+                ["Contract value", formatCurrency(job.contract_value)],
+                ["Completion target", job.est_completion || "Not set"],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-4 py-4">
+                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">{label}</div>
+                  <div className="mt-2 text-[17px] font-semibold text-slate-950">{value}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
+              <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Notes</div>
+              <div className="mt-3 text-[15px] leading-7 text-slate-600">{job.notes || "No site notes recorded yet."}</div>
+            </div>
+          </article>
+
+          <article className="gc-stack-card p-7">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+                <MessageSquareMore className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+                <span>Customer follow-through</span>
+              </div>
+              <span className={`inline-flex rounded-xl px-3 py-1 text-sm font-semibold ${followupChip.className}`}>{followupChip.label}</span>
+            </div>
+
+            <div className="mt-5 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
+              <div className="text-[18px] font-semibold text-slate-950">{followupHeadline(followupState?.status)}</div>
+              <div className="mt-2 text-[15px] leading-7 text-slate-500">{followupReason(followupState?.stop_reason ?? null)}</div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <div>
+                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Channel</div>
+                  <div className="mt-2 text-[16px] font-semibold text-slate-950">{followupState?.channel ? followupState.channel.charAt(0).toUpperCase() + followupState.channel.slice(1) : "None"}</div>
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Reminders sent</div>
+                  <div className="mt-2 text-[16px] font-semibold text-slate-950">{followupState?.reminder_count ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-slate-400">Last reminder</div>
+                  <div className="mt-2 text-[16px] font-semibold text-slate-950">{formatTimestamp(followupState?.last_reminder_at ?? null)}</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article className="gc-stack-card p-7">
+            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+              <BarChart2 className="h-5 w-5 text-slate-500" aria-hidden="true" />
+              <span>Budget tracking</span>
+            </div>
+            <div className="mt-5">
+              <JobBudgetPanel
+                jobId={jobId}
+                onNavigateToQueue={() => navigate(`/queue?job_id=${encodeURIComponent(jobId)}`)}
+              />
+            </div>
+          </article>
         </section>
 
         <section className="space-y-6">
+          <article className="gc-stack-card p-7">
+            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
+              <Activity className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+              <span>What changed</span>
+            </div>
+            <div className="mt-6 space-y-4">
+              {auditTimeline.length === 0 ? (
+                <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[rgba(255,255,255,0.48)] px-5 py-6 text-[15px] text-slate-500">No job activity recorded yet.</div>
+              ) : (
+                auditTimeline.map((event) => (
+                  <div key={event.id} className="flex gap-4 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
+                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${timelineTone(event.event_type)}`}>
+                      {event.event_type.includes("quote") ? <FileText className="h-5 w-5" aria-hidden="true" /> : event.event_type.includes("follow") ? <MessageSquareMore className="h-5 w-5" aria-hidden="true" /> : event.event_type.includes("transcript") ? <Phone className="h-5 w-5" aria-hidden="true" /> : <History className="h-5 w-5" aria-hidden="true" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="text-[17px] font-semibold text-slate-950">{event.title}</div>
+                        <div className="inline-flex items-center gap-1 text-sm text-slate-500">
+                          <Clock3 className="h-4 w-4" aria-hidden="true" />
+                          <span>{formatTimestamp(event.timestamp)}</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[15px] leading-7 text-slate-500">{event.summary}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </article>
+
           <article className="gc-stack-card p-7">
             <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
               <Phone className="h-5 w-5 text-[#2453d4]" aria-hidden="true" />
@@ -813,35 +855,6 @@ export function JobDetailPage() {
             </div>
           </article>
 
-          <article className="gc-stack-card p-7">
-            <div className="flex items-center gap-3 text-[18px] font-semibold text-slate-950">
-              <Activity className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              <span>What changed</span>
-            </div>
-            <div className="mt-6 space-y-4">
-              {auditTimeline.length === 0 ? (
-                <div className="rounded-[22px] border border-dashed border-[var(--gc-line-strong)] bg-[rgba(255,255,255,0.48)] px-5 py-6 text-[15px] text-slate-500">No job activity recorded yet.</div>
-              ) : (
-                auditTimeline.map((event) => (
-                  <div key={event.id} className="flex gap-4 rounded-[22px] border border-[var(--gc-line)] bg-[rgba(255,255,255,0.68)] px-5 py-5">
-                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${timelineTone(event.event_type)}`}>
-                      {event.event_type.includes("quote") ? <FileText className="h-5 w-5" aria-hidden="true" /> : event.event_type.includes("follow") ? <Sparkles className="h-5 w-5" aria-hidden="true" /> : event.event_type.includes("transcript") ? <Phone className="h-5 w-5" aria-hidden="true" /> : <History className="h-5 w-5" aria-hidden="true" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="text-[17px] font-semibold text-slate-950">{event.title}</div>
-                        <div className="inline-flex items-center gap-1 text-sm text-slate-500">
-                          <Clock3 className="h-4 w-4" aria-hidden="true" />
-                          <span>{formatTimestamp(event.timestamp)}</span>
-                        </div>
-                      </div>
-                      <div className="mt-2 text-[15px] leading-7 text-slate-500">{event.summary}</div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
         </section>
       </div>
     </div>
