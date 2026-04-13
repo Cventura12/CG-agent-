@@ -35,6 +35,12 @@ function routeMeta(pathname: string): { title: string; subtitle?: string } {
       subtitle: "What the agent is actually converting into revenue.",
     };
   }
+  if (pathname.startsWith("/integrations")) {
+    return {
+      title: "Integrations",
+      subtitle: "Gmail capture and Google Calendar sync.",
+    };
+  }
   return {
     title: "Today",
     subtitle: "The agent is already watching the operation. Start with what needs a decision.",

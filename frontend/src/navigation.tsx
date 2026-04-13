@@ -70,6 +70,16 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     description: "Cross-job leverage and pattern detection.",
     match: (pathname) => pathname.startsWith("/insights"),
   },
+  {
+    section: "Field",
+    label: "Integrations",
+    shortLabel: "Connect",
+    href: "/integrations",
+    ico: "⚡",
+    badge: null,
+    description: "Gmail capture and Google Calendar sync.",
+    match: (pathname) => pathname.startsWith("/integrations"),
+  },
 ];
 
 export function navItemForPath(pathname: string): AppNavItem | null {

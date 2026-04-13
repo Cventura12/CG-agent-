@@ -39,6 +39,7 @@ from gc_agent.routers.insights import router as insights_router
 from gc_agent.routers.jobs import router as jobs_router
 from gc_agent.routers.pricing import router as pricing_router
 from gc_agent.routers.queue import router as queue_router
+from gc_agent.routers.integrations import router as integrations_router
 from gc_agent.routers.responsibilities import router as responsibilities_router
 from gc_agent.routers.transcripts import router as transcripts_router
 from gc_agent.routers.voice import router as voice_router
@@ -535,6 +536,15 @@ async def send_daily_briefings() -> None:
             )
 
 
+async def _poll_gmail() -> None:
+    """Scheduled job: poll Gmail inboxes for all connected GC accounts."""
+    try:
+        from gc_agent.integrations.gmail import poll_all_gmail_connections
+        await poll_all_gmail_connections()
+    except Exception:
+        LOGGER.exception("Gmail poll scheduled job failed")
+
+
 async def run_due_followups() -> None:
     """Execute due quote follow-up reminders across all contractors."""
     if _APP is None:
@@ -612,10 +622,17 @@ async def lifespan(app: FastAPI):
         id="process_due_followups",
         replace_existing=True,
     )
+    scheduler.add_job(
+        _poll_gmail,
+        trigger="interval",
+        minutes=15,
+        id="poll_gmail",
+        replace_existing=True,
+    )
     scheduler.start()
     app.state.scheduler = scheduler
     _log_startup_runtime_warnings()
-    LOGGER.info("Scheduler jobs registered: daily_briefings, retry_failed_briefings, process_due_followups")
+    LOGGER.info("Scheduler jobs registered: daily_briefings, retry_failed_briefings, process_due_followups, poll_gmail")
 
     LOGGER.info("Startup complete; jobs_loaded=%s, briefing_hour=%s", jobs_loaded, settings.briefing_hour)
 
@@ -679,6 +696,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(budget_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
+app.include_router(integrations_router, prefix="/api/v1")
 app.include_router(insights_router, prefix="/api/v1")
 app.include_router(queue_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")

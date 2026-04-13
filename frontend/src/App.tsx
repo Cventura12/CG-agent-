@@ -6,6 +6,7 @@ import QuotesView from "./components/quotes/QuotesView";
 import QueueView from "./components/queue/QueueView";
 import { AppShell } from "./components/shell/AppShell";
 import TodayView from "./components/today/TodayView";
+import { IntegrationsPage } from "./pages/IntegrationsPage";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="jobs" element={<JobsView />} />
           <Route path="jobs/:id" element={<JobsView />} />
           <Route path="analytics" element={<AnalyticsView />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>
