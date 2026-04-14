@@ -1,8 +1,6 @@
-﻿import { motion } from "framer-motion";
-import { FileText, Mic, Paperclip, Plus, Square, Upload, X } from "lucide-react";
+﻿import { FileText, Mic, Paperclip, Plus, Square, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 
-import { fadeIn } from "../../lib/animations";
 import type { Job, QuoteDraftInput, QuoteIntakeSource, WorkspaceTranscriptQuotePrefill } from "../../types";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -284,20 +282,10 @@ export function QuoteComposer({
   const modeTitle = activeMode === "voice" ? "Voice memo" : activeMode === "pdf" ? "PDF scope" : "Files or photos";
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      exit="hidden"
-      variants={fadeIn}
-      className="absolute inset-0 z-30 bg-black/55 backdrop-blur-[2px]"
-    >
+    <div className="absolute inset-0 z-30 bg-black/55 backdrop-blur-[2px]">
       <div className="flex h-full w-full items-stretch justify-end">
         <button type="button" className="hidden flex-1 lg:block" aria-label="Close new quote composer" onClick={onClose} />
-        <motion.section
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
+        <section
           className="flex h-full w-full flex-col border-l border-[var(--line-2)] bg-[var(--bg-2)] sm:max-w-[560px]"
         >
           <div className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
@@ -581,9 +569,9 @@ export function QuoteComposer({
 
           <input ref={photoInputRef} type="file" accept="image/*" className="sr-only" onChange={handleUploadChange("photo")} />
           <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" className="sr-only" onChange={handleUploadChange("pdf")} />
-        </motion.section>
+        </section>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

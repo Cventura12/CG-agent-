@@ -1,5 +1,10 @@
 import { apiClient } from "./client";
-import type { ApiEnvelope } from "../types";
+
+type ApiEnvelope<T> = {
+  success: boolean;
+  data: T;
+  error: string | null;
+};
 
 export interface GoogleIntegrationStatus {
   connected: boolean;

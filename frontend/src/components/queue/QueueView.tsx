@@ -1,9 +1,7 @@
-﻿import { motion } from "framer-motion";
-import { Clock3 } from "lucide-react";
+﻿import { Clock3 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { slideRight } from "../../lib/animations";
 import { useAppStore } from "../../store/appStore";
 import type { QueueItem } from "../../types";
 import { EmptyState } from "../ui/EmptyState";
@@ -81,25 +79,20 @@ function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; use
             />
           ) : (
             filteredItems.map((item, index) => (
-              <motion.div key={item.id} custom={index} initial="hidden" animate="visible" variants={slideRight}>
+              <div key={item.id}>
                 <QueueRow
                   item={item}
                   selected={selectedItem?.id === item.id}
                   onClick={() => navigate(`/queue/${item.id}`)}
                 />
-              </motion.div>
+              </div>
             ))
           )}
         </div>
       </div>
 
       {selectedItem ? (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
-          className="absolute inset-0 z-20 lg:static lg:inset-auto"
-        >
+        <div className="absolute inset-0 z-20 lg:static lg:inset-auto">
           <QueueItemDetail
             item={selectedItem}
             onClose={() => navigate("/queue")}
@@ -112,7 +105,7 @@ function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; use
             }}
             onToggleAction={(actionId) => toggleExtractedAction(selectedItem.id, actionId)}
           />
-        </motion.div>
+        </div>
       ) : null}
     </div>
   );
