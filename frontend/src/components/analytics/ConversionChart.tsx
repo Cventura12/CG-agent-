@@ -1,4 +1,4 @@
-﻿export interface ConversionDatum {
+export interface ConversionDatum {
   label: string;
   created: number;
   accepted: number;
@@ -49,5 +49,3 @@ export function ConversionChart({ data }: ConversionChartProps) {
     </div>
   );
 }
-
-

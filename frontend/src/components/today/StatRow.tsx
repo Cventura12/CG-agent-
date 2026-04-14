@@ -1,4 +1,4 @@
-﻿import type { QueueItem } from "../../types";
+import type { QueueItem } from "../../types";
 
 export interface StatRowProps {
   queueItems: QueueItem[];
@@ -53,6 +53,3 @@ export function StatRow({ queueItems, openQuotes, followUpsDue, activeJobs }: St
     </section>
   );
 }
-
-
-
