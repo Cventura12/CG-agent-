@@ -1,5 +1,5 @@
 import typography from "@tailwindcss/typography";
-var config = {
+const config = {
     content: ["./index.html", "./src/**/*.{ts,tsx}"],
     theme: {
         extend: {
