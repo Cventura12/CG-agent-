@@ -1,6 +1,4 @@
-﻿import { useAuth } from "@clerk/clerk-react";
-import axios from "axios";
-import { useEffect } from "react";
+﻿import axios from "axios";
 
 const baseURL =
   (import.meta.env.VITE_API_URL as string | undefined) ??
@@ -28,25 +26,5 @@ export const publicApiClient = axios.create({
   },
 });
 
-export function useApiAuthInterceptor() {
-  const { getToken } = useAuth();
-
-  useEffect(() => {
-    const interceptorId = apiClient.interceptors.request.use(async (config) => {
-      const token = await getToken();
-      if (token) {
-        config.headers = config.headers ?? {};
-        (config.headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
-      } else if (config.headers) {
-        delete (config.headers as Record<string, string>)["Authorization"];
-      }
-      return config;
-    });
-
-    return () => {
-      apiClient.interceptors.request.eject(interceptorId);
-    };
-  }, [getToken]);
-}
 
 
