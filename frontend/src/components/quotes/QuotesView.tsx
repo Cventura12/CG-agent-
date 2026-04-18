@@ -1,10 +1,8 @@
-﻿import { motion } from "framer-motion";
-import { FileText } from "lucide-react";
+﻿import { FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { fetchWorkspaceTranscriptQuotePrefill } from "../../api/workspaceTranscripts";
-import { fadeUp } from "../../lib/animations";
 import { useAppStore } from "../../store/appStore";
 import type { Quote, QuoteDraftInput, WorkspaceTranscriptQuotePrefill } from "../../types";
 import { EmptyState } from "../ui/EmptyState";
@@ -139,9 +137,9 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
             />
           ) : (
             filteredQuotes.map((quote, index) => (
-              <motion.div key={quote.id} custom={index} initial="hidden" animate="visible" variants={fadeUp}>
+              <div key={quote.id}>
                 <QuoteCard quote={quote} selected={selectedQuote?.id === quote.id} onClick={() => navigate(`/quotes/${quote.id}`)} />
-              </motion.div>
+              </div>
             ))
           )}
         </div>
@@ -159,14 +157,9 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
       ) : null}
 
       {selectedQuote && !isComposerOpen ? (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
-          className="absolute inset-0 z-20 lg:static lg:inset-auto"
-        >
+        <div className="absolute inset-0 z-20 lg:static lg:inset-auto">
           <QuoteDetail quote={selectedQuote} onClose={() => navigate("/quotes")} onStatusChange={(status) => updateQuoteStatus(selectedQuote.id, status)} />
-        </motion.div>
+        </div>
       ) : null}
     </div>
   );
