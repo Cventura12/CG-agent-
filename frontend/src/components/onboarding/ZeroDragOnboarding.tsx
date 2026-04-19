@@ -104,11 +104,9 @@ export function ZeroDragOnboarding() {
     setVisible(false);
   };
 
-  useEffect(() => {
-    if (hasRealData) {
-      finishOnboarding();
-    }
-  }, [hasRealData]);
+  // Derive combined visibility: hide if dismissed by user OR real data arrived.
+  // Avoids setState-in-effect loop by computing this during render.
+  const shouldShow = visible && !hasRealData;
 
   useEffect(() => {
     if (step === 2 && ghostItem?.id) {
@@ -130,7 +128,7 @@ export function ZeroDragOnboarding() {
     return undefined;
   }, [step, ghostItem]);
 
-  if (!visible) {
+  if (!shouldShow) {
     return null;
   }
 
