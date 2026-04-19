@@ -99,6 +99,11 @@ export function ZeroDragOnboarding() {
     return realQueue || realJobs || voiceSessions.length > 0;
   }, [queueItems, jobs, voiceSessions]);
 
+  const finishOnboarding = () => {
+    safeLocalStorageSet(STORAGE_KEY, "1");
+    setVisible(false);
+  };
+
   useEffect(() => {
     if (hasRealData) {
       finishOnboarding();
@@ -156,11 +161,6 @@ export function ZeroDragOnboarding() {
       setActiveView("jobs");
       finishOnboarding();
     }
-  };
-
-  const finishOnboarding = () => {
-    safeLocalStorageSet(STORAGE_KEY, "1");
-    setVisible(false);
   };
 
   return (
