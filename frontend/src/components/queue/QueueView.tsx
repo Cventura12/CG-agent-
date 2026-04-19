@@ -77,7 +77,7 @@ function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; use
               description="The agent will surface new items as calls and messages come in."
             />
           ) : (
-            filteredItems.map((item, index) => (
+            filteredItems.map((item) => (
               <div key={item.id}>
                 <QueueRow
                   item={item}

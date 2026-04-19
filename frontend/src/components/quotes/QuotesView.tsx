@@ -136,7 +136,7 @@ function QuotesViewContent({ quotes, useStore = false }: { quotes: Quote[]; useS
               action={{ label: "Start new quote", onClick: () => navigate("/quotes?compose=1") }}
             />
           ) : (
-            filteredQuotes.map((quote, index) => (
+            filteredQuotes.map((quote) => (
               <div key={quote.id}>
                 <QuoteCard quote={quote} selected={selectedQuote?.id === quote.id} onClick={() => navigate(`/quotes/${quote.id}`)} />
               </div>
