@@ -19,7 +19,7 @@ export function AgentLog({ agentStatus }: AgentLogProps) {
               <div key={entry.id}>
                 {current ? (
                   <span className="text-[var(--accent)]">
-                    ? <span className="text-[var(--t2)]">{entry.message}</span>
+                    • <span className="text-[var(--t2)]">{entry.message}</span>
                     <span className="ml-[3px] inline-block h-[11px] w-px translate-y-[2px] bg-[var(--accent)] anim-blink" />
                   </span>
                 ) : (
