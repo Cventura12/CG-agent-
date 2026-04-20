@@ -1,6 +1,7 @@
 ﻿import { Clock3 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
 import { useAppStore } from "../../store/appStore";
 import type { QueueItem } from "../../types";
 import { EmptyState } from "../ui/EmptyState";
@@ -29,23 +30,16 @@ function matchesFilter(item: QueueItem, filter: QueueFilter): boolean {
   return true;
 }
 
-function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; useStore?: boolean }) {
+function QueueViewContent({ items }: { items: QueueItem[] }) {
   const navigate = useNavigate();
   const { id } = useParams();
   const approveQueueItem = useAppStore((state) => state.approveQueueItem);
   const dismissQueueItem = useAppStore((state) => state.dismissQueueItem);
   const toggleExtractedAction = useAppStore((state) => state.toggleExtractedAction);
-  const setSelectedQueueItem = useAppStore((state) => state.setSelectedQueueItem);
   const [filter, setFilter] = useState<QueueFilter>("all");
 
   const filteredItems = useMemo(() => items.filter((item) => matchesFilter(item, filter)), [filter, items]);
   const selectedItem = filteredItems.find((item) => item.id === id) ?? items.find((item) => item.id === id) ?? null;
-
-  useEffect(() => {
-    if (useStore) {
-      setSelectedQueueItem(selectedItem?.id ?? null);
-    }
-  }, [selectedItem?.id, setSelectedQueueItem, useStore]);
 
   return (
     <div className="relative flex h-full overflow-hidden bg-[var(--bg)]">
@@ -78,13 +72,12 @@ function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; use
             />
           ) : (
             filteredItems.map((item) => (
-              <div key={item.id}>
-                <QueueRow
-                  item={item}
-                  selected={selectedItem?.id === item.id}
-                  onClick={() => navigate(`/queue/${item.id}`)}
-                />
-              </div>
+              <QueueRow
+                key={item.id}
+                item={item}
+                selected={selectedItem?.id === item.id}
+                onClick={() => navigate(`/queue/${item.id}`)}
+              />
             ))
           )}
         </div>
@@ -112,13 +105,10 @@ function QueueViewContent({ items, useStore = false }: { items: QueueItem[]; use
 
 export default function QueueView() {
   const items = useAppStore((state) => state.queueItems);
-  return <QueueViewContent items={items} useStore />;
+  return <QueueViewContent items={items} />;
 }
 
 export function QueueViewDemo() {
   const items = useAppStore.getState().queueItems;
   return <QueueViewContent items={items} />;
 }
-
-
-
