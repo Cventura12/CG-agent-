@@ -1,6 +1,6 @@
 ﻿import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useAppStore } from "../../store/appStore";
 import type { Job } from "../../types";
@@ -8,23 +8,10 @@ import { EmptyState } from "../ui/EmptyState";
 import { JobCard } from "./JobCard";
 import { JobDetail } from "./JobDetail";
 
-function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: boolean }) {
+function JobsViewContent({ jobs }: { jobs: Job[] }) {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const setActiveJob = useAppStore((state) => state.setActiveJob);
-  const updateJobNotes = useAppStore((state) => state.updateJobNotes);
   const [query, setQuery] = useState("");
-  const activeTabParam = searchParams.get("tab");
-  const initialTab =
-    activeTabParam === "activity" ||
-    activeTabParam === "quotes" ||
-    activeTabParam === "followups" ||
-    activeTabParam === "calls" ||
-    activeTabParam === "notes"
-      ? activeTabParam
-      : undefined;
-  const currentSearch = searchParams.toString();
 
   const filteredJobs = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -33,12 +20,6 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
   }, [jobs, query]);
 
   const selectedJob = filteredJobs.find((job) => job.id === id) ?? jobs.find((job) => job.id === id) ?? filteredJobs[0] ?? null;
-
-  useEffect(() => {
-    if (useStore) {
-      setActiveJob(selectedJob?.id ?? null);
-    }
-  }, [selectedJob?.id, setActiveJob, useStore]);
 
   return (
     <div className="relative flex h-full overflow-hidden bg-[var(--bg)]">
@@ -61,7 +42,7 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
               key={job.id}
               job={job}
               selected={selectedJob?.id === job.id}
-              onClick={() => navigate(`/jobs/${job.id}${currentSearch ? `?${currentSearch}` : ""}`)}
+              onClick={() => navigate(`/jobs/${job.id}`)}
             />
           ))}
         </div>
@@ -71,8 +52,7 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
         {selectedJob ? (
           <JobDetail
             job={selectedJob}
-            initialTab={initialTab}
-            onSaveNotes={(notes) => updateJobNotes(selectedJob.id, notes)}
+            onSaveNotes={() => {}}
             onClose={() => navigate("/jobs")}
           />
         ) : (
@@ -85,11 +65,9 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
 
 export default function JobsView() {
   const jobs = useAppStore((state) => state.jobs);
-  return <JobsViewContent jobs={jobs} useStore />;
+  return <JobsViewContent jobs={jobs} />;
 }
 
 export function JobsViewDemo() {
   return <JobsViewContent jobs={useAppStore.getState().jobs} />;
 }
-
-
