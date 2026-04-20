@@ -1,4 +1,4 @@
-﻿export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL" | "WHATSAPP";
+export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL" | "WHATSAPP";
 export type QueueStatus = "pending" | "manual_review" | "approved" | "dismissed" | "snoozed";
 export type QuoteStatus = "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired";
 export type JobStatus = "active" | "quoted" | "in_progress" | "completed" | "stalled";
@@ -229,6 +229,72 @@ export interface WorkspaceJobFollowUpState {
   channel: string | null;
 }
 
+export interface WorkspaceJobOpenItem {
+  id: string;
+  job_id: string;
+  type: string;
+  description: string;
+  owner: string;
+  status: string;
+  action_stage?: string | null;
+  days_silent: number;
+  due_date?: string | null;
+  trace_id?: string;
+  financial_exposure?: boolean;
+  change_related?: boolean;
+  followthrough_related?: boolean;
+  stalled?: boolean;
+  kind_label?: string;
+  action_trace_id?: string;
+  action_draft_type?: string;
+  action_label?: string;
+  action_stage_label?: string;
+  action_stage_summary?: string;
+}
+
+export interface WorkspaceJobOperationalSummary {
+  open_item_count: number;
+  financial_exposure_count: number;
+  unresolved_change_count: number;
+  approval_count: number;
+  followthrough_count: number;
+  stalled_count: number;
+}
+
+export interface WorkspaceJobRecord {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  address: string;
+  contract_value: number;
+  contract_type: string;
+  est_completion: string;
+  notes: string;
+  last_updated: string;
+  open_items: WorkspaceJobOpenItem[];
+  operational_summary?: WorkspaceJobOperationalSummary;
+  health?: string;
+}
+
+export interface WorkspaceJobTimelineEvent {
+  id: string;
+  event_type: string;
+  timestamp: string | null;
+  title: string;
+  summary: string;
+  trace_id: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface WorkspaceJobDetailPayload {
+  job: WorkspaceJobRecord;
+  recent_updates?: Array<Record<string, unknown>>;
+  call_history?: Array<Record<string, unknown>>;
+  audit_timeline: WorkspaceJobTimelineEvent[];
+  followup_state: WorkspaceJobFollowUpState | null;
+}
+
 export interface WorkspaceTranscriptQuotePrefill {
   transcript_id: string;
   trace_id: string;
@@ -251,5 +317,4 @@ export interface WorkspaceTranscriptQuotePrefill {
   estimate_related: boolean;
   quote_input: string;
 }
-
 

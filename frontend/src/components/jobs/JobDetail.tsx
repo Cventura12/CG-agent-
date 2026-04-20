@@ -1,8 +1,8 @@
-﻿import { X } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { Job } from "../../types";
-import { formatCurrency, formatMonoTime } from "../../lib/formatters";
+import type { Job, WorkspaceJobFollowUpState, WorkspaceJobTimelineEvent } from "../../types";
+import { formatCurrency, formatMonoTime, formatTimeAgo } from "../../lib/formatters";
 import { JobStatusBadge } from "./JobStatusBadge";
 
 const tabs = ["activity", "quotes", "followups", "notes"] as const;
@@ -13,9 +13,68 @@ export interface JobDetailProps {
   onSaveNotes: (notes: string) => void;
   onClose?: () => void;
   initialTab?: JobTab;
+  auditTimeline?: WorkspaceJobTimelineEvent[];
+  followupState?: WorkspaceJobFollowUpState | null;
+  historyLoading?: boolean;
+  historyError?: string | null;
 }
 
-export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }: JobDetailProps) {
+function timelineLabel(eventType: string): string {
+  switch (eventType.trim().toLowerCase()) {
+    case "quote_draft_created":
+      return "Draft created";
+    case "quote_delivered":
+      return "Quote sent";
+    case "followup_scheduled":
+      return "Follow-up scheduled";
+    case "call_logged":
+      return "Call logged";
+    case "update_logged":
+      return "Update logged";
+    default:
+      return eventType.replaceAll("_", " ") || "Activity";
+  }
+}
+
+function renderFollowupStateSummary(followupState: WorkspaceJobFollowUpState | null): { title: string; detail: string } | null {
+  if (!followupState || followupState.status === "none") {
+    return null;
+  }
+
+  switch (followupState.status) {
+    case "scheduled":
+      return {
+        title: "Follow-up is live",
+        detail: followupState.next_due_at ? `Next touch ${formatTimeAgo(followupState.next_due_at)}` : "Waiting on the next reminder window.",
+      };
+    case "pending_destination":
+      return {
+        title: "Follow-up needs a destination",
+        detail: "A follow-up exists, but Arbor still needs the best contact channel before it can send.",
+      };
+    case "stopped":
+      return {
+        title: "Follow-up closed",
+        detail: followupState.stop_reason ? `Stopped because ${followupState.stop_reason}.` : "This follow-up was stopped manually.",
+      };
+    default:
+      return {
+        title: "Follow-up state updated",
+        detail: `Current status: ${followupState.status}.`,
+      };
+  }
+}
+
+export function JobDetail({
+  job,
+  onSaveNotes,
+  onClose,
+  initialTab = "activity",
+  auditTimeline = [],
+  followupState = null,
+  historyLoading = false,
+  historyError = null,
+}: JobDetailProps) {
   const [activeTab, setActiveTab] = useState<JobTab>(initialTab);
   const [notesDraft, setNotesDraft] = useState(job.notes ?? "");
 
@@ -47,6 +106,8 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
     [job]
   );
 
+  const followupSummary = useMemo(() => renderFollowupStateSummary(followupState), [followupState]);
+
   return (
     <div className="scrollbar-none h-full overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex items-start justify-between gap-4">
@@ -55,7 +116,7 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
             <h2 className="text-[18px] font-medium tracking-[-0.4px] text-[var(--t1)]">{job.name}</h2>
             <JobStatusBadge status={job.status} />
           </div>
-          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} · {job.customerContact}</div>
+          <div className="mt-2 text-[13px] text-[var(--t2)]">{job.customerName} - {job.customerContact}</div>
           {job.address ? <div className="mt-2 font-mono text-[12px] text-[var(--t3)]">{job.address}</div> : null}
           {job.tags.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -110,15 +171,31 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
 
       {activeTab === "activity" ? (
         <div className="pt-3">
-          {job.activityLog.map((entry) => (
-            <div key={entry.id} className="border-b border-[var(--line)] py-3 last:border-b-0">
-              <div className="text-[13px] text-[var(--t1)]">{entry.description}</div>
-              <div className="mt-1 flex items-center gap-3 font-mono text-[10px] text-[var(--t3)]">
-                <span>{formatMonoTime(entry.timestamp)}</span>
-                {typeof entry.value === "number" ? <span className="text-[var(--green)]">{formatCurrency(entry.value)}</span> : null}
-              </div>
-            </div>
-          ))}
+          {historyLoading ? <div className="py-3 text-[12px] text-[var(--t3)]">Loading persisted job timeline...</div> : null}
+          {historyError ? <div className="py-3 text-[12px] text-[var(--orange)]">{historyError}</div> : null}
+          {!historyLoading && !historyError && auditTimeline.length > 0
+            ? auditTimeline.map((entry) => (
+                <div key={entry.id} className="border-b border-[var(--line)] py-3 last:border-b-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[13px] text-[var(--t1)]">{entry.title || timelineLabel(entry.event_type)}</div>
+                    <div className="font-mono text-[10px] text-[var(--t3)]">{entry.timestamp ? formatMonoTime(entry.timestamp) : "Unknown"}</div>
+                  </div>
+                  <div className="mt-1 text-[12px] text-[var(--t2)]">{entry.summary || "Persisted job activity."}</div>
+                  {entry.trace_id ? <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">Trace {entry.trace_id}</div> : null}
+                </div>
+              ))
+            : null}
+          {!historyLoading && !historyError && auditTimeline.length === 0
+            ? job.activityLog.map((entry) => (
+                <div key={entry.id} className="border-b border-[var(--line)] py-3 last:border-b-0">
+                  <div className="text-[13px] text-[var(--t1)]">{entry.description}</div>
+                  <div className="mt-1 flex items-center gap-3 font-mono text-[10px] text-[var(--t3)]">
+                    <span>{formatMonoTime(entry.timestamp)}</span>
+                    {typeof entry.value === "number" ? <span className="text-[var(--green)]">{formatCurrency(entry.value)}</span> : null}
+                  </div>
+                </div>
+              ))
+            : null}
         </div>
       ) : null}
 
@@ -139,6 +216,15 @@ export function JobDetail({ job, onSaveNotes, onClose, initialTab = "activity" }
 
       {activeTab === "followups" ? (
         <div className="space-y-3 pt-4">
+          {followupSummary ? (
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] px-4 py-3">
+              <div className="text-[13px] text-[var(--t1)]">{followupSummary.title}</div>
+              <div className="mt-1 text-[12px] text-[var(--t2)]">{followupSummary.detail}</div>
+              {followupState?.reminder_count ? (
+                <div className="mt-2 font-mono text-[10px] text-[var(--t3)]">{followupState.reminder_count} reminders sent</div>
+              ) : null}
+            </div>
+          ) : null}
           {job.followUps.length === 0 ? (
             <div className="text-[12px] text-[var(--t2)]">No follow-ups on this job right now.</div>
           ) : (

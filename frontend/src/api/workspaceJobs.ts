@@ -1,5 +1,5 @@
-﻿import { apiClient, publicApiClient } from "./client";
-import type { WorkspaceJobFollowUpState } from "../types";
+import { apiClient, publicApiClient } from "./client";
+import type { WorkspaceJobDetailPayload, WorkspaceJobFollowUpState } from "../types";
 
 const betaContractorId =
   (import.meta.env.VITE_BETA_CONTRACTOR_ID as string | undefined)?.trim() ??
@@ -16,6 +16,8 @@ type ApiEnvelope<T> = {
 type FollowUpStatePayload = {
   followup_state: WorkspaceJobFollowUpState | null;
 };
+
+type JobDetailPayload = WorkspaceJobDetailPayload;
 
 function hasBetaWorkspaceCredentials(): boolean {
   return Boolean(betaContractorId && betaApiKey);
@@ -55,4 +57,24 @@ export async function fetchWorkspaceJobFollowUpState(jobId: string): Promise<Wor
   return payload.followup_state ?? null;
 }
 
+export async function fetchWorkspaceJobDetail(jobId: string): Promise<WorkspaceJobDetailPayload> {
+  const normalizedJobId = jobId.trim();
+  if (!normalizedJobId) {
+    throw new Error("Job id is required.");
+  }
 
+  if (hasBetaWorkspaceCredentials()) {
+    const response = await publicApiClient.get<JobDetailPayload>(`/jobs/${encodeURIComponent(normalizedJobId)}`, {
+      params: {
+        contractor_id: betaContractorId,
+      },
+      headers: {
+        "X-API-Key": betaApiKey,
+      },
+    });
+    return response.data;
+  }
+
+  const response = await apiClient.get<ApiEnvelope<JobDetailPayload>>(`/jobs/${encodeURIComponent(normalizedJobId)}`);
+  return normalizeEnvelope(response.data);
+}
