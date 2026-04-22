@@ -14,13 +14,17 @@ type QuoteSubmissionOptions = {
 };
 
 const betaContractorId =
-  (import.meta.env.VITE_BETA_CONTRACTOR_ID as string | undefined)?.trim() ??
-  "00000000-0000-0000-0000-000000000001";
+  (import.meta.env.VITE_BETA_CONTRACTOR_ID as string | undefined)?.trim() ?? "";
 
 const betaApiKey = (import.meta.env.VITE_BETA_API_KEY as string | undefined)?.trim() ?? "";
 
 export function hasBetaApiCredentials(): boolean {
-  return Boolean(betaApiKey && betaContractorId);
+  return (
+    Boolean(betaApiKey) &&
+    betaApiKey !== "your_beta_api_key_here" &&
+    Boolean(betaContractorId) &&
+    betaContractorId !== "00000000-0000-0000-0000-000000000001"
+  );
 }
 
 export function getBetaContractorId(): string {

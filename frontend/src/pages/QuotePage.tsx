@@ -586,7 +586,7 @@ export function QuotePage() {
       return;
     }
     if (!apiReady) {
-      setQueueMessage("Set VITE_BETA_API_KEY and VITE_BETA_CONTRACTOR_ID before syncing queued notes.");
+      setQueueMessage("Quote API not available. Contact your workspace administrator.");
       return;
     }
     if (!isOnline) {
@@ -1246,7 +1246,7 @@ export function QuotePage() {
           <span>
             <TriangleAlert className="h-4 w-4" aria-hidden="true" />
           </span>
-          <div>Set VITE_BETA_API_KEY and VITE_BETA_CONTRACTOR_ID before sending quotes through the public contractor API.</div>
+          <div>Quote delivery is not yet configured. Contact your administrator to complete setup.</div>
         </div>
       ) : null}
 
@@ -2052,11 +2052,9 @@ export function QuotePage() {
               <div className="rounded-[16px] border border-[var(--gc-line)] bg-[rgba(9,14,26,0.96)] px-4 py-4 text-white shadow-[var(--gc-shadow-strong)]">
                 <div className="text-[11px] uppercase tracking-[0.12em] text-white/38">Runtime note</div>
                 <div className="mt-2 text-[13px] leading-6 text-white/62">
-                  {bypassAuth
-                    ? "Demo mode is active. Delivery and follow-through are running against demo credentials."
-                    : apiReady
-                      ? "Public quote delivery is connected. Missing details still keep the draft in review before send."
-                      : "Configure public API credentials before you try to send customer-facing quotes."}
+                  {apiReady
+                    ? "Public quote delivery is connected. Missing details still keep the draft in review before send."
+                    : "Quote delivery is not configured. Contact your administrator to complete setup."}
                 </div>
               </div>
             </div>

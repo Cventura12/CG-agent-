@@ -12,7 +12,6 @@ import {
   type WorkspaceQueueApprovalResult,
 } from "../api/workspaceQueue";
 import { fetchVoiceSessions, transferVoiceSession } from "../api/voice";
-import { mockAppState } from "../lib/mockData";
 import type { AgentStatus, AnalyticsPeriod, FollowUp, Job, JobActivity, QueueItem, Quote, QuoteDraftInput, QuoteIntakeSource, QuoteLineItem, User, VoiceCallSession } from "../types";
 
 interface AppStore {
@@ -790,8 +789,28 @@ function mergeVoiceSessionList(current: VoiceCallSession[], incoming: VoiceCallS
   return next;
 }
 
+const emptyAgentStatus: AgentStatus = {
+  active: false,
+  itemsProcessed: 0,
+  openItems: 0,
+  lastActivityAt: "",
+  currentTask: "Initializing…",
+  log: [],
+};
+
 export const useAppStore = create<AppStore>((set, get) => ({
-  ...mockAppState,
+  user: null,
+  agentStatus: emptyAgentStatus,
+  queueItems: [],
+  jobs: [],
+  quotes: [],
+  followUps: [],
+  analytics: [],
+  voiceSessions: [],
+  activeJobId: null,
+  activeView: "/",
+  selectedQueueItemId: null,
+  selectedQuoteId: null,
   setUser: (user) => set({ user }),
   setAgentStatus: (agentStatus) => set({ agentStatus }),
   setQueueItems: (queueItems) =>
