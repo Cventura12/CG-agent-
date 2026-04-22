@@ -1,7 +1,8 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { FileText, Menu, Upload, X } from "lucide-react";
 
+import { useApiAuthInterceptor } from "../../api/client";
 import { useQueueItems } from "../../hooks/useQueueItems";
 import { useVoiceSessions } from "../../hooks/useVoiceSessions";
 import { useAppStore } from "../../store/appStore";
@@ -9,6 +10,15 @@ import { ArborLogo } from "../brand/ArborLogo";
 import { Button } from "../ui/Button";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+
+const clerkEnabled =
+  Boolean(import.meta.env.VITE_CLERK_KEY) &&
+  (import.meta.env.VITE_CLERK_KEY as string) !== "pk_test_your_clerk_publishable_key";
+
+function AuthInterceptorMount() {
+  useApiAuthInterceptor();
+  return null;
+}
 
 function routeMeta(pathname: string): { title: string; subtitle?: string } {
   if (pathname.startsWith("/queue")) {
@@ -115,6 +125,7 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
+      {clerkEnabled ? <AuthInterceptorMount /> : null}
       <Sidebar className="hidden lg:flex" />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar
@@ -162,5 +173,3 @@ export function AppShell() {
     </div>
   );
 }
-
-

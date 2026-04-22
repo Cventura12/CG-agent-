@@ -1,9 +1,13 @@
-﻿import { Component, StrictMode } from "react";
+﻿import { ClerkProvider } from "@clerk/clerk-react";
+import { Component, StrictMode } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App";
 import "./styles/globals.css";
+
+const clerkKey = (import.meta.env.VITE_CLERK_KEY as string | undefined) ?? "";
+const clerkEnabled = Boolean(clerkKey) && clerkKey !== "pk_test_your_clerk_publishable_key";
 
 function BootScreen({ title, detail }: { title: string; detail: string }) {
   return (
@@ -39,6 +43,11 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
   }
 }
 
+function AuthProvider({ children }: { children: ReactNode }) {
+  if (!clerkEnabled) return <>{children}</>;
+  return <ClerkProvider publishableKey={clerkKey}>{children}</ClerkProvider>;
+}
+
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
@@ -48,7 +57,9 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <AppErrorBoundary>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </AppErrorBoundary>
   </StrictMode>
 );
