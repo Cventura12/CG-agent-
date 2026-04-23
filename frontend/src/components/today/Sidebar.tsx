@@ -176,3 +176,4 @@ export function Sidebar({ agentStatus, queueItems, recentJobs }: SidebarProps) {
   );
 }
 
+

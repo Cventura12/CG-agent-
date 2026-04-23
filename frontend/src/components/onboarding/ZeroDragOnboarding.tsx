@@ -99,11 +99,14 @@ export function ZeroDragOnboarding() {
     return realQueue || realJobs || voiceSessions.length > 0;
   }, [queueItems, jobs, voiceSessions]);
 
-  useEffect(() => {
-    if (hasRealData) {
-      finishOnboarding();
-    }
-  }, [hasRealData]);
+  const finishOnboarding = () => {
+    safeLocalStorageSet(STORAGE_KEY, "1");
+    setVisible(false);
+  };
+
+  // Derive combined visibility: hide if dismissed by user OR real data arrived.
+  // Avoids setState-in-effect loop by computing this during render.
+  const shouldShow = visible && !hasRealData;
 
   useEffect(() => {
     if (step === 2 && ghostItem?.id) {
@@ -125,7 +128,7 @@ export function ZeroDragOnboarding() {
     return undefined;
   }, [step, ghostItem]);
 
-  if (!visible) {
+  if (!shouldShow) {
     return null;
   }
 
@@ -156,11 +159,6 @@ export function ZeroDragOnboarding() {
       setActiveView("jobs");
       finishOnboarding();
     }
-  };
-
-  const finishOnboarding = () => {
-    safeLocalStorageSet(STORAGE_KEY, "1");
-    setVisible(false);
   };
 
   return (
@@ -247,4 +245,5 @@ export function ZeroDragOnboarding() {
     </div>
   );
 }
+
 

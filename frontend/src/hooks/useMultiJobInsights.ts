@@ -11,3 +11,4 @@ export function useMultiJobInsights(gcId: string | null, horizonDays: number) {
   });
 }
 
+

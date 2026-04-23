@@ -32,7 +32,7 @@ function timelineLabel(eventType: string): string {
     case "update_logged":
       return "Update logged";
     default:
-      return eventType.replace(/_/g, " ") || "Activity";
+      return eventType.replaceAll("_", " ") || "Activity";
   }
 }
 

@@ -110,3 +110,4 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
   );
 }
 
+

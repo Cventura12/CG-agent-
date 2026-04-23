@@ -1,6 +1,4 @@
-﻿import { motion } from "framer-motion";
-
-export interface ConversionDatum {
+﻿export interface ConversionDatum {
   label: string;
   created: number;
   accepted: number;
@@ -27,10 +25,7 @@ export function ConversionChart({ data }: ConversionChartProps) {
           const acceptedHeight = (item.accepted / maxValue) * chartHeight;
           return (
             <g key={item.label}>
-              <motion.rect
-                initial={{ height: 0, y: 160 }}
-                animate={{ height: createdHeight, y: 160 - createdHeight }}
-                transition={{ duration: 0.28, delay: index * 0.03, ease: "easeOut" }}
+              <rect
                 x={groupX}
                 y={160 - createdHeight}
                 width="18"
@@ -38,10 +33,7 @@ export function ConversionChart({ data }: ConversionChartProps) {
                 rx="4"
                 fill="var(--bg-4)"
               />
-              <motion.rect
-                initial={{ height: 0, y: 160 }}
-                animate={{ height: acceptedHeight, y: 160 - acceptedHeight }}
-                transition={{ duration: 0.28, delay: index * 0.03 + 0.04, ease: "easeOut" }}
+              <rect
                 x={groupX + 22}
                 y={160 - acceptedHeight}
                 width="18"
@@ -57,4 +49,5 @@ export function ConversionChart({ data }: ConversionChartProps) {
     </div>
   );
 }
+
 

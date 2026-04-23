@@ -1,0 +1,17 @@
+t=2026-03-10T15:25:18-0400 lvl=info msg="no configuration paths supplied"
+t=2026-03-10T15:25:18-0400 lvl=info msg="ignoring default config path, could not stat it" path=C:\\Users\\caleb\\AppData\\Local/ngrok/ngrok.yml
+t=2026-03-10T15:25:18-0400 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+t=2026-03-10T15:25:20-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:25:20-0400 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.equinox.io/check\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:25:22-0400 lvl=info msg=start pg=/api/tunnels id=911df6c5698f5bcb
+t=2026-03-10T15:25:22-0400 lvl=info msg=end pg=/api/tunnels id=911df6c5698f5bcb status=200 dur=2.5087ms
+t=2026-03-10T15:25:23-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:25:26-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:25:30-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:25:36-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:25:46-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:26:04-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:26:36-0400 lvl=eror msg="failed to reconnect session" obj=tunnels.session obj=csess id=af0e7234f412 err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp 127.0.0.1:9: connectex: No connection could be made because the target machine actively refused it."
+t=2026-03-10T15:27:07-0400 lvl=info msg="received stop request" obj=app stopReq="{err:<nil> restart:false}"
+t=2026-03-10T15:27:07-0400 lvl=info msg="session closing" obj=tunnels.session err=nil
+t=2026-03-10T15:27:07-0400 lvl=info msg="no more state changes" obj=tunnels.session
