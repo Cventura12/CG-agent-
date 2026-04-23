@@ -1,4 +1,4 @@
-type ArborLogoProps = {
+﻿type ArborLogoProps = {
   compact?: boolean;
   showText?: boolean;
   className?: string;
@@ -58,3 +58,4 @@ export function ArborLogo({ compact = false, showText = true, className = "" }: 
     </span>
   );
 }
+

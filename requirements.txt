@@ -1,6 +1,7 @@
 langgraph>=0.2
 fastapi
 fastapi-cache2
+jinja2
 uvicorn
 httpx
 supabase>=2.4

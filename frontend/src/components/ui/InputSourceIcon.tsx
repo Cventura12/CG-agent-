@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, MessageSquare, Phone, Upload } from "lucide-react";
+﻿import { Mail, MessageCircle, MessageSquare, Phone, Upload } from "lucide-react";
 
 import type { InputSource } from "../../types";
 
@@ -28,3 +28,4 @@ export function InputSourceIcon({ source, size = 22 }: InputSourceIconProps) {
     </span>
   );
 }
+

@@ -133,3 +133,4 @@ export function QuoteDetail({ quote, onClose, onStatusChange }: QuoteDetailProps
   );
 }
 
+

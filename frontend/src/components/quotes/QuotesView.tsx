@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 import { FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -180,3 +180,4 @@ export default function QuotesView() {
 export function QuotesViewDemo() {
   return <QuotesViewContent quotes={useAppStore.getState().quotes} />;
 }
+

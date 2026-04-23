@@ -10,3 +10,4 @@ export function useMultiJobInsights(gcId: string | null, horizonDays: number) {
     staleTime: 30000,
   });
 }
+

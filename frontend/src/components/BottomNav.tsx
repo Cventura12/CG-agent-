@@ -1,4 +1,4 @@
-import {
+﻿import {
   BriefcaseBusiness,
   ChartColumnBig,
   ClipboardList,
@@ -65,3 +65,4 @@ export function BottomNav({ queueCount = 0 }: { queueCount?: number }) {
     </nav>
   );
 }
+

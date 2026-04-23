@@ -1,7 +1,4 @@
-import { motion } from "framer-motion";
-
-import { fadeUp } from "../../lib/animations";
-import { formatMonoTime } from "../../lib/formatters";
+﻿import { formatMonoTime } from "../../lib/formatters";
 import type { AgentStatus } from "../../types";
 
 export interface AgentLogProps {
@@ -19,19 +16,19 @@ export function AgentLog({ agentStatus }: AgentLogProps) {
           {agentStatus.log.map((entry, index) => {
             const current = index === agentStatus.log.length - 1;
             return (
-              <motion.div key={entry.id} custom={index} initial="hidden" animate="visible" variants={fadeUp}>
+              <div key={entry.id}>
                 {current ? (
                   <span className="text-[var(--accent)]">
-                    ? <span className="text-[var(--t2)]">{entry.message}</span>
+                    • <span className="text-[var(--t2)]">{entry.message}</span>
                     <span className="ml-[3px] inline-block h-[11px] w-px translate-y-[2px] bg-[var(--accent)] anim-blink" />
                   </span>
                 ) : (
                   <span>
-                    � {entry.message}
+                    — {entry.message}
                     <span className="ml-1 text-[var(--t4)]">{formatMonoTime(entry.timestamp)}</span>
                   </span>
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>

@@ -520,3 +520,4 @@ async def test_full_gc_integration_simulation(monkeypatch: pytest.MonkeyPatch) -
         await _cleanup_gc(gc_id)
 print("Cleaned up test GC and related data.")
 print("Integration test complete.0")
+print()

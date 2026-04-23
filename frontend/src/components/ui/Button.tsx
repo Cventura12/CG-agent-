@@ -1,4 +1,4 @@
-import clsx from "clsx";
+﻿import clsx from "clsx";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 export type ButtonVariant = "ghost" | "accent" | "destructive" | "outline-accent";
@@ -31,3 +31,4 @@ export function Button({ variant = "ghost", leftIcon, className, children, type 
     </button>
   );
 }
+

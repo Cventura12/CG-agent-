@@ -1,4 +1,4 @@
-export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL";
+﻿export type InputSource = "CALL" | "SMS" | "UPLOAD" | "EMAIL";
 export type QueueItemStatus = "pending" | "approved" | "dismissed";
 export type SetupStep = "connect" | "review" | "approve";
 
@@ -42,3 +42,4 @@ export interface TodayViewProps {
   setupStepsCompleted: 0 | 1 | 2 | 3;
   currentTime?: Date;
 }
+

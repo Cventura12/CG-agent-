@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 
 import { useAppStore } from "../store/appStore";
 
@@ -26,3 +26,4 @@ export function useQueueItems(pollMs = 20000) {
     };
   }, [pollMs, refreshQueueItems]);
 }
+

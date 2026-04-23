@@ -1,4 +1,4 @@
-import { CalendarDays, Plus } from "lucide-react";
+﻿import { CalendarDays, Plus } from "lucide-react";
 
 import { Button } from "../ui/Button";
 
@@ -48,3 +48,4 @@ export function Topbar({ currentTime, onImportTranscript, onNewQuote }: TopbarPr
     </header>
   );
 }
+

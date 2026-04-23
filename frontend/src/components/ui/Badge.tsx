@@ -1,4 +1,4 @@
-import clsx from "clsx";
+﻿import clsx from "clsx";
 
 type BadgeColor = "green" | "amber" | "blue" | "red" | "purple" | "accent" | "muted";
 
@@ -25,3 +25,4 @@ export function Badge({ label, color, className }: BadgeProps) {
     </span>
   );
 }
+

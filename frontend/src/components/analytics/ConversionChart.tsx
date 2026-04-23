@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 
 export interface ConversionDatum {
   label: string;
@@ -57,3 +57,4 @@ export function ConversionChart({ data }: ConversionChartProps) {
     </div>
   );
 }
+

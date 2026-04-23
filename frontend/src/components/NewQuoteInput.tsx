@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+﻿import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { FileText, Mic, Paperclip, Plus, Square, X } from "lucide-react";
 
 export type NewQuoteInputMode = "voice" | "photo" | "pdf" | null;
@@ -363,3 +363,4 @@ export function NewQuoteInput({
     </div>
   );
 }
+

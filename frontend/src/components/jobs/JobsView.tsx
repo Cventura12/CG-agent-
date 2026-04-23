@@ -1,30 +1,58 @@
-﻿import { Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { fetchWorkspaceJobDetail } from "../../api/workspaceJobs";
 import { useAppStore } from "../../store/appStore";
-import type { Job } from "../../types";
+import type { Job, JobStatus, WorkspaceJobDetailPayload } from "../../types";
 import { EmptyState } from "../ui/EmptyState";
 import { JobCard } from "./JobCard";
 import { JobDetail } from "./JobDetail";
 
-function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: boolean }) {
+function mapBackendJobStatus(status: string): JobStatus {
+  switch (status.trim().toLowerCase()) {
+    case "complete":
+    case "completed":
+      return "completed";
+    case "on-hold":
+      return "stalled";
+    case "quoted":
+      return "quoted";
+    case "in_progress":
+    case "in-progress":
+      return "in_progress";
+    default:
+      return "active";
+  }
+}
+
+function mergePersistedJob(baseJob: Job, payload: WorkspaceJobDetailPayload | null): Job {
+  if (!payload) {
+    return baseJob;
+  }
+
+  const backendJob = payload.job;
+  const persistedTimestamp = payload.audit_timeline.find((entry) => entry.timestamp)?.timestamp ?? undefined;
+
+  return {
+    ...baseJob,
+    name: backendJob.name || baseJob.name,
+    address: backendJob.address || baseJob.address,
+    notes: backendJob.notes || baseJob.notes,
+    status: mapBackendJobStatus(backendJob.status),
+    openQueueItems: backendJob.operational_summary?.open_item_count ?? baseJob.openQueueItems,
+    lastActivityAt: persistedTimestamp ?? baseJob.lastActivityAt,
+  };
+}
+
+function JobsViewContent({ jobs }: { jobs: Job[] }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const setActiveJob = useAppStore((state) => state.setActiveJob);
-  const updateJobNotes = useAppStore((state) => state.updateJobNotes);
   const [query, setQuery] = useState("");
-  const activeTabParam = searchParams.get("tab");
-  const initialTab =
-    activeTabParam === "activity" ||
-    activeTabParam === "quotes" ||
-    activeTabParam === "followups" ||
-    activeTabParam === "calls" ||
-    activeTabParam === "notes"
-      ? activeTabParam
-      : undefined;
-  const currentSearch = searchParams.toString();
+  const [jobDetail, setJobDetail] = useState<WorkspaceJobDetailPayload | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const filteredJobs = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -33,12 +61,50 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
   }, [jobs, query]);
 
   const selectedJob = filteredJobs.find((job) => job.id === id) ?? jobs.find((job) => job.id === id) ?? filteredJobs[0] ?? null;
+  const selectedJobWithPersistedDetail = useMemo(
+    () => (selectedJob ? mergePersistedJob(selectedJob, jobDetail) : null),
+    [jobDetail, selectedJob]
+  );
+  const initialTab = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("tab") === "followups" ? "followups" : "activity";
+  }, [location.search]);
 
   useEffect(() => {
-    if (useStore) {
-      setActiveJob(selectedJob?.id ?? null);
+    let cancelled = false;
+
+    async function loadJobDetail() {
+      if (!selectedJob) {
+        setJobDetail(null);
+        setHistoryError(null);
+        setHistoryLoading(false);
+        return;
+      }
+
+      setHistoryLoading(true);
+      setHistoryError(null);
+      try {
+        const payload = await fetchWorkspaceJobDetail(selectedJob.id);
+        if (!cancelled) {
+          setJobDetail(payload);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setJobDetail(null);
+          setHistoryError(error instanceof Error ? error.message : "Could not load job history.");
+        }
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
+      }
     }
-  }, [selectedJob?.id, setActiveJob, useStore]);
+
+    void loadJobDetail();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedJob?.id]);
 
   return (
     <div className="relative flex h-full overflow-hidden bg-[var(--bg)]">
@@ -61,19 +127,23 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
               key={job.id}
               job={job}
               selected={selectedJob?.id === job.id}
-              onClick={() => navigate(`/jobs/${job.id}${currentSearch ? `?${currentSearch}` : ""}`)}
+              onClick={() => navigate(`/jobs/${job.id}`)}
             />
           ))}
         </div>
       </div>
 
-      <div className={`absolute inset-0 z-20 bg-[var(--bg)] ${selectedJob ? "block" : "hidden"} lg:static lg:block lg:min-w-0 lg:flex-1 lg:overflow-hidden`}>
-        {selectedJob ? (
+      <div className={`absolute inset-0 z-20 bg-[var(--bg)] ${selectedJobWithPersistedDetail ? "block" : "hidden"} lg:static lg:block lg:min-w-0 lg:flex-1 lg:overflow-hidden`}>
+        {selectedJobWithPersistedDetail ? (
           <JobDetail
-            job={selectedJob}
-            initialTab={initialTab}
-            onSaveNotes={(notes) => updateJobNotes(selectedJob.id, notes)}
+            job={selectedJobWithPersistedDetail}
+            onSaveNotes={() => {}}
             onClose={() => navigate("/jobs")}
+            initialTab={initialTab}
+            auditTimeline={jobDetail?.audit_timeline ?? []}
+            followupState={jobDetail?.followup_state ?? null}
+            historyLoading={historyLoading}
+            historyError={historyError}
           />
         ) : (
           <EmptyState icon={Search} title="No jobs match this search" description="Try a customer name, address tag, or clear the filter." />
@@ -85,7 +155,7 @@ function JobsViewContent({ jobs, useStore = false }: { jobs: Job[]; useStore?: b
 
 export default function JobsView() {
   const jobs = useAppStore((state) => state.jobs);
-  return <JobsViewContent jobs={jobs} useStore />;
+  return <JobsViewContent jobs={jobs} />;
 }
 
 export function JobsViewDemo() {

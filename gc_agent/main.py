@@ -13,6 +13,7 @@ from uuid import uuid4
 import uvicorn
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,7 @@ from gc_agent.api.voice import router as public_voice_router
 from gc_agent.nodes.followup_trigger import process_due_followups
 from gc_agent.routers.analytics import router as analytics_router
 from gc_agent.routers.auth import router as auth_router
+from gc_agent.routers.budget import router as budget_router
 from gc_agent.routers.ingest import router as ingest_router
 from gc_agent.routers.insights import router as insights_router
 from gc_agent.routers.jobs import router as jobs_router
@@ -86,6 +88,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
+_DEFAULT_FRONTEND_ORIGINS = [
+    "https://cg-agent-six.vercel.app",
+    "https://cg-agent-djno.vercel.app",
+]
 
 
 def _log_startup_runtime_warnings() -> None:
@@ -576,7 +582,11 @@ async def lifespan(app: FastAPI):
     except Exception:
         LOGGER.exception("Failed to warm LangGraph during startup")
 
-    jobs_loaded = await _count_active_jobs(app)
+    try:
+        jobs_loaded = await _count_active_jobs(app)
+    except Exception:
+        LOGGER.exception("Startup job count failed")
+        jobs_loaded = 0
     app.state.jobs_loaded = jobs_loaded
 
     scheduler = AsyncIOScheduler()
@@ -625,7 +635,7 @@ app = FastAPI(title="Arbor", version=APP_VERSION, lifespan=lifespan)
 allowed_origins = [
     origin.strip()
     for origin in ",".join(
-        [settings.frontend_url, settings.cors_allow_origins]
+        [settings.frontend_url, settings.cors_allow_origins, ",".join(_DEFAULT_FRONTEND_ORIGINS)]
     ).split(",")
     if origin.strip()
 ]
@@ -638,8 +648,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def add_public_cors_headers(request: Request, call_next):
+    """Ensure public endpoints respond with CORS headers for Vercel clients."""
+    if request.method == "OPTIONS" and request.url.path.startswith("/public"):
+        origin = request.headers.get("origin", "*")
+        return Response(
+            status_code=204,
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "86400",
+                "Vary": "Origin",
+            },
+        )
+
+    response = await call_next(request)
+    if request.url.path.startswith("/public"):
+        origin = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Vary"] = "Origin"
+    return response
+
 app.include_router(twilio_router, prefix="/webhook")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(budget_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(insights_router, prefix="/api/v1")
@@ -657,12 +694,17 @@ app.include_router(public_voice_router, prefix="/public", tags=["public"])
 @app.get("/health")
 async def health() -> dict[str, object]:
     """Return service health and lightweight readiness metadata."""
-    jobs_loaded = await _count_active_jobs(app)
+    try:
+        jobs_loaded = await _count_active_jobs(app)
+    except Exception:
+        LOGGER.exception("Healthcheck job count failed")
+        jobs_loaded = 0
     app.state.jobs_loaded = jobs_loaded
     return {
         "status": "ok",
         "version": APP_VERSION,
         "jobs_loaded": jobs_loaded,
+        "supabase_configured": bool(app.state.supabase_client),
     }
 
 

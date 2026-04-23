@@ -42,3 +42,4 @@ export function useQueueNotificationStub(gcId: string | null): void {
     }
   }, [gcId, queueQuery.data, queueQuery.isError, queueQuery.isLoading]);
 }
+

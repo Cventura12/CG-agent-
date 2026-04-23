@@ -1,4 +1,4 @@
-import type { JobStatus } from "../../types";
+﻿import type { JobStatus } from "../../types";
 import { Badge } from "../ui/Badge";
 
 const statusColor: Record<JobStatus, Parameters<typeof Badge>[0]["color"]> = {
@@ -16,3 +16,4 @@ export interface JobStatusBadgeProps {
 export function JobStatusBadge({ status }: JobStatusBadgeProps) {
   return <Badge label={status.replace("_", " ")} color={statusColor[status]} />;
 }
+

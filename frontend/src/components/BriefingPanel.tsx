@@ -109,3 +109,4 @@ export function BriefingPanel({ gcId }: BriefingPanelProps) {
     </section>
   );
 }
+

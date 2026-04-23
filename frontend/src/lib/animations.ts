@@ -1,4 +1,4 @@
-export const fadeUp = {
+﻿export const fadeUp = {
   hidden: { opacity: 0, y: 8 },
   visible: (i = 0) => ({
     opacity: 1,
@@ -20,3 +20,4 @@ export const slideRight = {
     transition: { duration: 0.22, ease: "easeOut" as const, delay: i * 0.04 },
   }),
 };
+

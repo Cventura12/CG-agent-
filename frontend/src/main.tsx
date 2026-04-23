@@ -1,4 +1,4 @@
-import { Component, StrictMode } from "react";
+﻿import { Component, StrictMode } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -52,3 +52,4 @@ createRoot(rootElement).render(
     </AppErrorBoundary>
   </StrictMode>
 );
+

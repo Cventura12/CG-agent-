@@ -1,4 +1,4 @@
-import {
+﻿import {
   BarChart2,
   BriefcaseBusiness,
   CalendarDays,
@@ -175,3 +175,4 @@ export function Sidebar({ agentStatus, queueItems, recentJobs }: SidebarProps) {
     </aside>
   );
 }
+

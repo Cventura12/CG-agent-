@@ -192,6 +192,73 @@ def _serialize_job(job: Any) -> dict[str, Any]:
     return dict(job)
 
 
+def _compute_public_job_health(job: Any) -> str:
+    """Derive one compact health label for the public jobs surface."""
+    open_items = getattr(job, "open_items", []) or []
+    oldest_silent = max((getattr(item, "days_silent", 0) for item in open_items), default=0)
+    if oldest_silent >= 7:
+        return "blocked"
+    if len(open_items) > 0:
+        return "at-risk"
+    return "on-track"
+
+
+def _serialize_public_open_item(item: Any) -> dict[str, Any]:
+    """Serialize one open item with derived operational flags for the workspace."""
+    payload = item.model_dump(mode="json") if hasattr(item, "model_dump") else dict(item)
+    normalized_type = str(payload.get("type", "")).strip().lower()
+    description = str(payload.get("description", "")).strip().lower()
+    financial_exposure = normalized_type in {"co", "approval", "quote"} or any(
+        fragment in description
+        for fragment in (
+            "change order",
+            "scope change",
+            "additional work",
+            "extra work",
+            "approval",
+            "signoff",
+            "cost",
+            "allowance",
+        )
+    )
+    change_related = normalized_type == "co" or any(
+        fragment in description
+        for fragment in ("change order", "scope change", "additional work", "extra work", "revised price")
+    )
+    followthrough_related = normalized_type in {"follow-up", "followup"}
+    payload["financial_exposure"] = financial_exposure
+    payload["change_related"] = change_related
+    payload["followthrough_related"] = followthrough_related
+    payload["stalled"] = int(payload.get("days_silent") or 0) >= 3
+    payload["kind_label"] = (
+        "Money at risk"
+        if financial_exposure
+        else "Change to review"
+        if change_related
+        else "Follow-through"
+        if followthrough_related
+        else normalized_type.replace("-", " ") if normalized_type else "Open item"
+    )
+    return payload
+
+
+def _serialize_public_job(job: Any) -> dict[str, Any]:
+    """Serialize a public job payload including health and operational summary."""
+    payload = _serialize_job(job)
+    open_items = [_serialize_public_open_item(item) for item in getattr(job, "open_items", []) or []]
+    payload["open_items"] = open_items
+    payload["operational_summary"] = {
+        "open_item_count": len(open_items),
+        "financial_exposure_count": sum(1 for item in open_items if item.get("financial_exposure")),
+        "unresolved_change_count": sum(1 for item in open_items if item.get("change_related")),
+        "approval_count": sum(1 for item in open_items if str(item.get("type", "")).strip().lower() == "approval"),
+        "followthrough_count": sum(1 for item in open_items if item.get("followthrough_related")),
+        "stalled_count": sum(1 for item in open_items if item.get("stalled")),
+    }
+    payload["health"] = _compute_public_job_health(job)
+    return payload
+
+
 def _to_float(value: Any) -> float:
     """Normalize numeric-like values for delta math."""
     if isinstance(value, (int, float)):
@@ -1572,6 +1639,37 @@ async def get_jobs(
     return {
         "jobs": [_serialize_job(job) for job in jobs],
         "count": len(jobs),
+    }
+
+
+@router.get("/jobs/{job_id}")
+async def get_job_detail(
+    job_id: str,
+    contractor_id: str = Query(..., min_length=1),
+) -> dict[str, Any]:
+    """Return one contractor job with persisted updates, calls, and audit timeline."""
+    try:
+        jobs = await queries.get_active_jobs(contractor_id)
+        recent_updates = await queries.get_recent_update_logs(contractor_id, job_id, limit=10)
+        call_history = await queries.get_job_call_history(contractor_id, job_id, limit=12)
+        audit_timeline = await queries.get_job_audit_timeline(contractor_id, job_id, limit=80)
+        followup_state = await queries.get_job_followup_state(contractor_id, job_id)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    job = next((item for item in jobs if item.id == job_id), None)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job_id not found")
+
+    return {
+        "job": _serialize_public_job(job),
+        "recent_updates": recent_updates,
+        "call_history": call_history,
+        "audit_timeline": audit_timeline,
+        "followup_state": followup_state,
     }
 
 

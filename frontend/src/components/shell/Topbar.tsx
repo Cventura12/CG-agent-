@@ -1,4 +1,4 @@
-import clsx from "clsx";
+﻿import clsx from "clsx";
 import type { ComponentProps, ReactNode } from "react";
 
 import { Button } from "../ui/Button";
@@ -39,3 +39,4 @@ export function TopbarGhostAction(props: ComponentProps<typeof Button>) {
 export function TopbarAccentAction(props: ComponentProps<typeof Button>) {
   return <Button variant="accent" {...props} />;
 }
+

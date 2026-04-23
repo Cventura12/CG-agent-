@@ -1,4 +1,4 @@
-export function hasWindowStorage(): boolean {
+﻿export function hasWindowStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
@@ -41,4 +41,5 @@ export function removeCachedValue(key: string): void {
     // Ignore storage removal errors.
   }
 }
+
 

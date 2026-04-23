@@ -83,7 +83,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           <section className="mt-3 rounded-lg border border-[var(--amber-b)] bg-[var(--amber-b)] p-3">
             <SectionLabel>Confidence check</SectionLabel>
             <div className="mt-2 text-[12px] leading-relaxed text-[var(--t1)]">
-              Extracted amount uncertain — please verify against the audio before sending.
+              Extracted amount uncertain - please verify against the audio before sending.
             </div>
             {typeof item.confidenceScore === "number" ? (
               <div className="mt-2 text-[11px] text-[var(--amber)]">
@@ -95,7 +95,7 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
           <section className="mt-3 rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] p-3">
             <SectionLabel>Confidence check</SectionLabel>
             <div className="mt-2 text-[12px] leading-relaxed text-[var(--t2)]">
-              Low-confidence capture — verify the details before approving.
+              Low-confidence capture - verify the details before approving.
             </div>
             {typeof item.confidenceScore === "number" ? (
               <div className="mt-2 text-[11px] text-[var(--t3)]">
@@ -129,7 +129,6 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
             <div className="mt-3 space-y-2">
               <Link
                 to={`/quotes?compose=1&transcriptId=${encodeURIComponent(item.transcriptId)}${item.jobId ? `&jobId=${encodeURIComponent(item.jobId)}` : ""}`}
-                onClick={onClose}
                 className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
               >
                 <span>Prepare draft quote from transcript</span>
@@ -146,7 +145,6 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
               {item.linkedQuoteId ? (
                 <Link
                   to={`/quotes/${item.linkedQuoteId}`}
-                  onClick={onClose}
                   className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
                 >
                   <span>Open linked quote</span>
@@ -156,7 +154,6 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
               {item.relatedQueueItemIds?.[0] ? (
                 <Link
                   to={`/queue/${item.relatedQueueItemIds[0]}`}
-                  onClick={onClose}
                   className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
                 >
                   <span>Open routed queue draft</span>
@@ -183,7 +180,6 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
               {item.generatedQuoteId ? (
                 <Link
                   to={`/quotes/${item.generatedQuoteId}`}
-                  onClick={onClose}
                   className={`flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)] ${
                     justApproved ? "shadow-[0_0_0_1px_rgba(90,148,105,0.4)]" : ""
                   }`}
@@ -195,7 +191,6 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
               {generatedFollowUpCount > 0 ? (
                 <Link
                   to={item.jobId ? `/jobs/${item.jobId}?tab=followups` : "/jobs"}
-                  onClick={onClose}
                   className="flex items-center justify-between rounded-lg border border-[var(--line-2)] bg-[var(--bg-3)] px-3 py-2 text-[12px] text-[var(--t1)] transition hover:border-[var(--line-4)] hover:bg-[var(--bg-4)]"
                 >
                   <span>Open job follow-through</span>
@@ -260,3 +255,4 @@ export function QueueItemDetail({ item, onClose, onApproveAll, onDismiss, onTogg
     </div>
   );
 }
+

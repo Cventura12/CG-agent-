@@ -1,4 +1,4 @@
-import { useAuth, useUser } from "@clerk/clerk-react";
+﻿import { useAuth, useUser } from "@clerk/clerk-react";
 import { useMemo } from "react";
 
 import { TodayView } from "../components/today/TodayView";
@@ -226,3 +226,4 @@ export function BriefingPage() {
     />
   );
 }
+

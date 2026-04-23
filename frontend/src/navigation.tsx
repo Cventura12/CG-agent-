@@ -15,7 +15,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Briefing",
     shortLabel: "Home",
     href: "/",
-    ico: "⬡",
+    ico: "â¬¡",
     badge: null,
     description: "Morning briefing and live action readout.",
     match: (pathname) => pathname === "/",
@@ -25,7 +25,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "New Quote",
     shortLabel: "Quote",
     href: "/quote",
-    ico: "＋",
+    ico: "ï¼",
     badge: null,
     description: "Capture, review, send, and follow up.",
     match: (pathname) => pathname.startsWith("/quote"),
@@ -35,7 +35,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Queue",
     shortLabel: "Queue",
     href: "/queue",
-    ico: "⚡",
+    ico: "â¡",
     badge: null,
     description: "Drafts awaiting contractor review.",
     match: (pathname) => pathname.startsWith("/queue"),
@@ -45,7 +45,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Jobs",
     shortLabel: "Jobs",
     href: "/jobs",
-    ico: "◫",
+    ico: "â«",
     badge: null,
     description: "Operational records and job history.",
     match: (pathname) => pathname.startsWith("/jobs"),
@@ -55,7 +55,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Analytics",
     shortLabel: "Stats",
     href: "/analytics",
-    ico: "⊞",
+    ico: "â",
     badge: null,
     description: "Runtime, delivery, and outcome metrics.",
     match: (pathname) => pathname.startsWith("/analytics"),
@@ -65,7 +65,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Insights",
     shortLabel: "Insights",
     href: "/insights",
-    ico: "◈",
+    ico: "â",
     badge: null,
     description: "Cross-job leverage and pattern detection.",
     match: (pathname) => pathname.startsWith("/insights"),
@@ -75,3 +75,4 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
 export function navItemForPath(pathname: string): AppNavItem | null {
   return APP_NAV_ITEMS.find((item) => item.match(pathname)) ?? null;
 }
+

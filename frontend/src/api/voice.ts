@@ -1,4 +1,6 @@
-import { apiClient, appApiBaseUrl, publicApiBaseUrl, publicApiClient } from "./client";
+﻿import { apiClient, appApiBaseUrl, publicApiBaseUrl, publicApiClient } from "./client";
+import { mockAppState } from "../lib/mockData";
+import { shouldUseMockApi } from "../lib/offline";
 import type {
   VoiceCallDebug,
   VoiceCallSession,
@@ -175,6 +177,10 @@ function mapVoiceSession(session: BackendVoiceSession): VoiceCallSession {
 }
 
 export async function fetchVoiceSessions(): Promise<VoiceCallSession[]> {
+  if (shouldUseMockApi()) {
+    return mockAppState.voiceSessions;
+  }
+
   if (hasBetaVoiceCredentials()) {
     const response = await publicApiClient.get<VoiceListResponse>("/voice/sessions", {
       params: {
@@ -198,6 +204,18 @@ export async function transferVoiceSession(
   sessionId: string,
   payload: { targetNumber?: string; note?: string } = {}
 ): Promise<VoiceCallSession> {
+  if (shouldUseMockApi()) {
+    const existing = mockAppState.voiceSessions.find((session) => session.id === sessionId);
+    if (existing) {
+      return {
+        ...existing,
+        transferState: "requested",
+        transferTarget: payload.targetNumber?.trim() || existing.transferTarget,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+  }
+
   if (hasBetaVoiceCredentials()) {
     const response = await publicApiClient.post<VoiceDetailResponse>(
       `/voice/sessions/${sessionId}/transfer`,
@@ -221,3 +239,4 @@ export async function transferVoiceSession(
   });
   return mapVoiceSession(response.data.data);
 }
+

@@ -42,3 +42,4 @@ export async function approveAll(): Promise<number> {
   }
   return response.data.data.approved_count;
 }
+

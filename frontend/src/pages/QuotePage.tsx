@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -1178,7 +1178,7 @@ export function QuotePage() {
   ] as const;
   const latestDeliveryAttempt = deliveryHistory[0] ?? null;
   const deliveryStatusSummary = latestDeliveryAttempt
-    ? `${latestDeliveryAttempt.channel.toUpperCase()} • ${latestDeliveryAttempt.status}`
+    ? `${latestDeliveryAttempt.channel.toUpperCase()} â¢ ${latestDeliveryAttempt.status}`
     : "No delivery attempt yet";
   const draftGuidePoints = activeQuote
     ? [
@@ -1428,7 +1428,7 @@ export function QuotePage() {
                       <div className="text-[10px] uppercase tracking-[0.16em] text-white/40">Draft total</div>
                       <div className="mt-2 text-[34px] font-semibold tracking-[-0.07em]">{formatCurrency(activeQuote.quote_draft.total_price)}</div>
                       <div className="mt-1 text-[12px] text-white/54">
-                        {confidenceScore}% confidence • {quoteReviewRequired ? "Review before send" : "Customer-ready"}
+                        {confidenceScore}% confidence â¢ {quoteReviewRequired ? "Review before send" : "Customer-ready"}
                       </div>
                     </div>
                   </div>
@@ -1530,7 +1530,7 @@ export function QuotePage() {
                               <div className="mt-1 text-[12px] leading-6 text-[var(--gc-ink-soft)]">
                                 {item.quantity ?? 0} {item.unit ?? "unit"}
                                 {typeof item.unit_cost === "number" && Number.isFinite(item.unit_cost)
-                                  ? ` • ${formatCurrency(item.unit_cost)} each`
+                                  ? ` â¢ ${formatCurrency(item.unit_cost)} each`
                                   : ""}
                               </div>
                             </div>
@@ -1895,10 +1895,10 @@ export function QuotePage() {
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <div className="text-[13px] font-semibold text-[var(--gc-ink)]">
-                                  {attempt.channel.toUpperCase()} • {attempt.recipient || attempt.destination}
+                                  {attempt.channel.toUpperCase()} â¢ {attempt.recipient || attempt.destination}
                                 </div>
                                 <div className="mt-1 font-mono text-[11px] text-[var(--gc-ink-muted)]">
-                                  {attempt.destination} • {formatDeliveryTimestamp(attempt.sent_at)}
+                                  {attempt.destination} â¢ {formatDeliveryTimestamp(attempt.sent_at)}
                                 </div>
                               </div>
                               <span className={`tag ${deliveryStatusTone(attempt.status)}`}>{attempt.status}</span>
@@ -2097,3 +2097,4 @@ export function QuotePage() {
     </div>
   );
 }
+

@@ -439,7 +439,7 @@ const queueItems: QueueItem[] = [
   {
     id: "queue-hartley-call",
     title: "Hartley flashing change",
-    description: "Hartley — sub wants to change flashing material at the chimney and add $320 to the estimate before the insurance supplement goes out.",
+    description: "Hartley â sub wants to change flashing material at the chimney and add $320 to the estimate before the insurance supplement goes out.",
     source: "CALL",
     sourceRef: "+1 (423) 555-1123",
     jobId: "job-hartley",
@@ -456,7 +456,7 @@ const queueItems: QueueItem[] = [
   {
     id: "queue-ridgeview-sms",
     title: "Owner asking about upgraded windows",
-    description: "Ridgeview — owner texted asking if the premium window package can still hit the current schedule and wants revised pricing before tomorrow.",
+    description: "Ridgeview â owner texted asking if the premium window package can still hit the current schedule and wants revised pricing before tomorrow.",
     source: "SMS",
     sourceRef: "+1 (865) 555-2900",
     jobId: "job-ridgeview",
@@ -473,7 +473,7 @@ const queueItems: QueueItem[] = [
   {
     id: "queue-river-upload",
     title: "Rivergate reflected ceiling note",
-    description: "Rivergate — uploaded architect markup shows lighting moves and a ceiling grid reset. Agent drafted a quote revision but wants GC eyes before it goes out.",
+    description: "Rivergate â uploaded architect markup shows lighting moves and a ceiling grid reset. Agent drafted a quote revision but wants GC eyes before it goes out.",
     source: "UPLOAD",
     sourceRef: "RCP-revision-B.pdf",
     jobId: "job-river",
@@ -492,7 +492,7 @@ const queueItems: QueueItem[] = [
   {
     id: "queue-atlas-whatsapp",
     title: "Atlas PM wants update routed to owner",
-    description: "Atlas Dental — WhatsApp thread says they need a clean owner-facing recap of remaining electrical add-ons before approving the final invoice release.",
+    description: "Atlas Dental â WhatsApp thread says they need a clean owner-facing recap of remaining electrical add-ons before approving the final invoice release.",
     source: "WHATSAPP",
     sourceRef: "+1 (615) 555-8470",
     jobId: "job-river",
@@ -579,4 +579,5 @@ export const mockAppState = {
   selectedQueueItemId: queueItems[0]?.id ?? null,
   selectedQuoteId: quotes[0]?.id ?? null,
 };
+
 

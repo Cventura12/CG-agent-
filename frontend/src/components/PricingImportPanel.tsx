@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+﻿import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { commitPricingImport, previewPricingImport } from "../api/pricing";
@@ -326,4 +326,5 @@ export function PricingImportPanel({ disabledReason, onImportComplete }: Pricing
     </div>
   );
 }
+
 

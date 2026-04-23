@@ -1,4 +1,4 @@
-import {
+﻿import {
   BarChart2,
   FileText,
   Home,
@@ -80,3 +80,4 @@ export function IconRail({ initials }: IconRailProps) {
     </aside>
   );
 }
+

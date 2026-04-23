@@ -1,4 +1,4 @@
-import { apiClient, publicApiClient } from "./client";
+﻿import { apiClient, publicApiClient } from "./client";
 import type { WorkspaceTranscriptQuotePrefill } from "../types";
 
 const betaContractorId =
@@ -56,3 +56,4 @@ export async function fetchWorkspaceTranscriptQuotePrefill(
   );
   return normalizeEnvelope(response.data);
 }
+

@@ -10,3 +10,4 @@ export async function fetchUsageAnalytics(days = 30): Promise<UsageAnalyticsPayl
   }
   return response.data.data;
 }
+

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+﻿import type { CSSProperties } from "react";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -328,7 +328,7 @@ export function TodayView({
                   type="button"
                   className="text-[11px] font-medium text-[var(--accent-text)]"
                 >
-                  View queue Ã¢â€ â€™
+                  View queue ÃÂ¢Ã¢â¬Â Ã¢â¬â¢
                 </button>
               </div>
 
@@ -427,7 +427,7 @@ export function TodayView({
                     type="button"
                     className="w-full rounded-[6px] bg-[var(--accent-light)] px-[13px] py-[8px] text-[12px] font-medium text-[var(--accent-text)] transition hover:opacity-90"
                   >
-                    Connect phone number Ã¢â€ â€™
+                    Connect phone number ÃÂ¢Ã¢â¬Â Ã¢â¬â¢
                   </button>
                 </div>
               </section>
@@ -438,3 +438,4 @@ export function TodayView({
     </div>
   );
 }
+

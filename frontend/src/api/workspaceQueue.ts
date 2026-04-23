@@ -1,4 +1,6 @@
-import { apiClient, publicApiClient } from "./client";
+﻿import { apiClient, publicApiClient } from "./client";
+import { shouldUseMockApi } from "../lib/offline";
+import { mockAppState } from "../lib/mockData";
 import type { ExtractedAction, FollowUpStatus, InputSource, JobActivity, QueueItem, QueueStatus } from "../types";
 
 const betaContractorId =
@@ -508,6 +510,10 @@ async function fetchPublicTranscriptInboxItems(): Promise<BackendTranscriptInbox
 }
 
 export async function fetchWorkspaceQueueItems(): Promise<QueueItem[]> {
+  if (shouldUseMockApi()) {
+    return sortQueueItems(mockAppState.queueItems);
+  }
+
   if (hasBetaQueueCredentials()) {
     const [queueResponse, transcriptItems] = await Promise.all([
       publicApiClient.get<PublicQueueResponse>("/queue", {
@@ -537,6 +543,9 @@ export async function fetchWorkspaceQueueItems(): Promise<QueueItem[]> {
 }
 
 export async function approveWorkspaceQueueItem(item: QueueItem): Promise<WorkspaceQueueApprovalResult | null> {
+  if (shouldUseMockApi()) {
+    return null;
+  }
   if (!item.backendLinked) {
     return null;
   }
@@ -590,31 +599,8 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
         },
       }
     );
-      const workspaceArtifacts = normalizeWorkspaceArtifacts(response.data.workspace_artifacts);
-      const confirmation = response.data.confirmation ?? undefined;
-      return {
-        itemId: item.id,
-        backendKind: "draft",
-        status: "approved",
-        approvedAt,
-        activeJobId: workspaceArtifacts?.active_job_id?.trim() || undefined,
-        generatedQuoteId: workspaceArtifacts?.quote?.id?.trim() || undefined,
-        generatedFollowUpIds: (workspaceArtifacts?.followups ?? [])
-          .map((followUp) => followUp.id?.trim() || "")
-          .filter(Boolean),
-        workspaceArtifacts,
-        backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
-        confirmationStatus: confirmation?.status,
-        confirmationChannel: confirmation?.channel,
-        confirmationTo: confirmation?.to,
-        confirmationError: confirmation?.error ?? confirmation?.reason,
-      };
-    }
-
-    const response = await apiClient.post<InternalDraftApprovalResponse>(`/queue/${encodeURIComponent(item.id)}/approve`);
-    const payload = normalizeEnvelope(response.data);
-    const workspaceArtifacts = normalizeWorkspaceArtifacts(payload.workspace_artifacts);
-    const confirmation = payload.confirmation ?? undefined;
+    const workspaceArtifacts = normalizeWorkspaceArtifacts(response.data.workspace_artifacts);
+    const confirmation = response.data.confirmation ?? undefined;
     return {
       itemId: item.id,
       backendKind: "draft",
@@ -634,7 +620,33 @@ export async function approveWorkspaceQueueItem(item: QueueItem): Promise<Worksp
     };
   }
 
+  const response = await apiClient.post<InternalDraftApprovalResponse>(`/queue/${encodeURIComponent(item.id)}/approve`);
+  const payload = normalizeEnvelope(response.data);
+  const workspaceArtifacts = normalizeWorkspaceArtifacts(payload.workspace_artifacts);
+  const confirmation = payload.confirmation ?? undefined;
+  return {
+    itemId: item.id,
+    backendKind: "draft",
+    status: "approved",
+    approvedAt,
+    activeJobId: workspaceArtifacts?.active_job_id?.trim() || undefined,
+    generatedQuoteId: workspaceArtifacts?.quote?.id?.trim() || undefined,
+    generatedFollowUpIds: (workspaceArtifacts?.followups ?? [])
+      .map((followUp) => followUp.id?.trim() || "")
+      .filter(Boolean),
+    workspaceArtifacts,
+    backendArtifactErrors: workspaceArtifacts?.errors?.filter((entry) => entry.trim().length > 0) ?? [],
+    confirmationStatus: confirmation?.status,
+    confirmationChannel: confirmation?.channel,
+    confirmationTo: confirmation?.to,
+    confirmationError: confirmation?.error ?? confirmation?.reason,
+  };
+}
+
 export async function dismissWorkspaceQueueItem(item: QueueItem): Promise<void> {
+  if (shouldUseMockApi()) {
+    return;
+  }
   if (!item.backendLinked) {
     return;
   }
@@ -694,3 +706,4 @@ export function mapBackendJobActivityType(type: string | undefined): JobActivity
   if (normalized === "call") return "call";
   return "note";
 }
+

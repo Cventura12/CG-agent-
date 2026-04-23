@@ -10,3 +10,4 @@ export async function fetchMultiJobInsights(horizonDays = 14): Promise<MultiJobI
   }
   return response.data.data;
 }
+

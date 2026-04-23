@@ -10,3 +10,4 @@ export function useAnalytics(gcId: string | null, days = 30) {
     staleTime: 30000,
   });
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 
 import { useAppStore } from "../../store/appStore";
 import type { QueueItem } from "../../types";
@@ -247,3 +247,4 @@ export function ZeroDragOnboarding() {
     </div>
   );
 }
+

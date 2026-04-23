@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+﻿import { apiClient } from "./client";
 import type { ApiEnvelope, TranscriptQuotePrefill } from "../types";
 
 export interface TranscriptReviewStateResponse {
@@ -82,3 +82,4 @@ export async function logTranscriptAsUpdate(
   }
   return response.data.data;
 }
+

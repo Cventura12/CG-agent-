@@ -1,4 +1,4 @@
-import type { QuoteStatus } from "../../types";
+﻿import type { QuoteStatus } from "../../types";
 import { Badge } from "../ui/Badge";
 
 const statusColor: Record<QuoteStatus, Parameters<typeof Badge>[0]["color"]> = {
@@ -17,3 +17,4 @@ export interface QuoteStatusBadgeProps {
 export function QuoteStatusBadge({ status }: QuoteStatusBadgeProps) {
   return <Badge label={status} color={statusColor[status]} />;
 }
+

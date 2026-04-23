@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+﻿import type { LucideIcon } from "lucide-react";
 
 import { Button } from "./Button";
 
@@ -25,3 +25,4 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
     </div>
   );
 }
+

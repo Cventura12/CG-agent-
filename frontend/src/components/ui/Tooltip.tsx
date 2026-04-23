@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 
 export interface TooltipProps {
   label: string;
@@ -13,3 +13,4 @@ export function Tooltip({ label, children }: TooltipProps) {
     </span>
   );
 }
+
